@@ -3,6 +3,7 @@
 # To modify the layout, see https://jekyllrb.com/docs/themes/#overriding-theme-defaults
 title: Home
 layout: default-layout
+testing: info
 ---
 # About Me 
 <hr>
@@ -41,4 +42,9 @@ Field of study - Software Engineer. <br>
 ![Windows 10](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white) 
 ![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white) 
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-
+<hr>
+## Goals: <br>
+- [ ]  **To add some custom animations(WebGL) to the blog.** 
+- [ ]  Build more projects outside of unit tests.
+- [ ]  Improve knowledge of numpy and pandas libraries.
+- [ ]  To study more deeply ML.

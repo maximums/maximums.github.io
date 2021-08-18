@@ -11,31 +11,6 @@ main {
 	width: 60%;
 }
 
-#nav {
-	margin: 0px;
-	overflow: hidden;
-}
-
-.nav-item {
-	margin: 0px 20px;
-	float: right;
-}
-
-.nav-item a {
-	display: block;
-	color: green;
-	text-align: center;
-	text-decoration: none;
-	padding: 14px 16px;
-}
-
-.nav-item a:hover:not(.active) {
-	background-color: #111;
-}
-
-.active {
-	background-color: #04AA6D;
-}
 aside {
 	margin: 40px 10px;
 	display: inline-block;
@@ -62,3 +37,4 @@ aside {
 	object-fit: cover;
 	z-index: 0;
 }
+
