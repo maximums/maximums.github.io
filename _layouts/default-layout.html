@@ -11,12 +11,15 @@
  {% seo %}
  </head>
   <body>
-<audio autoplay id="back_music" loop>
+<audio id="back_music" loop>
 	<source src="../sad_back" type="audio/mpeg"/>
 </audio> 
 <script>
-var audio = document.getElementById("back_music");
-audio.volume = 0.07;
+window.onload = function() {
+	var audio = document.getElementById("back_music");
+	audio.volume = 0.07;
+	audio.play();
+}
 </script> 
   <header>
         <div class="container">
