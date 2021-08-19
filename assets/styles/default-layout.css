@@ -7,27 +7,24 @@ header {
 }
 
 main {
-	display: inline-block;
+	float: left;
 	width: 60%;
 }
 
 aside {
 	margin: 40px 10px;
-	display: inline-block;
-	vertical-align: top;
 	width: 18%;
 	height: 380px;
-	background-color: white;
-
 }
 
 #right {
 	background: url(../../res/code-coding.gif);
-	background-position: center;
+	float: left;
 }
 
 #left {
 	position: relative;
+	float: left;
 }
 
 #left video {
