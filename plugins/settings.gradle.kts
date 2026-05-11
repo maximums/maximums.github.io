@@ -16,4 +16,4 @@ dependencyResolutionManagement {
     }
 }
 
-include(":webGpuBinding")
+include(":webIdlBinding")

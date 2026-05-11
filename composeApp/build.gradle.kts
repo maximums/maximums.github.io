@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-    id("com.cdodi.webgpu.bindings")
+    id("com.cdodi.webidl.bindings")
 }
 
 kotlin {

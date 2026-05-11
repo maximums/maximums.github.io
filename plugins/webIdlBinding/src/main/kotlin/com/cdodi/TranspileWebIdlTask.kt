@@ -24,18 +24,18 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 @CacheableTask
-abstract class ParseWebGpuIdlTask : DefaultTask() {
+abstract class TranspileWebIdlTask : DefaultTask() {
 
     @get:InputFile
     @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val webGpuIdlFile: RegularFileProperty
+    abstract val idlFile: RegularFileProperty
 
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
     @TaskAction
     operator fun invoke() {
-        val idlFile = webGpuIdlFile.get().asFile
+        val idlFile = idlFile.get().asFile
         val outputDir = outputDirectory.get().asFile.also { dir ->
             if (dir.exists()) dir.deleteRecursively()
             dir.mkdirs()

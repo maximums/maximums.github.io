@@ -12,21 +12,21 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
 @CacheableTask
-abstract class DownloadWebGpuIDLTask : DefaultTask() {
+abstract class DownloadIdlTask : DefaultTask() {
 
     @get:Input
-    abstract val webGpuIdlUrl: Property<String>
+    abstract val idlUrl: Property<String>
 
     @get:OutputFile
-    abstract val webGpuIdlFile: RegularFileProperty
+    abstract val idlFile: RegularFileProperty
 
     @TaskAction
     operator fun invoke() {
-        val stringUrl = webGpuIdlUrl.get()
+        val stringUrl = idlUrl.get()
         val uri = URI.create(stringUrl)
-        val file = webGpuIdlFile.get().asFile
+        val file = idlFile.get().asFile
 
-        logger.lifecycle("WebGPU IDL task started: $stringUrl")
+        logger.lifecycle("IDL download started: $stringUrl")
 
         file.parentFile.mkdirs()
 

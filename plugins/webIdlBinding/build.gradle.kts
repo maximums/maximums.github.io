@@ -5,7 +5,7 @@ plugins {
     id("cdodi.antrl-setup")
 }
 
-group = "com.cdodi.plugins.webGpuBinding"
+group = "com.cdodi.plugins.webIdlBinding"
 version = "0.1.0"
 
 repositories {
@@ -20,11 +20,11 @@ dependencies {
 
 gradlePlugin {
     plugins {
-        register("webGpuBindings") {
-            id = "com.cdodi.webgpu.bindings"
-            displayName = "WebGPU Bindings"
-            description = "Generates Kotlin bindings for WebGPU"
-            implementationClass = "com.cdodi.WebGpuBindingsPlugin"
+        register("webIdlBindings") {
+            id = "com.cdodi.webidl.bindings"
+            displayName = "WebIDL Bindings"
+            description = "Generates Kotlin/Wasm bindings from WebIDL specifications"
+            implementationClass = "com.cdodi.WebIdlBindingsPlugin"
         }
     }
 }

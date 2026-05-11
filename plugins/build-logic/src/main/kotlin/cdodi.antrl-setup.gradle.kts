@@ -20,14 +20,14 @@ val sourceSets = extensions.getByType<SourceSetContainer>()
 val mainSourceSet = sourceSets.named<SourceSet>(SourceSet.MAIN_SOURCE_SET_NAME)
 val grammarProvider = mainSourceSet.map { set -> set.antlr.srcDirs.first().resolve("WebIDL.g4") }
 
-val downloadWebGpuGrammar = tasks.register<DownloadWebGrammarTask>("downloadWebGpuGrammar") {
-    group = "webgpu init"
-    grammarUrl.set(providers.gradleProperty("webGpuGrammarUrl"))
+val downloadWebIdlGrammar = tasks.register<DownloadWebGrammarTask>("downloadWebIdlGrammar") {
+    group = "webidl init"
+    grammarUrl.set(providers.gradleProperty("webIdlGrammarUrl"))
     grammarFile.fileProvider(grammarProvider)
 }
 
 tasks.generateGrammarSource {
-    dependsOn(downloadWebGpuGrammar)
+    dependsOn(downloadWebIdlGrammar)
     arguments = arguments + listOf("-visitor", "-long-messages")
 }
 
