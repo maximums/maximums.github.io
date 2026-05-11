@@ -8,18 +8,26 @@ import com.cdodi.transpiler.MutableBindingContext
 import com.cdodi.transpiler.TypeResolver
 import com.cdodi.transpiler.generateKotlin
 import com.cdodi.transpiler.resolveSemantics
+import org.antlr.v4.runtime.BaseErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
+@CacheableTask
 abstract class ParseWebGpuIdlTask : DefaultTask() {
 
     @get:InputFile
+    @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val webGpuIdlFile: RegularFileProperty
 
     @get:OutputDirectory
@@ -33,9 +41,16 @@ abstract class ParseWebGpuIdlTask : DefaultTask() {
             dir.mkdirs()
         }
 
-        val lexer = WebIDLLexer(CharStreams.fromFileName(idlFile.absolutePath))
+        val errorListener = FailFastErrorListener()
+        val lexer = WebIDLLexer(CharStreams.fromFileName(idlFile.absolutePath)).apply {
+            removeErrorListeners()
+            addErrorListener(errorListener)
+        }
         val tokens = CommonTokenStream(lexer)
-        val parser = WebIDLParser(tokens)
+        val parser = WebIDLParser(tokens).apply {
+            removeErrorListeners()
+            addErrorListener(errorListener)
+        }
         val tree = parser.webIDL()
         val collectionContext = MutableBindingContext()
 
@@ -51,5 +66,18 @@ abstract class ParseWebGpuIdlTask : DefaultTask() {
             "WebGpuFactories",
         )
         fileSpecs.forEach { fileSpec -> fileSpec.writeTo(outputDir) }
+    }
+}
+
+private class FailFastErrorListener : BaseErrorListener() {
+    override fun syntaxError(
+        recognizer: Recognizer<*, *>?,
+        offendingSymbol: Any?,
+        line: Int,
+        charPositionInLine: Int,
+        msg: String?,
+        e: RecognitionException?
+    ) {
+        throw IllegalStateException("WebIDL parse error at line $line:$charPositionInLine — $msg")
     }
 }
