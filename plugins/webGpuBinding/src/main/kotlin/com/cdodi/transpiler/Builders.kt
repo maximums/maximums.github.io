@@ -78,9 +78,11 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.asPoetKt(context, generatedPackageName)
-        val paramBuilder = ParameterSpec.builder(variable.name, typeName)
+        val isOptional = !variable.isRequired
+        val paramType = if (isOptional) typeName.copy(nullable = true) else typeName
+        val paramBuilder = ParameterSpec.builder(variable.name, paramType)
 
-        if (variable.defaultValue != null) {
+        if (isOptional) {
             paramBuilder.defaultValue("null")
         }
 
@@ -91,11 +93,21 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.asPoetKt(context, generatedPackageName)
-        val member = typeName.conversionBridge
-        if (member != null) {
-            factoryBuilder.addStatement("this.%N = %M", variable.name, member)
+        val bridge = typeName.copy(nullable = false).conversionBridge
+        val isOptional = !variable.isRequired
+
+        if (isOptional) {
+            if (bridge != null) {
+                factoryBuilder.addStatement("%N?.let { this.%N = it.%M() }", variable.name, variable.name, bridge)
+            } else {
+                factoryBuilder.addStatement("%N?.let { this.%N = it }", variable.name, variable.name)
+            }
         } else {
-            factoryBuilder.addStatement("this.%N = %N", variable.name, variable.name)
+            if (bridge != null) {
+                factoryBuilder.addStatement("this.%N = %N.%M()", variable.name, variable.name, bridge)
+            } else {
+                factoryBuilder.addStatement("this.%N = %N", variable.name, variable.name)
+            }
         }
     }
 

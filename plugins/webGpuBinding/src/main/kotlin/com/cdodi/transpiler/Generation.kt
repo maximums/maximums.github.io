@@ -39,7 +39,9 @@ fun generateKotlin(
 
     context[BindingSlices.DICTIONARY]?.values?.forEach { dictDesc ->
         val dictInterface = dictDesc.asDictionaryPoet(context, generatedPackageName)
+        val dictFactoryFun = dictDesc.dictFactory(context, generatedPackageName)
         apiFileBuilder.addType(dictInterface)
+        factoriesFileBuilder.addFunction(dictFactoryFun)
     }
 
     return listOf(apiFileBuilder.build(), factoriesFileBuilder.build())

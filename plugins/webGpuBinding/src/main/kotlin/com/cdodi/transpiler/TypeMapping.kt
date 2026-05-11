@@ -1,16 +1,11 @@
 package com.cdodi.transpiler
 
-import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.BOOLEAN
-import com.squareup.kotlinpoet.BYTE
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.DOUBLE
-import com.squareup.kotlinpoet.FLOAT
 import com.squareup.kotlinpoet.INT
-import com.squareup.kotlinpoet.LONG
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.SHORT
 import com.squareup.kotlinpoet.STRING
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.UNIT
@@ -51,15 +46,8 @@ object TypeMapping {
             ClassName("kotlinx.coroutines", "Deferred").parameterizedBy(inner)
         }
         unionMembers.isNotEmpty() -> resolveUnionKt(context, pkg)
-        sequenceOf != null -> {
-            val inner = sequenceOf.asPoetKt(context, pkg)
-            ClassName("kotlin.collections", "MutableList").parameterizedBy(inner)
-        }
-        record != null -> {
-            val keyType = record.keys.first().asPoetKt(context, pkg)
-            val valueType = record.values.first().asPoetKt(context, pkg)
-            ClassName("kotlin.collections", "MutableMap").parameterizedBy(keyType, valueType)
-        }
+        sequenceOf != null -> asPoetJs(context, pkg) // no practical Kt↔Js array conversion
+        record != null -> asPoetJs(context, pkg) // no practical Kt↔Js record conversion
         else -> mapPrimitiveKt()
     }
 
@@ -69,8 +57,7 @@ object TypeMapping {
         get() = when (this) {
             BOOLEAN -> MemberName("kotlin.js", "toJsBoolean")
             STRING -> MemberName("kotlin.js", "toJsString")
-            INT, FLOAT, DOUBLE, BYTE, SHORT, LONG -> MemberName("kotlin.js", "toJsNumber")
-            UNIT, ANY -> MemberName("kotlin.js", "toJsUnit")
+            INT, DOUBLE -> MemberName("kotlin.js", "toJsNumber")
             else -> null
         }
 
@@ -90,7 +77,7 @@ object TypeMapping {
     private fun Descriptor.TypeDescriptor.resolveUnionKt(context: BindingContext, pkg: String): TypeName {
         val markerName = unionMembers.joinToString(separator = "Or") { it.name }
         val resolved = context[BindingSlices.INTERFACE, markerName] ?: context[BindingSlices.DICTIONARY, markerName]
-        return resolved?.let { ClassName(pkg, it.name) } ?: ANY
+        return resolved?.let { ClassName(pkg, it.name) } ?: jsAny
     }
 
     private fun Descriptor.TypeDescriptor.resolveRecordJs(context: BindingContext, pkg: String): TypeName {
@@ -113,16 +100,15 @@ object TypeMapping {
 
     private fun Descriptor.TypeDescriptor.mapPrimitiveKt(): TypeName =
         when (name) {
-            "byte", "octet" -> BYTE
-            "short", "unsignedshort" -> SHORT
-            "long", "unsignedlong" -> INT
-            "longlong", "unsignedlonglong" -> LONG
-            "float", "unrestrictedfloat" -> FLOAT
+            "byte", "octet", "short", "unsignedshort",
+            "long", "unsignedlong",
+            "longlong", "unsignedlonglong" -> INT
+            "float", "unrestrictedfloat",
             "double", "unrestricteddouble" -> DOUBLE
             "boolean" -> BOOLEAN
             "DOMString", "USVString", "ByteString" -> STRING
             "void", "undefined" -> UNIT
-            else -> ANY
+            else -> jsAny
         }.copy(nullable = isNullable)
 
     private fun TypeName.wrapWith(wrapper: ClassName): TypeName =
