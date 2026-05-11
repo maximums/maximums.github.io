@@ -14,6 +14,14 @@ inline fun <T : JsAny> createJsObject(config: T.() -> Unit = {}): T {
     return createEmptyJsObject().unsafeCast<T>().apply(config)
 }
 
+// Temp
+external interface Color : JsAny {
+    var r: Float
+    var g: Float
+    var b: Float
+    var a: Float
+}
+
 @JsFun("() => []")
 private external fun <T : JsAny?> newJsArray(): JsArray<T>
 
