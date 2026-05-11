@@ -35,6 +35,9 @@ fun generateKotlin(
     context[BindingSlices.INTERFACE]?.values?.forEach { interfaceDesc ->
         val interfaceSpec = interfaceDesc.asInterfacePoet(context, generatedPackageName)
         apiFileBuilder.addType(interfaceSpec)
+        interfaceDesc.suspendWrappers(context, generatedPackageName).forEach { suspendFun ->
+            factoriesFileBuilder.addFunction(suspendFun)
+        }
     }
 
     context[BindingSlices.DICTIONARY]?.values?.forEach { dictDesc ->

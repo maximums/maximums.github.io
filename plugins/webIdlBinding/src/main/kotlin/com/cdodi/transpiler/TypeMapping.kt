@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.DOUBLE
 import com.squareup.kotlinpoet.INT
+import com.squareup.kotlinpoet.LIST
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.STRING
@@ -46,8 +47,11 @@ object TypeMapping {
             ClassName("kotlinx.coroutines", "Deferred").parameterizedBy(inner)
         }
         unionMembers.isNotEmpty() -> resolveUnionKt(context, pkg)
-        sequenceOf != null -> asPoetJs(context, pkg) // no practical Kt↔Js array conversion
-        record != null -> asPoetJs(context, pkg) // no practical Kt↔Js record conversion
+        sequenceOf != null -> {
+            val inner = sequenceOf.asPoetKt(context, pkg)
+            LIST.parameterizedBy(inner)
+        }
+        record != null -> asPoetJs(context, pkg) // records remain JsAny (no Kotlin-native mapping yet)
         else -> mapPrimitiveKt()
     }
 

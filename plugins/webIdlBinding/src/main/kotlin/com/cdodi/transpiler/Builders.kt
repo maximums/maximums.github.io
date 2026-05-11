@@ -10,6 +10,7 @@ import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.UNIT
 
 fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
     val interfaceBuilder = if (hasConstructor) {
@@ -93,18 +94,21 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.asPoetKt(context, generatedPackageName)
-        val bridge = typeName.copy(nullable = false).conversionBridge
         val isOptional = !variable.isRequired
+        val conversion = when {
+            variable.type.sequenceOf != null -> MemberName(runtimePackage, "toJsArray")
+            else -> typeName.copy(nullable = false).conversionBridge
+        }
 
         if (isOptional) {
-            if (bridge != null) {
-                factoryBuilder.addStatement("%N?.let { this.%N = it.%M() }", variable.name, variable.name, bridge)
+            if (conversion != null) {
+                factoryBuilder.addStatement("%N?.let { this.%N = it.%M() }", variable.name, variable.name, conversion)
             } else {
                 factoryBuilder.addStatement("%N?.let { this.%N = it }", variable.name, variable.name)
             }
         } else {
-            if (bridge != null) {
-                factoryBuilder.addStatement("this.%N = %N.%M()", variable.name, variable.name, bridge)
+            if (conversion != null) {
+                factoryBuilder.addStatement("this.%N = %N.%M()", variable.name, variable.name, conversion)
             } else {
                 factoryBuilder.addStatement("this.%N = %N", variable.name, variable.name)
             }
@@ -131,6 +135,60 @@ fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, gene
     }
 
     return objectBuilder.build()
+}
+
+fun Descriptor.InterfaceDescriptor.suspendWrappers(
+    context: BindingContext,
+    generatedPackageName: String,
+    runtimePackage: String = "com.cdodi.webgpu",
+): List<FunSpec> {
+    val awaitMember = MemberName(runtimePackage, "await")
+    val className = ClassName(generatedPackageName, name)
+    val wrappers = mutableListOf<FunSpec>()
+
+    members.filterIsInstance<InterfaceMember.FunctionDescriptor>()
+        .filter { it.returnType.promiseOf != null }
+        .forEach { function ->
+            val promiseInner = function.returnType.promiseOf!!
+            val isVoid = promiseInner.name in listOf("undefined", "void")
+            val returnType = if (isVoid) UNIT else promiseInner.asPoetJs(context, generatedPackageName)
+            val hasOptionalParams = function.parameters.any { it.defaultValue != null }
+
+            fun buildWrapper(params: List<InterfaceMember.VariableDescriptor>): FunSpec {
+                val builder = FunSpec.builder("${function.name}Suspend")
+                    .receiver(className)
+                    .addModifiers(KModifier.SUSPEND)
+                if (!isVoid) builder.returns(returnType)
+
+                val paramNames = mutableListOf<String>()
+                params.forEach { param ->
+                    builder.addParameter(param.name, param.type.asPoetJs(context, generatedPackageName))
+                    paramNames.add(param.name)
+                }
+
+                val args = paramNames.joinToString(", ")
+                val call = if (args.isEmpty()) "${function.name}()" else "${function.name}($args)"
+                if (isVoid) {
+                    builder.addStatement("%L.%M()", call, awaitMember)
+                } else {
+                    builder.addStatement("return %L.%M()", call, awaitMember)
+                }
+                return builder.build()
+            }
+
+            wrappers.add(buildWrapper(function.parameters))
+
+            if (hasOptionalParams) {
+                val lastRequiredIdx = function.parameters.indexOfLast { it.defaultValue == null }
+                val firstOptionalIdx = function.parameters.indexOfFirst { it.defaultValue != null }
+                val optionalsAreTrailing = firstOptionalIdx > lastRequiredIdx
+                if (optionalsAreTrailing) {
+                    wrappers.add(buildWrapper(function.parameters.filter { it.defaultValue == null }))
+                }
+            }
+        }
+
+    return wrappers
 }
 
 fun Descriptor.EnumDescriptor.asEnumPoet(): TypeSpec {
