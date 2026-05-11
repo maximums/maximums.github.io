@@ -1,47 +1,68 @@
 package com.cdodi.transpiler
 
-import kotlin.collections.forEach
-
-fun resolveSemantics(context: MutableBindingContext) {
-    val dictionarySlice = context[BindingSlices.PARTIAL_DICTIONARY]?.onEach { (key, value) ->
-        val main = context[BindingSlices.DICTIONARY, key] ?: return@onEach
-
-        context[BindingSlices.DICTIONARY, key] = main + value
-    }
-
-    dictionarySlice?.let { flattenDictionaries(it) }
-
-    context[BindingSlices.PARTIAL_INTERFACE]?.forEach { (key, value) ->
-        val main = context[BindingSlices.INTERFACE, key] ?: return@forEach
-
-        context[BindingSlices.INTERFACE, key] = main + value
-    }
-
-    context[BindingSlices.INTERFACE]?.forEach { (key, value) ->
-        val externalTypes = value.superTypes.filter { context[BindingSlices.INTERFACE, it] == null }
-        val newTypes = value.superTypes - externalTypes.toSet() + "JsAny"
-        context[BindingSlices.INTERFACE, key] = value.copy(superTypes = newTypes)
-    }
-
+fun resolveSemantics(context: MutableBindingContext): ResolvedBindingContext {
+    resolveMixinIncludes(context)
+    mergePartialInterfaces(context)
+    mergePartialDictionaries(context)
+    flattenDictionaryInheritance(context)
+    filterExternalSuperTypes(context)
     resolveTypesInContext(context)
+
+    return ResolvedBindingContext(
+        interfaces = context[BindingSlices.INTERFACE]?.toMap().orEmpty(),
+        dictionaries = context[BindingSlices.DICTIONARY]?.toMap().orEmpty(),
+        enums = context[BindingSlices.ENUM]?.toMap().orEmpty(),
+    )
 }
 
-private fun flattenDictionaries(dictionaries: MutableMap<String, Descriptor.InterfaceDescriptor>) {
-    fun Map<String, Descriptor.InterfaceDescriptor>.collectDictionaryMembers(name: String): List<InterfaceMember> {
-        val dict = this[name] ?: return emptyList()
-        return dict.superTypes.fold(dict.members) { acc, father ->
-            acc + collectDictionaryMembers(father)
+private fun resolveMixinIncludes(context: MutableBindingContext) {
+    context[BindingSlices.INCLUDES]?.values?.forEach { directive ->
+        val targetClass = context[BindingSlices.INTERFACE, directive.targetName] ?: return@forEach
+        val mixin = context[BindingSlices.MIXIN, directive.mixinName]
+        context[BindingSlices.INTERFACE, directive.targetName] = targetClass + mixin
+    }
+}
+
+private fun mergePartialInterfaces(context: MutableBindingContext) {
+    context[BindingSlices.PARTIAL_INTERFACE]?.forEach { (key, value) ->
+        val main = context[BindingSlices.INTERFACE, key] ?: return@forEach
+        context[BindingSlices.INTERFACE, key] = main + value
+    }
+}
+
+private fun mergePartialDictionaries(context: MutableBindingContext) {
+    context[BindingSlices.PARTIAL_DICTIONARY]?.forEach { (key, value) ->
+        val main = context[BindingSlices.DICTIONARY, key] ?: return@forEach
+        context[BindingSlices.DICTIONARY, key] = main + value
+    }
+}
+
+private fun flattenDictionaryInheritance(context: MutableBindingContext) {
+    val dictionaries = context[BindingSlices.DICTIONARY] ?: return
+
+    fun collectDictionaryMembers(name: String): List<InterfaceMember> {
+        val dict = dictionaries[name] ?: return emptyList()
+        return dict.superTypes.fold(dict.members) { acc, parent ->
+            acc + collectDictionaryMembers(parent)
         }
     }
 
     val flattenedUpdates = dictionaries.mapNotNull { (name, descriptor) ->
         if (descriptor.superTypes.isEmpty()) return@mapNotNull null
 
-        val allMembers = dictionaries.collectDictionaryMembers(name)
+        val allMembers = collectDictionaryMembers(name)
         name to descriptor.copy(members = allMembers, superTypes = emptySet())
     }.toMap()
 
     dictionaries.putAll(flattenedUpdates)
+}
+
+private fun filterExternalSuperTypes(context: MutableBindingContext) {
+    context[BindingSlices.INTERFACE]?.forEach { (key, value) ->
+        val externalTypes = value.superTypes.filter { context[BindingSlices.INTERFACE, it] == null }
+        val newTypes = value.superTypes - externalTypes.toSet() + "JsAny"
+        context[BindingSlices.INTERFACE, key] = value.copy(superTypes = newTypes)
+    }
 }
 
 fun Descriptor.TypeDescriptor.unrollTypedefs(context: BindingContext): Descriptor.TypeDescriptor {
@@ -72,7 +93,6 @@ fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBindingContext): Des
         context[BindingSlices.INTERFACE, it.name] != null || context[BindingSlices.DICTIONARY, it.name] != null
     }
 
-    // TODO Extract
     if (isAllCustomObjects) {
         val markerInterfaceName = members.joinToString(separator = "Or") { it.name }
 
@@ -112,8 +132,7 @@ private fun resolveTypesInContext(context: MutableBindingContext) {
             is InterfaceMember.FunctionDescriptor -> {
                 val newReturn = member.returnType.unrollTypedefs(context).resolveUnions(context)
                 val newParams = member.parameters.map { param ->
-//                    val newParamType = param.type.unrollTypedefs(context).resolveUnions(context)
-                    val newParamType = param.type.unrollTypedefs(context)
+                    val newParamType = param.type.unrollTypedefs(context).resolveUnions(context)
                     param.copy(type = newParamType)
                 }
                 member.copy(returnType = newReturn, parameters = newParams)
@@ -121,14 +140,12 @@ private fun resolveTypesInContext(context: MutableBindingContext) {
         }
     }
 
-    // Process all Interfaces
     val interfaces = context[BindingSlices.INTERFACE] ?: emptyMap()
     interfaces.forEach { (name, descriptor) ->
         val resolvedMembers = descriptor.members.map { resolveMember(it) }
         context[BindingSlices.INTERFACE, name] = descriptor.copy(members = resolvedMembers)
     }
 
-    // Process all Dictionaries
     val dictionaries = context[BindingSlices.DICTIONARY] ?: emptyMap()
     dictionaries.forEach { (name, descriptor) ->
         val resolvedMembers = descriptor.members.map { resolveMember(it) }

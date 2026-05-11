@@ -16,11 +16,11 @@ class SymbolCollectorVisitor(
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
-            superTypes = emptySet() // Mixin doesn't support inheritance
+            superTypes = emptySet()
         )
-        val maybePresent = context[BindingSlices.FAKE_INTERFACE, name] // Actually I don't think it is possible, but I am tired already
+        val maybePresent = context[BindingSlices.MIXIN, name]
 
-        context[BindingSlices.FAKE_INTERFACE, name] = descriptor + maybePresent
+        context[BindingSlices.MIXIN, name] = descriptor + maybePresent
     }
 
     override fun visitPartialInterfaceRest(ctx: WebIDLParser.PartialInterfaceRestContext) {
@@ -29,7 +29,7 @@ class SymbolCollectorVisitor(
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
-            superTypes = emptySet() // Partial interfaces doesn't support inheritance either
+            superTypes = emptySet()
         )
         val maybePresent = context[BindingSlices.PARTIAL_INTERFACE, name]
 
@@ -48,15 +48,12 @@ class SymbolCollectorVisitor(
         )
     }
 
-    // Questionable -- ii posibil ca sa se execute inainte ca `mixin` sau `interface` sau fie adaugat in `context`??
     override fun visitIncludesStatement(ctx: WebIDLParser.IncludesStatementContext) {
-        val targetClassName = ctx.IDENTIFIER_WEBIDL(0)?.text ?: return
+        val targetName = ctx.IDENTIFIER_WEBIDL(0)?.text ?: return
         val mixinName = ctx.IDENTIFIER_WEBIDL(1)?.text ?: return
-        val targetClass = context[BindingSlices.INTERFACE, targetClassName] ?: return
-        val mixin = context[BindingSlices.FAKE_INTERFACE, mixinName]
-        val result = targetClass + mixin
+        val directive = IncludesDirective(targetName, mixinName)
 
-        context[BindingSlices.INTERFACE, targetClassName] = result
+        context[BindingSlices.INCLUDES, "$targetName+$mixinName"] = directive
     }
 
     override fun visitDictionary(ctx: WebIDLParser.DictionaryContext) {
@@ -77,14 +74,13 @@ class SymbolCollectorVisitor(
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
-            superTypes = emptySet() // Partial dictionaries doesn't support inheritance either
+            superTypes = emptySet()
         )
         val maybePresent = context[BindingSlices.PARTIAL_DICTIONARY, name]
 
         context[BindingSlices.PARTIAL_DICTIONARY, name] = descriptor + maybePresent
     }
 
-    // Whatever, it is good enough
     override fun visitEnum_(ctx: WebIDLParser.Enum_Context) {
         val enumName = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
         val entries = ctx.enumValueList()?.text.orEmpty()
