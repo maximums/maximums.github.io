@@ -38,6 +38,7 @@ class ResolvedBindingContext(
     private val interfaces: Map<String, Descriptor.InterfaceDescriptor>,
     private val dictionaries: Map<String, Descriptor.InterfaceDescriptor>,
     private val enums: Map<String, Descriptor.EnumDescriptor>,
+    private val namespaces: Map<String, Descriptor.InterfaceDescriptor>,
 ) : BindingContext {
 
     @Suppress("UNCHECKED_CAST")
@@ -45,6 +46,7 @@ class ResolvedBindingContext(
         BindingSlices.INTERFACE -> interfaces as Map<String, V>
         BindingSlices.DICTIONARY -> dictionaries as Map<String, V>
         BindingSlices.ENUM -> enums as Map<String, V>
+        BindingSlices.NAMESPACE -> namespaces as Map<String, V>
         else -> null
     }
 
@@ -75,6 +77,9 @@ object BindingSlices {
     // --- 5. Includes directives (resolved in semantic phase) ---
     val INCLUDES = Slice<String, IncludesDirective>("INCLUDES")
 
-    // --- 6. Fallback / Hardcoded Types ---
+    // --- 6. Namespaces ---
+    val NAMESPACE = Slice<String, Descriptor.InterfaceDescriptor>("NAMESPACE")
+
+    // --- 7. Fallback / Hardcoded Types ---
     val EXTERNAL_TYPE = Slice<String, String>("EXTERNAL_TYPE")
 }

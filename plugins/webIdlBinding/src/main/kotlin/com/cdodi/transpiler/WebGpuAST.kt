@@ -47,4 +47,10 @@ sealed interface InterfaceMember : Descriptor {
         val returnType: Descriptor.TypeDescriptor,
         val parameters: List<VariableDescriptor>,
     ) : InterfaceMember
+
+    data class ConstantDescriptor(
+        override val name: String,
+        val type: Descriptor.TypeDescriptor,
+        val value: String,
+    ) : InterfaceMember
 }

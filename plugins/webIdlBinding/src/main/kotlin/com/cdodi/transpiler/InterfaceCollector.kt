@@ -50,6 +50,16 @@ class InterfaceCollector(private val typeResolver: TypeResolver) : WebIDLBaseVis
         return super.visitInterfaceMember(ctx)
     }
 
+    override fun visitConst_(ctx: WebIDLParser.Const_Context): List<InterfaceMember> {
+        val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return super.visitConst_(ctx)
+        val constType = ctx.constType() ?: return super.visitConst_(ctx)
+        val typeName = constType.primitiveType()?.text ?: constType.IDENTIFIER_WEBIDL()?.text?.trim()
+            ?: return super.visitConst_(ctx)
+        val type = Descriptor.TypeDescriptor(name = typeName, isNullable = false)
+        val value = ctx.constValue()?.text?.trim() ?: return super.visitConst_(ctx)
+        return listOf(InterfaceMember.ConstantDescriptor(name = name, type = type, value = value))
+    }
+
     override fun visitDictionaryMemberRest(ctx: WebIDLParser.DictionaryMemberRestContext): List<InterfaceMember> {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return super.visitDictionaryMemberRest(ctx)
         val typeCtx = ctx.typeWithExtendedAttributes() ?: ctx.type_()

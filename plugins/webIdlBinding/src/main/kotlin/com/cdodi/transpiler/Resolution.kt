@@ -12,6 +12,7 @@ fun resolveSemantics(context: MutableBindingContext): ResolvedBindingContext {
         interfaces = context[BindingSlices.INTERFACE]?.toMap().orEmpty(),
         dictionaries = context[BindingSlices.DICTIONARY]?.toMap().orEmpty(),
         enums = context[BindingSlices.ENUM]?.toMap().orEmpty(),
+        namespaces = context[BindingSlices.NAMESPACE]?.toMap().orEmpty(),
     )
 }
 
@@ -137,6 +138,11 @@ private fun resolveTypesInContext(context: MutableBindingContext) {
                 }
                 member.copy(returnType = newReturn, parameters = newParams)
             }
+
+            is InterfaceMember.ConstantDescriptor -> {
+                val newType = member.type.unrollTypedefs(context)
+                member.copy(type = newType)
+            }
         }
     }
 
@@ -150,5 +156,11 @@ private fun resolveTypesInContext(context: MutableBindingContext) {
     dictionaries.forEach { (name, descriptor) ->
         val resolvedMembers = descriptor.members.map { resolveMember(it) }
         context[BindingSlices.DICTIONARY, name] = descriptor.copy(members = resolvedMembers)
+    }
+
+    val namespaces = context[BindingSlices.NAMESPACE] ?: emptyMap()
+    namespaces.forEach { (name, descriptor) ->
+        val resolvedMembers = descriptor.members.map { resolveMember(it) }
+        context[BindingSlices.NAMESPACE, name] = descriptor.copy(members = resolvedMembers)
     }
 }

@@ -28,7 +28,8 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
     }
 
     override fun visitDistinguishableType(ctx: WebIDLParser.DistinguishableTypeContext): TypeDescriptor {
-        if (ctx.getChild(0).text == "sequence") {
+        val firstChild = ctx.getChild(0).text
+        if (firstChild == "sequence" || firstChild == "FrozenArray" || firstChild == "ObservableArray") {
             val inner = visit(ctx.typeWithExtendedAttributes())
             return TypeDescriptor(name = "sequence", sequenceOf = inner)
         }

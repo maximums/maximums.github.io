@@ -56,6 +56,16 @@ class SymbolCollectorVisitor(
         context[BindingSlices.INCLUDES, "$targetName+$mixinName"] = directive
     }
 
+    override fun visitNamespace_(ctx: WebIDLParser.Namespace_Context) {
+        val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
+        val collectedMembers = ctx.namespaceMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        context[BindingSlices.NAMESPACE, name] = Descriptor.InterfaceDescriptor(
+            name = name,
+            members = collectedMembers,
+            superTypes = emptySet()
+        )
+    }
+
     override fun visitDictionary(ctx: WebIDLParser.DictionaryContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text ?: return
         val superTypes = ctx.inheritance()?.IDENTIFIER_WEBIDL()?.text?.trim().let(::setOfNotNull)

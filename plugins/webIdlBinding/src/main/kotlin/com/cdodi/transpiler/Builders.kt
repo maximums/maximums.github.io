@@ -117,6 +117,22 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 }
 
 
+fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
+    val objectBuilder = TypeSpec.objectBuilder(name)
+
+    members.filterIsInstance<InterfaceMember.ConstantDescriptor>().forEach { constant ->
+        val ktType = constant.type.asPoetKt(context, generatedPackageName)
+        objectBuilder.addProperty(
+            PropertySpec.builder(constant.name, ktType)
+                .addModifiers(KModifier.CONST)
+                .initializer(constant.value)
+                .build()
+        )
+    }
+
+    return objectBuilder.build()
+}
+
 fun Descriptor.EnumDescriptor.asEnumPoet(): TypeSpec {
     val interfaceBuilder = TypeSpec.interfaceBuilder(name)
         .addModifiers(KModifier.SEALED, KModifier.EXTERNAL)

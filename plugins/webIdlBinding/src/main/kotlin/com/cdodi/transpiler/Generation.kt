@@ -44,5 +44,10 @@ fun generateKotlin(
         factoriesFileBuilder.addFunction(dictFactoryFun)
     }
 
+    context[BindingSlices.NAMESPACE]?.values?.forEach { namespaceDesc ->
+        val namespaceObject = namespaceDesc.asNamespacePoet(context, generatedPackageName)
+        factoriesFileBuilder.addType(namespaceObject)
+    }
+
     return listOf(apiFileBuilder.build(), factoriesFileBuilder.build())
 }
