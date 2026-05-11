@@ -2,7 +2,7 @@ package com.cdodi.transpiler
 
 import kotlin.collections.forEach
 
-fun resolveSemantics(context: MutableBidingContext) {
+fun resolveSemantics(context: MutableBindingContext) {
     val dictionarySlice = context[BindingSlices.PARTIAL_DICTIONARY]?.onEach { (key, value) ->
         val main = context[BindingSlices.DICTIONARY, key] ?: return@onEach
 
@@ -27,8 +27,8 @@ fun resolveSemantics(context: MutableBidingContext) {
 }
 
 private fun flattenDictionaries(dictionaries: MutableMap<String, Descriptor.InterfaceDescriptor>) {
-    fun Map<String, Descriptor.InterfaceDescriptor>.collectDictionaryMembers(name: String): Set<InterfaceMember> {
-        val dict = this[name] ?: return emptySet()
+    fun Map<String, Descriptor.InterfaceDescriptor>.collectDictionaryMembers(name: String): List<InterfaceMember> {
+        val dict = this[name] ?: return emptyList()
         return dict.superTypes.fold(dict.members) { acc, father ->
             acc + collectDictionaryMembers(father)
         }
@@ -49,7 +49,7 @@ fun Descriptor.TypeDescriptor.unrollTypedefs(context: BindingContext): Descripto
     if (typedef != null) return typedef.unrollTypedefs(context).copy(isNullable = isNullable || typedef.isNullable)
 
     return copy(
-        unionMembers = unionMembers.map { it.unrollTypedefs(context) }.toSet(),
+        unionMembers = unionMembers.map { it.unrollTypedefs(context) },
         sequenceOf = sequenceOf?.unrollTypedefs(context),
         promiseOf = promiseOf?.unrollTypedefs(context),
         record = record?.entries?.associate {
@@ -58,7 +58,7 @@ fun Descriptor.TypeDescriptor.unrollTypedefs(context: BindingContext): Descripto
     )
 }
 
-fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBidingContext): Descriptor.TypeDescriptor {
+fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBindingContext): Descriptor.TypeDescriptor {
     val resolvedSequence = sequenceOf?.resolveUnions(context)
     val resolvedPromise = promiseOf?.resolveUnions(context)
     val resolvedRecord = record?.entries?.associate {
@@ -79,7 +79,7 @@ fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBidingContext): Desc
         if (context[BindingSlices.INTERFACE, markerInterfaceName] == null) {
             context[BindingSlices.INTERFACE, markerInterfaceName] = Descriptor.InterfaceDescriptor(
                 name = markerInterfaceName,
-                members = emptySet(),
+                members = emptyList(),
                 superTypes = setOf("JsAny")
             )
         }
@@ -101,7 +101,7 @@ fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBidingContext): Desc
     }
 }
 
-private fun resolveTypesInContext(context: MutableBidingContext) {
+private fun resolveTypesInContext(context: MutableBindingContext) {
     fun resolveMember(member: InterfaceMember): InterfaceMember {
         return when (member) {
             is InterfaceMember.VariableDescriptor -> {
@@ -115,7 +115,7 @@ private fun resolveTypesInContext(context: MutableBidingContext) {
 //                    val newParamType = param.type.unrollTypedefs(context).resolveUnions(context)
                     val newParamType = param.type.unrollTypedefs(context)
                     param.copy(type = newParamType)
-                }.toSet()
+                }
                 member.copy(returnType = newReturn, parameters = newParams)
             }
         }
@@ -124,14 +124,14 @@ private fun resolveTypesInContext(context: MutableBidingContext) {
     // Process all Interfaces
     val interfaces = context[BindingSlices.INTERFACE] ?: emptyMap()
     interfaces.forEach { (name, descriptor) ->
-        val resolvedMembers = descriptor.members.map { resolveMember(it) }.toSet()
+        val resolvedMembers = descriptor.members.map { resolveMember(it) }
         context[BindingSlices.INTERFACE, name] = descriptor.copy(members = resolvedMembers)
     }
 
     // Process all Dictionaries
     val dictionaries = context[BindingSlices.DICTIONARY] ?: emptyMap()
     dictionaries.forEach { (name, descriptor) ->
-        val resolvedMembers = descriptor.members.map { resolveMember(it) }.toSet()
+        val resolvedMembers = descriptor.members.map { resolveMember(it) }
         context[BindingSlices.DICTIONARY, name] = descriptor.copy(members = resolvedMembers)
     }
 }

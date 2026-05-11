@@ -5,7 +5,7 @@ import WebIDLParser
 import kotlin.collections.orEmpty
 
 class SymbolCollectorVisitor(
-    private val context: MutableBidingContext,
+    private val context: MutableBindingContext,
     private val membersCollector: InterfaceCollector,
     private val typeResolver: TypeResolver,
 ) : WebIDLBaseVisitor<Unit>() {

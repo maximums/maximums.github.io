@@ -7,7 +7,7 @@ interface BindingContext {
     operator fun <V: Any>get(slice: Slice<String, V>): Map<String, V>?
 }
 
-class MutableBidingContext : BindingContext {
+class MutableBindingContext : BindingContext {
     private val storage = mutableMapOf<Slice<*, *>, MutableMap<String, Any>>()
 
     operator fun <V : Any> set(slice: Slice<String, V>, key: String, value: V) {

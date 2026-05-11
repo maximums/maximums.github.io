@@ -6,7 +6,7 @@ import com.cdodi.transpiler.BindingSlices
 import com.cdodi.transpiler.InterfaceCollector
 //import com.cdodi.transpiler.KotlinGenerator
 import com.cdodi.transpiler.SymbolCollectorVisitor
-import com.cdodi.transpiler.MutableBidingContext
+import com.cdodi.transpiler.MutableBindingContext
 import com.cdodi.transpiler.TypeResolver
 import com.cdodi.transpiler.generateKotlin
 import com.cdodi.transpiler.resolveSemantics
@@ -41,7 +41,7 @@ abstract class ParseWebGpuIdlTask : DefaultTask() {
         val tokens = CommonTokenStream(lexer)
         val parser = WebIDLParser(tokens)
         val tree = parser.webIDL()
-        val sematicContext = MutableBidingContext()
+        val sematicContext = MutableBindingContext()
 
         val typeResolver = TypeResolver()
         val membersCollector = InterfaceCollector(typeResolver)

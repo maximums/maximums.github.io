@@ -54,7 +54,7 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
     }
 
     override fun visitUnionType(ctx: WebIDLParser.UnionTypeContext): TypeDescriptor {
-        val members = mutableSetOf<TypeDescriptor>()
+        val members = mutableListOf<TypeDescriptor>()
 
         ctx.unionMemberType().forEach { members.add(visitUnionMemberType(it)) }
 

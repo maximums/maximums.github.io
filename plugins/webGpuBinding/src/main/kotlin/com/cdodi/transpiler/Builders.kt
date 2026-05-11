@@ -9,7 +9,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 
 fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
-    val interfaceBuilder = if (isAbstractClass) {
+    val interfaceBuilder = if (hasConstructor) {
         TypeSpec.classBuilder(name).addModifiers(KModifier.ABSTRACT)
     } else {
         TypeSpec.interfaceBuilder(name)

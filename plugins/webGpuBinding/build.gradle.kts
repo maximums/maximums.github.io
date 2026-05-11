@@ -23,7 +23,7 @@ gradlePlugin {
         register("webGpuBindings") {
             id = "com.cdodi.webgpu.bindings"
             displayName = "WebGPU Bindings"
-            description = "Generateds Koltin bindings for WebGPU"
+            description = "Generates Kotlin bindings for WebGPU"
             implementationClass = "com.cdodi.WebGpuBindingsPlugin"
         }
     }
