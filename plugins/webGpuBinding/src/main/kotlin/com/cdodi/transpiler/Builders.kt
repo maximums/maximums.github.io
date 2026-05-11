@@ -1,5 +1,8 @@
 package com.cdodi.transpiler
 
+import com.cdodi.transpiler.TypeMapping.asPoetJs
+import com.cdodi.transpiler.TypeMapping.asPoetKt
+import com.cdodi.transpiler.TypeMapping.conversionBridge
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -23,7 +26,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.asPoetJs(context, generatedPackageName)
         interfaceBuilder.addProperty(
-            PropertySpec.builder(variable.name, typeName).mutable(true).build()
+            PropertySpec.builder(variable.name, typeName).mutable(!variable.isReadonly).build()
         )
     }
 
@@ -48,9 +51,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
 
 
 fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, generatedPackageName: String): TypeSpec {
-//    val interfaceBuilder = TypeSpec.classBuilder(name)
     val interfaceBuilder = TypeSpec.interfaceBuilder(name)
-//        .addModifiers(KModifier.ABSTRACT, KModifier.EXTERNAL)
         .addModifiers(KModifier.EXTERNAL)
         .addSuperinterface(ClassName("kotlin.js", "JsAny"))
 
@@ -59,7 +60,6 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
         interfaceBuilder.addProperty(
             PropertySpec.builder(variable.name, typeName)
                 .mutable(true)
-//                .also { if (variable.defaultValue != null) it.initializer("definedExternally") }
                 .build()
         )
     }
@@ -70,8 +70,9 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
 fun Descriptor.InterfaceDescriptor.dictFactory(
     context: BindingContext,
     generatedPackageName: String,
+    runtimePackage: String = "com.cdodi.webgpu",
 ): FunSpec {
-    val createJsObjectMember = MemberName("com.cdodi.webgpu", "createJsObject")
+    val createJsObjectMember = MemberName(runtimePackage, "createJsObject")
     val className = ClassName(generatedPackageName, name)
     val factoryBuilder = FunSpec.builder(name).returns(className)
 
@@ -80,8 +81,6 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
         val paramBuilder = ParameterSpec.builder(variable.name, typeName)
 
         if (variable.defaultValue != null) {
-//            paramBuilder.defaultValue("definedExternally")
-//        } else if (typeName.isNullable) {
             paramBuilder.defaultValue("null")
         }
 

@@ -10,7 +10,7 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
             ctx.unionType() != null -> visit(ctx.unionType())
             else -> TypeDescriptor(name = "any")
         }
-        val isNullable = ctx.null_()?.text == "?" || ctx.null_()?.text?.isEmpty() == true
+        val isNullable = ctx.null_()?.text == "?"
         return baseType.copy(isNullable = isNullable)
     }
 
@@ -46,7 +46,7 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
         val dist = ctx.distinguishableType()
         return if (dist != null) {
             val base = visitDistinguishableType(dist)
-            val isNullable = ctx.null_()?.text == "?" || ctx.null_()?.text?.isEmpty() == true
+            val isNullable = ctx.null_()?.text == "?"
             base.copy(isNullable = isNullable)
         } else {
             visit(ctx.unionType())
