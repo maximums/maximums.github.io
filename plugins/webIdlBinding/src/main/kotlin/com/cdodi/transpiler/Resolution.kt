@@ -65,8 +65,10 @@ private fun flattenDictionaryInheritance(context: MutableBindingContext) {
 private fun filterExternalSuperTypes(context: MutableBindingContext) {
     context[BindingSlices.INTERFACE]?.forEach { (key, value) ->
         val externalTypes = value.superTypes.filter { context[BindingSlices.INTERFACE, it] == null }
-        val newTypes = value.superTypes - externalTypes.toSet() + "JsAny"
-        context[BindingSlices.INTERFACE, key] = value.copy(superTypes = newTypes)
+        val newTypes = value.superTypes - externalTypes.toSet()
+        context[BindingSlices.INTERFACE, key] = value.copy(
+            superTypes = newTypes.ifEmpty { setOf("JsAny") }
+        )
     }
 }
 
