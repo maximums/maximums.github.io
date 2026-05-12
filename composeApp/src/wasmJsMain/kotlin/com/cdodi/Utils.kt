@@ -1,12 +1,19 @@
 package com.cdodi
 
+import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.isActive
 import org.jetbrains.skia.Data
 
 // only support Int, Float and Float is interpreted as a 32-bits Int `Float.toBits()`
@@ -60,4 +67,20 @@ val LocalIsSmallWindow = compositionLocalWithComputedDefaultOf {
 
         width < 800.dp || height < 800.dp
     }
+}
+
+private const val ONE_SECOND_NANOS = 1_000_000_000f
+
+@Composable
+fun rememberAnimatedTime(key: Any? = Unit): State<Float> {
+    val time = remember { mutableStateOf(0f) }
+    LaunchedEffect(key) {
+        val startTime = withFrameNanos { it }
+        while (isActive) {
+            withInfiniteAnimationFrameNanos { frameTimeNanos ->
+                time.value = (frameTimeNanos - startTime) / ONE_SECOND_NANOS
+            }
+        }
+    }
+    return time
 }

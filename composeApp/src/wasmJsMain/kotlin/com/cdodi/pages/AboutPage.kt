@@ -1,23 +1,19 @@
 package com.cdodi.pages
 
-import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.isActive
+import com.cdodi.rememberAnimatedTime
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-const val ONE_SECOND_NANOS = 1_000_000_000f
+private const val ONE_SECOND_NANOS = 1_000_000_000f
 
 // language=agsl
 private const val SANDBOX = """
@@ -126,20 +122,12 @@ const val MY_TRY = """
 @Composable
 fun AboutPage() {
     val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
-    val time = remember { mutableStateOf(0f) }
+    val time = rememberAnimatedTime(effect)
 
     SideEffect {
         println("About page recomposed")
     }
 
-    LaunchedEffect(effect) {
-        val startTime = withFrameNanos { it }
-        while (isActive) {
-            withInfiniteAnimationFrameNanos { frameTimeNanos ->
-                time.value = (frameTimeNanos - startTime) / ONE_SECOND_NANOS
-            }
-        }
-    }
     Box(
         modifier = Modifier
             .fillMaxSize()
