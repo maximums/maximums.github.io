@@ -127,7 +127,8 @@ fun Descriptor.TypeDescriptor.resolveUnions(context: MutableBindingContext): Des
             }
         }
 
-        return Descriptor.TypeDescriptor(name = markerInterfaceName, isNullable = isNullable)
+        val effectiveNullable = isNullable || members.any { it.isNullable }
+        return Descriptor.TypeDescriptor(name = markerInterfaceName, isNullable = effectiveNullable)
     } else {
         return Descriptor.TypeDescriptor(name = "any", isNullable = isNullable)
     }
