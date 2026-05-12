@@ -113,26 +113,23 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
     }
 }
 
+private data class MovableArgs<R, P1, P2, P3, P4>(
+    val receiver: R, val p1: P1, val p2: P2, val p3: P3, val p4: P4,
+)
+
 @OptIn(InternalComposeApi::class)
 fun <R, P1, P2, P3, P4> movableContentWithReceiverOf(
     content: @Composable R.(P1, P2, P3, P4) -> Unit
 ): @Composable R.(P1, P2, P3, P4) -> Unit {
 
-    // 1. We nest an extra Pair here: Pair<Pair<P2, P3>, P4>
-    val movableContent = MovableContent<Pair<Pair<R, P1>, Pair<Pair<P2, P3>, P4>>> {
-        it.first.first.content(
-            it.first.second,          // P1
-            it.second.first.first,    // P2
-            it.second.first.second,   // P3
-            it.second.second          // P4
-        )
+    val movableContent = MovableContent<MovableArgs<R, P1, P2, P3, P4>> {
+        it.receiver.content(it.p1, it.p2, it.p3, it.p4)
     }
 
     return { p1, p2, p3, p4 ->
         currentComposer.insertMovableContent(
             movableContent,
-            // 2. We pack the actual runtime values into the same nested Pair structure
-            (this to p1) to ((p2 to p3) to p4)
+            MovableArgs(this, p1, p2, p3, p4)
         )
     }
 }
