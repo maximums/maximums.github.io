@@ -24,7 +24,11 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
             return visitDistinguishableType(it)
         }
 
-        return TypeDescriptor(name = ctx.text)
+        val rawName = ctx.text.trim()
+        check(rawName.isNotEmpty() && rawName.all { it.isLetterOrDigit() || it == '_' }) {
+            "Unable to resolve type from: '${ctx.text}' at ${ctx.start.line}:${ctx.start.charPositionInLine}"
+        }
+        return TypeDescriptor(name = rawName)
     }
 
     override fun visitDistinguishableType(ctx: WebIDLParser.DistinguishableTypeContext): TypeDescriptor {
