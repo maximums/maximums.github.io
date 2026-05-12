@@ -86,6 +86,8 @@ suspend fun prepareWebGPUCanvas() {
 
     val buffer = encoder.finish()
     device.queue.submit(arrayOf(buffer).toJsArray())
+
+    msaaTexture.destroy()
 }
 
 // language=WGSL
