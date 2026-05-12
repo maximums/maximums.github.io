@@ -57,7 +57,8 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
         .addSuperinterface(ClassName("kotlin.js", "JsAny"))
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
-        val typeName = variable.type.asPoetJs(context, generatedPackageName).copy(nullable = true)
+        val typeName = variable.type.asPoetJs(context, generatedPackageName)
+            .copy(nullable = !variable.isRequired)
         interfaceBuilder.addProperty(
             PropertySpec.builder(variable.name, typeName)
                 .mutable(true)
