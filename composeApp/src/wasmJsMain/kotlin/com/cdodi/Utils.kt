@@ -16,7 +16,8 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.isActive
 import org.jetbrains.skia.Data
 
-// only support Int, Float and Float is interpreted as a 32-bits Int `Float.toBits()`
+// Packs Int and Float uniforms into a Skia-compatible byte array.
+// Uses little-endian byte order, matching Skia's RuntimeEffect expectations on all Wasm/x86/ARM targets.
 fun uniformData(vararg data: Number): Data {
     return ByteArray(size = data.sumOf { Int.SIZE_BYTES }).run {
         data.forEachIndexed { index, number -> number.populate(array = this, offset = index * Int.SIZE_BYTES ) }
@@ -28,9 +29,10 @@ private fun Number.populate(array: ByteArray, offset: Int) {
     val number = when (this) {
         is Int -> this
         is Float -> toBits()
-        else -> TODO("Why?")
+        else -> throw IllegalArgumentException("uniformData only supports Int and Float, got ${this::class}")
     }
 
+    // Little-endian: least significant byte first
     repeat(Int.SIZE_BYTES) { byteIdx ->
         array[byteIdx + offset] = (number shr (byteIdx * Byte.SIZE_BITS)).toByte()
     }
