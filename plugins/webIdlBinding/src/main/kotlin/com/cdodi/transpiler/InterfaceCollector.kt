@@ -36,22 +36,22 @@ class InterfaceCollector(
             val parameters = constructorCtx.argumentList()?.extractArguments().orEmpty()
 
             var parentNode: RuleContext? = ctx.parent
-            var interfaceName = "Unknown"
             while (parentNode != null) {
                 if (parentNode is WebIDLParser.InterfaceRestContext) {
-                    interfaceName = parentNode.IDENTIFIER_WEBIDL()?.text?.trim() ?: "Unknown"
-                    break
+                    val interfaceName = parentNode.IDENTIFIER_WEBIDL()?.text?.trim()
+                        ?: error("Constructor found in interface without a name")
+                    return listOf(
+                        InterfaceMember.FunctionDescriptor(
+                            name = "constructor",
+                            returnType = Descriptor.TypeDescriptor(name = interfaceName, isNullable = false),
+                            parameters = parameters,
+                        )
+                    )
                 }
                 parentNode = parentNode.parent
             }
 
-            return listOf(
-                InterfaceMember.FunctionDescriptor(
-                    name = "constructor",
-                    returnType = Descriptor.TypeDescriptor(name = interfaceName, isNullable = false),
-                    parameters = parameters,
-                )
-            )
+            error("Constructor found outside of an interface context at ${ctx.start.line}:${ctx.start.charPositionInLine}")
         }
 
         return super.visitInterfaceMember(ctx)
