@@ -27,10 +27,6 @@ class GameOfLifeManager : EvolutionEngine {
     private val gameRules = setOf(
         ConwaySurvivalRule(),
         ConwayReproductionRule(),
-
-//        In my case death is implicit, because I only draw the alive cells
-//        ConwayUnderpopulationRule(),
-//        ConwayOverpopulationRule(),
     )
 
     fun playPause() {
