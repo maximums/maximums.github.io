@@ -123,3 +123,9 @@ Managed in `gradle/libs.versions.toml`. Key versions: Kotlin 2.3.20, Compose Mul
 ## CI/CD
 
 GitHub Actions workflow (`.github/workflows/main.yaml`): builds on push to `main`, deploys `composeApp/build/dist/wasmJs/productionExecutable/` to GitHub Pages. Uses Java 17 (Temurin).
+
+---
+
+## WebGPU Skill
+
+See [`.github/skills/SKILL.md`](skills/SKILL.md) for WebGPU/WGSL guidance adapted to this project's Kotlin/Wasm bindings.
