@@ -4,7 +4,10 @@ import WebIDLBaseVisitor
 import WebIDLParser
 import org.antlr.v4.runtime.RuleContext
 
-class InterfaceCollector(private val typeResolver: TypeResolver) : WebIDLBaseVisitor<List<InterfaceMember>>() {
+class InterfaceCollector(
+    private val typeResolver: TypeResolver,
+    private val onUnsupported: (String) -> Unit = {},
+) : WebIDLBaseVisitor<List<InterfaceMember>>() {
     override fun defaultResult(): List<InterfaceMember> = emptyList()
 
     override fun aggregateResult(aggregate: List<InterfaceMember>, nextResult: List<InterfaceMember>) = aggregate + nextResult
@@ -14,6 +17,8 @@ class InterfaceCollector(private val typeResolver: TypeResolver) : WebIDLBaseVis
         ctx.readWriteAttribute()?.attributeRest()?.extractVariable()?.let { return it }
         ctx.operation()?.regularOperation()?.extractFunction()?.let { return it }
 
+        val text = ctx.text.trim()
+        if (text.isNotEmpty()) onUnsupported("Skipping unsupported partial interface member: $text")
         return super.visitPartialInterfaceMember(ctx)
     }
 
@@ -21,6 +26,8 @@ class InterfaceCollector(private val typeResolver: TypeResolver) : WebIDLBaseVis
         ctx.attributeRest()?.extractVariable()?.let { return it }
         ctx.regularOperation()?.extractFunction()?.let { return it }
 
+        val text = ctx.text.trim()
+        if (text.isNotEmpty()) onUnsupported("Skipping unsupported mixin member: $text")
         return super.visitMixinMember(ctx)
     }
 

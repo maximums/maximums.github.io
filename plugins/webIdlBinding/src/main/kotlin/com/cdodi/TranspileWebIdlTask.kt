@@ -55,7 +55,7 @@ abstract class TranspileWebIdlTask : DefaultTask() {
         val collectionContext = MutableBindingContext()
 
         val typeResolver = TypeResolver()
-        val membersCollector = InterfaceCollector(typeResolver)
+        val membersCollector = InterfaceCollector(typeResolver) { msg -> logger.warn(msg) }
         SymbolCollectorVisitor(collectionContext, membersCollector, typeResolver).also { it.visit(tree) }
         val resolvedContext = resolveSemantics(collectionContext)
 
