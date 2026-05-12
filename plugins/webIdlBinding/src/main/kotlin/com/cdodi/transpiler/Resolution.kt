@@ -66,16 +66,21 @@ private fun filterExternalSuperTypes(context: MutableBindingContext) {
     }
 }
 
-fun Descriptor.TypeDescriptor.unrollTypedefs(context: BindingContext): Descriptor.TypeDescriptor {
+fun Descriptor.TypeDescriptor.unrollTypedefs(
+    context: BindingContext,
+    visited: Set<String> = emptySet()
+): Descriptor.TypeDescriptor {
+    check(name !in visited) { "Circular typedef detected: ${(visited + name).joinToString(" -> ")}" }
     val typedef = context[BindingSlices.TYPEDEF, name]
-    if (typedef != null) return typedef.unrollTypedefs(context).copy(isNullable = isNullable || typedef.isNullable)
+    if (typedef != null) return typedef.unrollTypedefs(context, visited + name).copy(isNullable = isNullable || typedef.isNullable)
 
+    val nextVisited = visited + name
     return copy(
-        unionMembers = unionMembers.map { it.unrollTypedefs(context) },
-        sequenceOf = sequenceOf?.unrollTypedefs(context),
-        promiseOf = promiseOf?.unrollTypedefs(context),
+        unionMembers = unionMembers.map { it.unrollTypedefs(context, nextVisited) },
+        sequenceOf = sequenceOf?.unrollTypedefs(context, nextVisited),
+        promiseOf = promiseOf?.unrollTypedefs(context, nextVisited),
         record = record?.entries?.associate {
-            it.key.unrollTypedefs(context) to it.value.unrollTypedefs(context)
+            it.key.unrollTypedefs(context, nextVisited) to it.value.unrollTypedefs(context, nextVisited)
         }
     )
 }
