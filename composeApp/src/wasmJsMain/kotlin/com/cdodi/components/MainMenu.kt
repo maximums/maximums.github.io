@@ -50,7 +50,6 @@ fun movableCard(
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape)
                     .background(color = Color(0xA0_00_00_00))
-//                    .background(color = Color.White)
                     .clickable(onClick = currentOnClick)
                     .padding(8.dp)
             ) {
@@ -130,15 +129,7 @@ fun MainMenu(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(30.vw)
     ) {
-//        FlowRow(
-//            modifier = Modifier.fillMaxSize(),
-//            maxItemsInEachRow = 2,
-//            horizontalArrangement = Arrangement.spacedBy(8.dp),
-//            verticalArrangement = Arrangement.spacedBy(8.dp)
-//        ) {
-           menuContent()
-//        }
-
+        menuContent()
         body()
     }
 }

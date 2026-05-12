@@ -59,27 +59,14 @@ data class Slice<K, V>(val name: String)
 data class IncludesDirective(val targetName: String, val mixinName: String)
 
 object BindingSlices {
-    // --- 1. Interfaces ---
     val INTERFACE = Slice<String, Descriptor.InterfaceDescriptor>("INTERFACE")
     val PARTIAL_INTERFACE = Slice<String, Descriptor.InterfaceDescriptor>("PARTIAL_INTERFACE")
     val MIXIN = Slice<String, Descriptor.InterfaceDescriptor>("MIXIN")
-
-    // --- 2. Dictionaries (Reusing InterfaceDescriptor for JS Interop) ---
     val DICTIONARY = Slice<String, Descriptor.InterfaceDescriptor>("DICTIONARY")
     val PARTIAL_DICTIONARY = Slice<String, Descriptor.InterfaceDescriptor>("PARTIAL_DICTIONARY")
-
-    // --- 3. Enums ---
     val ENUM = Slice<String, Descriptor.EnumDescriptor>("ENUM")
-
-    // --- 4. Typedefs (For union unrolling/marker interfaces) ---
     val TYPEDEF = Slice<String, Descriptor.TypeDescriptor>("TYPEDEF")
-
-    // --- 5. Includes directives (resolved in semantic phase) ---
     val INCLUDES = Slice<String, IncludesDirective>("INCLUDES")
-
-    // --- 6. Namespaces ---
     val NAMESPACE = Slice<String, Descriptor.InterfaceDescriptor>("NAMESPACE")
-
-    // --- 7. Fallback / Hardcoded Types ---
     val EXTERNAL_TYPE = Slice<String, String>("EXTERNAL_TYPE")
 }

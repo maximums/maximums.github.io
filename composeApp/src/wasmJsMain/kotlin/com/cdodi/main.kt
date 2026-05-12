@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
@@ -46,16 +45,11 @@ enum class Screen {
 
 suspend fun main() {
     prepareWebGPUCanvas()
-//    ComposeViewport(document.body!!) {
-//        App()
-//        AboutPage()
-//    }
 }
 
 @Composable
 private fun App() {
     val runtimeShader by rememberShader("bokeh")
-    val temp = emptySet<JsAny>()
 
     MaterialTheme {
         LookaheadScope {
@@ -85,7 +79,6 @@ private fun LookaheadScope.AppContent() {
         targetState = currentScreen,
         label = "ScreenRouter"
     )
-    val transitionTest = rememberInfiniteTransition()
 
     val cardModifier = Modifier.size(15.vw)
     val homeButton = movableCard(

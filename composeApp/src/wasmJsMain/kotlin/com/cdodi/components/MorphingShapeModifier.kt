@@ -77,25 +77,6 @@ class MorphingShapeModifierNode(
             }
         }
     }
-
-//    override fun ContentDrawScope.draw() {
-//        val progress = morphingAnimation.value
-//        val width = size.width
-//        val height = size.height
-//
-//        with(cachedPath) {
-//            rewind()
-//            moveTo(progress.topStart * width, 0f)
-//            lineTo(width, height - (progress.topEnd * height))
-//            lineTo(progress.bottomEnd * width, height)
-//            lineTo(0f, height - (progress.bottomStart * height))
-//            close()
-//        }
-//
-//        clipPath(cachedPath) {
-//            this@draw.drawContent()
-//        }
-//    }
 }
 
 data class MorphingShapeModifierNodeElement(
