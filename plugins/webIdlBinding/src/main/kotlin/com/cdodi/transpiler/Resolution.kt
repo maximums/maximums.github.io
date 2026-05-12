@@ -40,12 +40,16 @@ private fun mergePartialDictionaries(context: MutableBindingContext) {
 
 private fun flattenDictionaryInheritance(context: MutableBindingContext) {
     val dictionaries = context[BindingSlices.DICTIONARY] ?: return
+    val resolvedCache = mutableMapOf<String, List<InterfaceMember>>()
 
     fun collectDictionaryMembers(name: String): List<InterfaceMember> {
+        resolvedCache[name]?.let { return it }
         val dict = dictionaries[name] ?: return emptyList()
-        return dict.superTypes.fold(dict.members) { acc, parent ->
+        val result = dict.superTypes.fold(dict.members) { acc, parent ->
             acc + collectDictionaryMembers(parent)
         }
+        resolvedCache[name] = result
+        return result
     }
 
     val flattenedUpdates = dictionaries.mapNotNull { (name, descriptor) ->
