@@ -27,11 +27,6 @@ import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
-import com.cdodi.webgpu.bindings.GPUError
-import com.cdodi.webgpu.bindings.GPUPrimitiveState
-import com.cdodi.webgpu.bindings.GPUQueryType
-import com.cdodi.webgpu.createJsObject
-import com.cdodi.webgpu.prepareWebGPUCanvas
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -44,7 +39,7 @@ enum class Screen {
 }
 
 suspend fun main() {
-    prepareWebGPUCanvas()
+    com.cdodi.webgpu.helloWebGPU()
 }
 
 @Composable
