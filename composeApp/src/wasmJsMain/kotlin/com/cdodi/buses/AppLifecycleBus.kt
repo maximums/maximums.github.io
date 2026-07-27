@@ -1,5 +1,6 @@
 package com.cdodi.buses
 
+import androidx.compose.runtime.staticCompositionLocalOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,10 @@ class AppLifecycleBusImp(private val scope: CoroutineScope) : AppLifecycleBus {
     fun updateTo(state: AppLifeCycle) {
         _state.update { state }
     }
+}
+
+val LocalLifeCycleBus = staticCompositionLocalOf<AppLifecycleBus> {
+    error("No AppLifeCycleBus provided!")
 }
 
 enum class AppLifeCycle {

@@ -1,6 +1,5 @@
 package com.cdodi.components
 
-import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,15 +10,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MovableContent
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentWithReceiverOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,10 +25,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cdodi.buses.LocalTimeBus
 import com.cdodi.pages.MY_TRY
-import com.cdodi.pages.ONE_SECOND_NANOS
 import com.cdodi.vw
-import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.scan
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -73,16 +70,13 @@ fun movableCard(
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
     val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
-    val time = remember { mutableStateOf(0f) }
-    LaunchedEffect(effect) {
-        val startTime = withFrameNanos { it }
-        while (isActive) {
-            withInfiniteAnimationFrameNanos { frameTimeNanos ->
-                time.value = (frameTimeNanos - startTime) / ONE_SECOND_NANOS
-            }
-        }
+    val heartBeat = LocalTimeBus.current
+    val accumulatedTimeFlow = remember(effect, heartBeat) {
+        heartBeat.ticks.scan(initial = 0f) { acc, tick -> (acc + tick) % 10000f }
     }
-    return remember {
+    val time by accumulatedTimeFlow.collectAsState(initial = 0f)
+
+    return remember(effect) {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->
             Box(
                 contentAlignment = targetShape.contentAlignment,
@@ -93,7 +87,7 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
                     .then(if (isExpanded) Modifier else Modifier.graphicsLayer {
                         val builder = RuntimeShaderBuilder(effect).apply {
                             uniform("resolution", size.width, size.height)
-                            uniform("time", time.value)
+                            uniform("time", time)
                             uniform("flag", 1.0f)
                         }
 

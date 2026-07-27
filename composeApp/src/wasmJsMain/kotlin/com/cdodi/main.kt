@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
@@ -25,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.window.ComposeViewport
+import com.cdodi.buses.AppEventBusImpl
+import com.cdodi.buses.AppLifecycleBusImp
+import com.cdodi.buses.LocalAppEventBus
+import com.cdodi.buses.LocalLifeCycleBus
 import com.cdodi.buses.LocalTimeBus
 import com.cdodi.buses.TimeBusImpl
 import com.cdodi.components.*
@@ -33,12 +36,16 @@ import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
 import kotlinx.browser.document
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-enum class Screen {
+enum class Page {
     Home,
     About,
     Boids,
@@ -48,11 +55,19 @@ enum class Screen {
 private const val ONE_SECOND_IN_NANO = 1_000_000_000f
 
 fun main() {
-    val timeBus = TimeBusImpl()
+    val appScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Application Scope"))
+    val timeBus = TimeBusImpl(appScope)
+    val eventBus = AppEventBusImpl(appScope)
+    val lifeCycleBus = AppLifecycleBusImp(appScope)
+
     ComposeViewport(document.body!!) {
         heartBeat(timeBus)
 
-        CompositionLocalProvider(LocalTimeBus provides timeBus) {
+        CompositionLocalProvider(
+            LocalTimeBus provides timeBus,
+            LocalAppEventBus provides eventBus,
+            LocalLifeCycleBus provides lifeCycleBus
+        ) {
             App()
         }
     }
@@ -100,36 +115,35 @@ private fun App() {
 
 @Composable
 private fun LookaheadScope.AppContent() {
-    var currentScreen by remember { mutableStateOf(Screen.Home) }
+    var currentPage by remember { mutableStateOf(Page.Home) }
 
     val pixelMeltEffect = remember { RuntimeEffect.makeForShader(PIXEL_MELT_SHADER) }
-    val transition: Transition<Screen> = updateTransition(
-        targetState = currentScreen,
+    val transition: Transition<Page> = updateTransition(
+        targetState = currentPage,
         label = "ScreenRouter"
     )
-    val transitionTest = rememberInfiniteTransition()
 
     val cardModifier = Modifier.size(15.vw)
     val homeButton = movableCard(
         text = "Home",
-        onClick = { currentScreen = Screen.Home }
+        onClick = { currentPage = Page.Home }
     )
     val aboutButton = movableCard(
         text = "About",
-        onClick = { currentScreen = Screen.About }
+        onClick = { currentPage = Page.About }
     )
     val contactsButton = movableCard(
         text = "Boids",
-        onClick = { currentScreen = Screen.Boids }
+        onClick = { currentPage = Page.Boids }
     )
     val sketchButton = movableCard(
         text = "Game Of Life",
-        onClick = { currentScreen = Screen.GameOfLife }
+        onClick = { currentPage = Page.GameOfLife }
     )
     val bodyCard = movableBodyCard()
 
     Box(contentAlignment = Alignment.Center) {
-        if (currentScreen == Screen.Home) {
+        if (currentPage == Page.Home) {
             MainMenu(
                 body = {
                     bodyCard(Modifier.size(20.vw).align(Alignment.Center), MorphingShape.Rhombus, false) {
@@ -193,10 +207,10 @@ private fun LookaheadScope.AppContent() {
                     ) {
                         // Render your actual pages inside the shaded Box
                         when(targetScreen) {
-                            Screen.About -> AboutPage()
-                            Screen.Boids -> BoidsPage()
-                            Screen.GameOfLife -> GameOfLifePage()
-                            Screen.Home -> Unit
+                            Page.About -> AboutPage()
+                            Page.Boids -> BoidsPage()
+                            Page.GameOfLife -> GameOfLifePage()
+                            Page.Home -> Unit
                         }
                     }
                 }
