@@ -2,20 +2,14 @@ package com.cdodi
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Transition
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -24,29 +18,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.fastRoundToInt
+import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.window.ComposeViewport
-import blog.composeapp.generated.resources.Res
-import blog.composeapp.generated.resources.*
+import com.cdodi.buses.LocalTimeBus
+import com.cdodi.buses.TimeBusImpl
 import com.cdodi.components.*
 import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
 import kotlinx.browser.document
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.skia.Image
+import kotlinx.coroutines.isActive
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
-import org.w3c.dom.events.Event
 
 enum class Screen {
     Home,
@@ -55,13 +45,33 @@ enum class Screen {
     GameOfLife,
 }
 
+private const val ONE_SECOND_IN_NANO = 1_000_000_000f
+
 fun main() {
-//    document.addEventListener("DOMContentLoaded") { event: Event ->
-//        event.
-//    }
+    val timeBus = TimeBusImpl()
     ComposeViewport(document.body!!) {
-        App()
-//        AboutPage()
+        heartBeat(timeBus)
+
+        CompositionLocalProvider(LocalTimeBus provides timeBus) {
+            App()
+        }
+    }
+}
+
+@Composable
+private fun heartBeat(timeBus: TimeBusImpl) {
+    LaunchedEffect(timeBus) {
+        var lastTime = 0L
+        while (isActive) {
+            withFrameNanos { currentTime ->
+                if (lastTime != 0L) {
+                    val deltaTime = (currentTime - lastTime) / ONE_SECOND_IN_NANO
+                    timeBus.onFrame(deltaTime.fastCoerceAtMost(0.1f))
+                }
+
+                lastTime = currentTime
+            }
+        }
     }
 }
 
@@ -75,7 +85,7 @@ private fun App() {
                 color = Color.Transparent,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(20.dp)
+                    .padding(24.dp)
                     .backgroundShader(runtimeShader)
             ) {
                 if (LocalIsSmallWindow.current) {
@@ -118,7 +128,7 @@ private fun LookaheadScope.AppContent() {
     )
     val bodyCard = movableBodyCard()
 
-    Box(contentAlignment = Alignment.Center,) {
+    Box(contentAlignment = Alignment.Center) {
         if (currentScreen == Screen.Home) {
             MainMenu(
                 body = {
