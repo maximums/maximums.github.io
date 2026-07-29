@@ -17,6 +17,7 @@ import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,7 +31,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import blog.composeapp.generated.resources.Res
 import blog.composeapp.generated.resources.game_of_life_pause_button
 import blog.composeapp.generated.resources.game_of_life_play_button
@@ -62,7 +62,7 @@ internal fun rememberLifeManager(): GameOfLifeManager {
 @Composable
 fun GameOfLifePage() {
     val manager = rememberLifeManager()
-    val state by manager.state.collectAsStateWithLifecycle()
+    val state by manager.state.collectAsState()
     val population by remember { derivedStateOf { state.aliveCells.size } }
 
     Column(

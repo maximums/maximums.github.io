@@ -3,7 +3,6 @@ package com.cdodi.components
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
-import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
@@ -15,6 +14,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.node.currentValueOf
 import com.cdodi.buses.LocalTimeBus
 import kotlinx.coroutines.flow.scan
@@ -65,7 +65,7 @@ class RuntimeShaderModifierNode(
             localMatrix = null,
         )
 
-        drawContext.canvas.nativeCanvas.drawPaint(cachedPaint)
+        drawContext.canvas.skiaCanvas.drawPaint(cachedPaint)
         drawContent()
     }
 }

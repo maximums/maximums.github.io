@@ -60,7 +60,7 @@ class GameOfLifeManager(
     }
 
     fun addCell(offset: Offset) {
-        if (state.value.isRunning) return // user can't modify population when the game is running | need to add a UI indication when game is running
+        if (state.value.isRunning) return // user can't modify population when the game is running
 
         val x = (offset.x / CELL_SIZE_PX).toInt()
         val y = (offset.y / CELL_SIZE_PX).toInt()
@@ -132,8 +132,8 @@ class GameOfLifeManager(
 
     private fun Grid.refresh(screenSize: IntSize): Grid {
         val cellSizeInt = CELL_SIZE_PX.toInt()
-        val columns = (screenSize.width / CELL_SIZE_PX).fastRoundToInt()
-        val rows = (screenSize.height / CELL_SIZE_PX).fastRoundToInt()
+        val columns = (screenSize.width / CELL_SIZE_PX).toInt()
+        val rows = (screenSize.height / CELL_SIZE_PX).toInt()
         val cleanWidth = cellSizeInt * columns
         val cleanHeight = cellSizeInt * rows
 
