@@ -4,18 +4,18 @@ fun interface GameRule {
     operator fun invoke(isAlive: Boolean, neighborCount: Int): Boolean
 }
 
-class ConwayUnderpopulationRule : GameRule {
+object ConwayUnderpopulationRule : GameRule {
     override fun invoke(isAlive: Boolean, neighborCount: Int): Boolean = isAlive && neighborCount < 2
 }
 
-class ConwaySurvivalRule : GameRule {
+object ConwaySurvivalRule : GameRule {
     override fun invoke(isAlive: Boolean, neighborCount: Int): Boolean  = isAlive && neighborCount in 2..3
 }
 
-class ConwayOverpopulationRule : GameRule {
+object ConwayOverpopulationRule : GameRule {
     override fun invoke(isAlive: Boolean, neighborCount: Int): Boolean =  isAlive && neighborCount > 3
 }
 
-class ConwayReproductionRule : GameRule {
+object ConwayReproductionRule : GameRule {
     override fun invoke(isAlive: Boolean, neighborCount: Int): Boolean = !isAlive && neighborCount == 3
 }

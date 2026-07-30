@@ -24,11 +24,11 @@ class GameOfLifeManager(
     bus: TimeBus,
     dispatcher: CoroutineDispatcher = Dispatchers.Main,
     private val gameRules: Set<GameRule> = setOf(
-        ConwaySurvivalRule(),
-        ConwayReproductionRule()
+        ConwaySurvivalRule,
+        ConwayReproductionRule
 //        In my case death is implicit, because I only draw the alive cells
-//        ConwayUnderpopulationRule(),
-//        ConwayOverpopulationRule(),
+//        ConwayUnderpopulationRule,
+//        ConwayOverpopulationRule,
     )
 ) : EvolutionEngine, Manager(bus) {
     private val _state = MutableStateFlow(LifeState())
