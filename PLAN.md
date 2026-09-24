@@ -44,7 +44,7 @@ Module layout:
 ```
 build-logic/                 included build (replaces plugins/)
   webidl-compiler/           Gradle plugin: ANTLR parser, semantic passes, KotlinPoet backend
-    src/main/antlr/WebIDL.g4 committed grammar
+    src/main/antlr/com/cdodi/webidl/parser/WebIDL.g4   committed grammar
     src/test/                fixtures (mini IDL files), golden .kt files, TestKit tests
 core/                        pure Kotlin KMP module (wasmJs + jvm; the jvm target is only for fast tests)
                              Heartbeat, buses, navigation model. No Compose, no WebGPU.
@@ -91,8 +91,8 @@ Get main green, deployable and current before building on it.
 Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle end** (semantic passes over an immutable model), **back end** (KotlinPoet emission). Write the tests first; every bug from REVIEW W1 becomes a fixture before it gets fixed.
 
 ### 1.1 Structure and committed inputs
-- [ ] Move `plugins/` to `build-logic/webidl-compiler`. Create the `webgpu` library module and apply the plugin there, so `composeApp` only depends on `:webgpu`.
-- [ ] Extension DSL instead of hard-coded names:
+- [x] Move `plugins/` to `build-logic/webidl-compiler`. Create the `webgpu` library module and apply the plugin there, so `composeApp` only depends on `:webgpu`.
+- [x] Extension DSL instead of hard-coded names:
   ```kotlin
   webIdl {
       idlFiles.from("idl/webgpu.idl")          // committed file, read on every build
@@ -101,13 +101,13 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
       // …
   }
   ```
-- [ ] **Committed inputs, updated by hand:**
+- [x] **Committed inputs, updated by hand:**
   - `webgpu/idl/webgpu.idl` is committed. `transpileWebIdl` declares it as an `@InputFile` and never touches the network.
-  - `build-logic/webidl-compiler/src/main/antlr/WebIDL.g4` is committed, and the automatic grammar download is removed.
+  - `build-logic/webidl-compiler/src/main/antlr/com/cdodi/webidl/parser/WebIDL.g4` is committed, and the automatic grammar download is removed.
   - A task **only run by hand**, `./gradlew :webgpu:updateWebIdl -PwebrefVersion=3.84.0`, downloads `https://cdn.jsdelivr.net/npm/@webref/idl@<version>/webgpu.idl` (webref releases curated, parse-checked IDL roughly weekly) and overwrites the committed file. No other task depends on it, it isn't cacheable, and it prints a summary of what changed. The result is committed like any other change, and golden-test failures show exactly how the generated API moved. The IDL's first line records the version it came from.
   - The same kind of by-hand task for the grammar (`updateWebIdlGrammar -PgrammarRef=<commit>`), pinned to a grammars-v4 commit.
-- [ ] Generate the ANTLR parser into a real package (`-package com.cdodi.webidl.parser`).
-- [ ] Fix the `antlr` typo; remove the duplicated tasks and properties.
+- [x] Generate the ANTLR parser into a real package (`-package com.cdodi.webidl.parser`). _The grammar sits in the matching directory so ANTLR's output lands in the package directory too._
+- [x] Fix the `antlr` typo; remove the duplicated tasks and properties. _The convention plugin is gone: `antlr` is applied directly in `webidl-compiler`._
 
 ### 1.2 Test harness (before any fixes)
 - [ ] **Mini-IDL fixtures**, one per construct: interface, inheritance, mixin + includes, partials, dictionary (required / optional / default / inheritance), enum, typedef, union (all objects / mixed / sequence + dictionary), sequence, FrozenArray, record, Promise, optional arguments with and without defaults, `undefined` return, `readonly setlike`, namespace constants, extended attributes, external DOM types.
