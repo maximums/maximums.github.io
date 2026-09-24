@@ -159,10 +159,10 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 - [x] Buffer helpers: reusable `Float32Array` / `Uint32Array` staging buffers filled in place (never a fresh conversion per frame).
 
 ### 1.6 Idiomatic layer (hand-written on top of the generated code)
-- [ ] `suspend fun Gpu.requestContext(): GpuContext?`. `null` covers both a missing `navigator.gpu` and a null adapter, and it can never NPE.
-- [ ] `GpuContext`: device, queue, preferred format, a set of enabled features (through the typed `has()`), `device.lost` watcher, `uncapturederror` listener (possible once `EventTarget` is mapped), and `pushErrorScope`/`popErrorScope` helpers.
-- [ ] Resource ownership: `GpuBuffer` / `GpuTexture` wrappers that are `AutoCloseable` (`destroy()`), plus a `ResourceScope` so a scene frees everything on dispose.
-- [ ] Shader modules: after `createShaderModule`, check `getCompilationInfo()` and log errors with line and column.
+- [x] `suspend fun Gpu.requestContext(): GpuContext?`. `null` covers both a missing `navigator.gpu` and a null adapter, and it can never NPE. _Named `requestGpuContext()`; optional features are only requested when the adapter has them._
+- [x] `GpuContext`: device, queue, preferred format, a set of enabled features (through the typed `has()`), `device.lost` watcher, `uncapturederror` listener (possible once `EventTarget` is mapped), and `pushErrorScope`/`popErrorScope` helpers.
+- [x] Resource ownership: `GpuBuffer` / `GpuTexture` wrappers that are `AutoCloseable` (`destroy()`), plus a `ResourceScope` so a scene frees everything on dispose. _Done as `ResourceScope` creating and owning the raw WebGPU objects, so the generated API stays usable on them; no wrapper types._
+- [x] Shader modules: after `createShaderModule`, check `getCompilationInfo()` and log errors with line and column.
 
 **Done when:** all goldens, compile and smoke tests are green. The triangle and doubling demos compile with **zero `toJsNumber()` calls** and no nullability workarounds. `requestAdapter` returning null is handled at the type level. A normal build makes no network requests.
 
