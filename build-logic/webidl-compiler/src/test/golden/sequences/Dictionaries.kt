@@ -4,13 +4,13 @@
 package fixtures.sequences
 
 import com.cdodi.webgpu.runtime.createJsObject
-import com.cdodi.webgpu.runtime.toJsArray
 import kotlin.Int
 import kotlin.Suppress
 import kotlin.collections.List
 import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsNumber
+import kotlin.js.toJsArray
 import kotlin.js.toJsNumber
 
 /**

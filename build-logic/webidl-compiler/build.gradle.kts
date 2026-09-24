@@ -50,6 +50,7 @@ tasks.test {
     inputs.file(runtimeSource).withPathSensitivity(PathSensitivity.NONE).withPropertyName("runtimeSource")
     systemProperty("webidl.runtimeSource", runtimeSource.asFile.absolutePath)
     systemProperty("webidl.kotlinxBrowser", libs.kotlinx.browser.get().toString())
+    systemProperty("webidl.kotlinxCoroutines", libs.kotlinx.coroutines.core.get().toString())
     if (updateGoldens) outputs.upToDateWhen { false }
 }
 

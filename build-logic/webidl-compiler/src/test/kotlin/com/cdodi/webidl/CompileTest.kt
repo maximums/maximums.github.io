@@ -16,6 +16,7 @@ class CompileTest {
     private val fixturesDir = File(System.getProperty("webidl.fixtures"))
     private val runtimeSource = File(System.getProperty("webidl.runtimeSource"))
     private val kotlinxBrowser = System.getProperty("webidl.kotlinxBrowser")
+    private val kotlinxCoroutines = System.getProperty("webidl.kotlinxCoroutines")
 
     @TempDir
     lateinit var projectDir: File
@@ -60,7 +61,8 @@ class CompileTest {
 
         projectDir.resolve("runtime").apply {
             resolve("build.gradle.kts").also { it.parentFile.mkdirs() }.writeText(
-                "plugins { kotlin(\"multiplatform\") }\n${kotlinBlock()}\n"
+                "plugins { kotlin(\"multiplatform\") }\n" +
+                    "${kotlinBlock("api(\"$kotlinxBrowser\"); implementation(\"$kotlinxCoroutines\")")}\n"
             )
             resolve("src/wasmJsMain/kotlin/Runtime.kt").also { it.parentFile.mkdirs() }.writeText(runtimeSource.readText())
         }

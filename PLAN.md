@@ -154,9 +154,9 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 - [ ] Follow-up: dictionary properties typed by a mixed union (e.g. `canvas`, `source`) are still `JsAny`; typed accessors belong in the idiomatic layer (1.6).
 
 ### 1.5 Runtime (`:webgpu`)
-- [ ] `await()` that **keeps the JS rejection reason**: `class JsPromiseRejection(val reason: JsAny?) : Exception(…)`. For `GPUError` / `DOMException`, surface `name` and `message`.
-- [ ] `jsObject { }` builder that only sets present keys; `toJsArray` removed (it's in the stdlib).
-- [ ] Buffer helpers: reusable `Float32Array` / `Uint32Array` staging buffers filled in place (never a fresh conversion per frame).
+- [x] `await()` that **keeps the JS rejection reason**: `class JsPromiseRejection(val reason: JsAny?) : Exception(…)`. For `GPUError` / `DOMException`, surface `name` and `message`.
+- [x] `jsObject { }` builder that only sets present keys; `toJsArray` removed (it's in the stdlib). _Kept the name `createJsObject`; generated code now imports `kotlin.js.toJsArray`._
+- [x] Buffer helpers: reusable `Float32Array` / `Uint32Array` staging buffers filled in place (never a fresh conversion per frame).
 
 ### 1.6 Idiomatic layer (hand-written on top of the generated code)
 - [ ] `suspend fun Gpu.requestContext(): GpuContext?`. `null` covers both a missing `navigator.gpu` and a null adapter, and it can never NPE.

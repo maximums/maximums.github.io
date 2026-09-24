@@ -93,7 +93,7 @@ object TypeMapping {
         val safeCall = if (isNullable) "?." else "."
 
         if (sequenceOf != null) {
-            val toJsArray = MemberName(runtimePackage, "toJsArray")
+            val toJsArray = MemberName("kotlin.js", "toJsArray")
             val element = sequenceOf.elementToJs(context, runtimePackage)
             return if (element == null) {
                 CodeBlock.of("%L%L%M()", value, safeCall, toJsArray)
