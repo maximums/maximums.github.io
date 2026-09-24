@@ -5,7 +5,9 @@ package fixtures.optional_arguments
 
 import kotlin.Double
 import kotlin.Suppress
+import kotlin.js.JsAny
+import org.khronos.webgl.ArrayBuffer
 
 public external interface GPUBuffer : JsAny {
-  public fun getMappedRange(offset: Double = definedExternally, size: Double = definedExternally): kotlin.js.JsAny
+  public fun getMappedRange(offset: Double = definedExternally, size: Double = definedExternally): ArrayBuffer
 }

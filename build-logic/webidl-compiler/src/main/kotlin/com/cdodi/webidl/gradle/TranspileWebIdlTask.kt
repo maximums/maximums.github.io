@@ -6,6 +6,7 @@ import com.cdodi.webidl.WebIdlCompiler
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
@@ -34,6 +35,9 @@ abstract class TranspileWebIdlTask : DefaultTask() {
     @get:Input
     abstract val factoriesFileName: Property<String>
 
+    @get:Input
+    abstract val externalTypes: MapProperty<String, String>
+
     @get:OutputDirectory
     abstract val outputDirectory: DirectoryProperty
 
@@ -45,7 +49,7 @@ abstract class TranspileWebIdlTask : DefaultTask() {
         }
 
         val sources = idlFiles.files.map { file -> IdlSource(file.name, file.readText()) }
-        val options = CompilerOptions(packageName.get(), runtimePackage.get(), apiFileName.get(), factoriesFileName.get())
+        val options = CompilerOptions(packageName.get(), runtimePackage.get(), apiFileName.get(), factoriesFileName.get(), externalTypes.get())
 
         WebIdlCompiler.compile(sources, options) { warning -> logger.warn(warning) }
             .forEach { fileSpec -> fileSpec.writeTo(outputDir) }

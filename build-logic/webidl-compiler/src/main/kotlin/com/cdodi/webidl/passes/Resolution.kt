@@ -2,6 +2,7 @@ package com.cdodi.webidl.passes
 
 import com.cdodi.webidl.model.BindingContext
 import com.cdodi.webidl.model.Descriptor
+import com.cdodi.webidl.model.ExternalType
 import com.cdodi.webidl.model.IdlDefinitions
 import com.cdodi.webidl.model.InterfaceMember
 import com.cdodi.webidl.model.ResolvedBindingContext
@@ -10,12 +11,13 @@ import com.cdodi.webidl.model.ResolvedBindingContext
  * The middle end: a chain of pure passes, each taking an [IdlDefinitions] snapshot and returning a new one.
  * Order matters and matches the generated output: mixin members come before partial-interface members.
  */
-fun resolveSemantics(collected: BindingContext): ResolvedBindingContext =
-    IdlDefinitions.from(collected)
+fun resolveSemantics(collected: BindingContext, externalTypes: Map<String, ExternalType>): ResolvedBindingContext =
+    IdlDefinitions.from(collected, externalTypes)
         .let(::applyMixins)
         .let(::mergePartials)
         .let(::flattenDictionaries)
-        .let(::dropUnknownSuperTypes)
+        .let(::validateNames)
+        .let(::resolveSuperTypes)
         .let(::resolveTypes)
         .toResolvedContext()
 
@@ -56,13 +58,62 @@ private fun flattenDictionaries(definitions: IdlDefinitions): IdlDefinitions {
     )
 }
 
-/** Supertypes defined outside these files (EventTarget, DOMException, ...) are dropped for now. */
-private fun dropUnknownSuperTypes(definitions: IdlDefinitions): IdlDefinitions = definitions.copy(
+/**
+ * Keeps supertypes that are defined here or mapped to an external class or interface (EventTarget -> kotlinx-browser).
+ * External `value` types (DOMException, ...) have no Kotlin type to extend and are dropped.
+ */
+private fun resolveSuperTypes(definitions: IdlDefinitions): IdlDefinitions = definitions.copy(
     interfaces = definitions.interfaces.mapValues { (_, descriptor) ->
-        val known = descriptor.superTypes.filterTo(LinkedHashSet()) { it in definitions.interfaces }
-        descriptor.copy(superTypes = known.ifEmpty { setOf("JsAny") })
+        val kept = descriptor.superTypes.filterTo(LinkedHashSet()) { superType ->
+            superType in definitions.interfaces || definitions.externalTypes[superType]?.kind.let { it != null && it != ExternalType.Kind.Value }
+        }
+        descriptor.copy(superTypes = kept.ifEmpty { setOf("JsAny") })
     }
 )
+
+/** WebIDL's own type names; everything else must be defined in the IDL or mapped in the external types table. */
+private val BUILTIN_TYPES = setOf(
+    "any", "object", "undefined", "void", "boolean", "byte", "octet", "short", "unsignedshort", "long", "unsignedlong",
+    "longlong", "unsignedlonglong", "float", "unrestrictedfloat", "double", "unrestricteddouble", "bigint",
+    "DOMString", "USVString", "ByteString", "sequence", "record", "Promise", "union",
+)
+
+/** Fails with every unknown type name and where it is used, instead of silently degrading them to JsAny. */
+private fun validateNames(definitions: IdlDefinitions): IdlDefinitions {
+    val defined = definitions.interfaces.keys + definitions.dictionaries.keys + definitions.enums.keys +
+        definitions.typedefs.keys + definitions.externalTypes.keys + BUILTIN_TYPES
+    val unknown = sortedMapOf<String, MutableSet<String>>()
+
+    fun check(type: Descriptor.TypeDescriptor, usedBy: String) {
+        if (type.name !in defined) unknown.getOrPut(type.name) { sortedSetOf() } += usedBy
+        type.unionMembers.forEach { check(it, usedBy) }
+        type.sequenceOf?.let { check(it, usedBy) }
+        type.promiseOf?.let { check(it, usedBy) }
+        type.record?.forEach { (key, value) -> check(key, usedBy); check(value, usedBy) }
+    }
+
+    for ((name, typedef) in definitions.typedefs) check(typedef, "typedef $name")
+    for (owner in definitions.interfaces.values + definitions.dictionaries.values + definitions.namespaces.values) {
+        owner.superTypes.filter { it !in defined }.forEach { unknown.getOrPut(it) { sortedSetOf() } += "${owner.name} (supertype)" }
+        for (member in owner.members) {
+            val usedBy = "${owner.name}.${member.name}"
+            when (member) {
+                is InterfaceMember.VariableDescriptor -> check(member.type, usedBy)
+                is InterfaceMember.FunctionDescriptor -> {
+                    check(member.returnType, usedBy)
+                    member.parameters.forEach { check(it.type, usedBy) }
+                }
+                is InterfaceMember.ConstantDescriptor -> check(member.type, usedBy)
+            }
+        }
+    }
+
+    check(unknown.isEmpty()) {
+        "Unknown WebIDL types (map them in webIdl { externalTypes }):\n" +
+            unknown.entries.joinToString("\n") { (name, users) -> "  $name — used by ${users.joinToString()}" }
+    }
+    return definitions
+}
 
 /**
  * Unrolls typedefs and normalises unions in every member of every interface, dictionary and namespace.

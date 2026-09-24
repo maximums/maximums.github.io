@@ -7,6 +7,7 @@ import kotlin.Boolean
 import kotlin.Double
 import kotlin.String
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUThing : JsAny {
   public val name: String

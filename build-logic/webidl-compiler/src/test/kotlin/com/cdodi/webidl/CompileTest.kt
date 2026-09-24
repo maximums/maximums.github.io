@@ -15,6 +15,7 @@ class CompileTest {
 
     private val fixturesDir = File(System.getProperty("webidl.fixtures"))
     private val runtimeSource = File(System.getProperty("webidl.runtimeSource"))
+    private val kotlinxBrowser = System.getProperty("webidl.kotlinxBrowser")
 
     @TempDir
     lateinit var projectDir: File
@@ -22,6 +23,7 @@ class CompileTest {
     @Test
     fun generatedCodeCompiles() {
         val fixtures = fixturesDir.listFiles { file -> file.extension == "idl" }.orEmpty().map(File::nameWithoutExtension).sorted()
+            .filter { it !in REJECTED_BY_COMPILER }
         writeProject(fixtures)
 
         val result = GradleRunner.create()
@@ -72,7 +74,7 @@ class CompileTest {
                         kotlin("multiplatform")
                         id("com.cdodi.webidl")
                     }
-                    ${kotlinBlock("implementation(project(\":runtime\"))")}
+                    ${kotlinBlock("implementation(project(\":runtime\")); implementation(\"$kotlinxBrowser\")")}
                     webIdl {
                         idlFiles.from("fixture.idl")
                         packageName = "fixtures.${fixture.replace('-', '_')}"
@@ -85,6 +87,9 @@ class CompileTest {
     }
 
     private companion object {
+        /** Fixtures the WebIDL compiler itself rejects (their golden is ERROR.txt); there is nothing to compile. */
+        val REJECTED_BY_COMPILER = setOf("unknown-types")
+
         /** Fixtures whose generated code does not compile yet. Each entry is a known bug; remove it with the fix. */
         val KNOWN_NOT_COMPILING = setOf<String>()
     }

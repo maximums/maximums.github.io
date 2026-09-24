@@ -4,9 +4,10 @@
 package fixtures.records
 
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUThing : JsAny
 
-public external interface GPUThingRegistry : kotlin.js.JsAny {
-  public var things: kotlin.js.JsAny?
+public external interface GPUThingRegistry : JsAny {
+  public var things: JsAny?
 }

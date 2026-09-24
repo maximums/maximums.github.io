@@ -5,6 +5,7 @@ package fixtures.promises
 
 import kotlin.Boolean
 import kotlin.Suppress
+import kotlin.js.JsAny
 import kotlin.js.Promise
 
 public external interface GPUAdapter : JsAny
@@ -12,9 +13,9 @@ public external interface GPUAdapter : JsAny
 public external interface GPU : JsAny {
   public fun requestAdapter(options: GPURequestAdapterOptions = definedExternally): Promise<GPUAdapter?>
 
-  public fun onSubmittedWorkDone(): Promise<kotlin.js.JsAny?>
+  public fun onSubmittedWorkDone(): Promise<JsAny?>
 }
 
-public external interface GPURequestAdapterOptions : kotlin.js.JsAny {
+public external interface GPURequestAdapterOptions : JsAny {
   public var forceFallbackAdapter: Boolean?
 }

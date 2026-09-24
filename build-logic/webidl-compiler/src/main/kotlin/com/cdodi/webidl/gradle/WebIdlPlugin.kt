@@ -2,6 +2,7 @@
 
 package com.cdodi.webidl.gradle
 
+import com.cdodi.webidl.model.ExternalType
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.*
@@ -12,6 +13,7 @@ class WebIdlPlugin : Plugin<Project> {
         val extension = extensions.create<WebIdlExtension>("webIdl").apply {
             apiFileName.convention("Bindings")
             factoriesFileName.convention("Factories")
+            externalTypes.convention(ExternalType.DEFAULTS)
         }
 
         val transpileTask = tasks.register<TranspileWebIdlTask>("transpileWebIdl") {
@@ -22,6 +24,7 @@ class WebIdlPlugin : Plugin<Project> {
             runtimePackage = extension.runtimePackage
             apiFileName = extension.apiFileName
             factoriesFileName = extension.factoriesFileName
+            externalTypes = extension.externalTypes
             outputDirectory = layout.buildDirectory.dir("generated/webidl/kotlin")
         }
 

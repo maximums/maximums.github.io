@@ -4,6 +4,7 @@
 package fixtures.sequences
 
 import kotlin.Suppress
+import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsNumber
 import kotlin.js.JsString
@@ -12,7 +13,7 @@ public external interface GPUThing : JsAny {
   public val tags: JsArray<JsString>
 }
 
-public external interface GPUThingList : kotlin.js.JsAny {
+public external interface GPUThingList : JsAny {
   public var things: JsArray<GPUThing>
 
   public var counts: JsArray<JsNumber>?

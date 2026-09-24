@@ -4,6 +4,7 @@ import com.cdodi.webidl.backend.generateKotlin
 import com.cdodi.webidl.frontend.InterfaceCollector
 import com.cdodi.webidl.frontend.SymbolCollectorVisitor
 import com.cdodi.webidl.frontend.TypeResolver
+import com.cdodi.webidl.model.ExternalType
 import com.cdodi.webidl.model.MutableBindingContext
 import com.cdodi.webidl.parser.WebIDLLexer
 import com.cdodi.webidl.parser.WebIDLParser
@@ -23,6 +24,8 @@ data class CompilerOptions(
     val runtimePackage: String,
     val apiFileName: String = "Bindings",
     val factoriesFileName: String = "Factories",
+    /** IDL name -> `"class|interface|value <Kotlin type>"`, see [ExternalType.parse]. */
+    val externalTypes: Map<String, String> = ExternalType.DEFAULTS,
 )
 
 /**
@@ -44,7 +47,7 @@ object WebIdlCompiler {
         sources.sortedBy(IdlSource::name).forEach { source -> symbolCollector.visit(parse(source)) }
 
         return generateKotlin(
-            resolveSemantics(collectionContext),
+            resolveSemantics(collectionContext, ExternalType.parseAll(options.externalTypes)),
             options.packageName,
             options.runtimePackage,
             options.apiFileName,

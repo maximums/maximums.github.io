@@ -5,6 +5,7 @@ package fixtures.constructors
 
 import kotlin.String
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUError : JsAny {
   public val message: String

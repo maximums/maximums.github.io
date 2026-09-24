@@ -5,6 +5,8 @@ package fixtures.inheritance
 
 import kotlin.Int
 import kotlin.Suppress
+import kotlin.js.JsAny
+import org.w3c.dom.events.EventTarget
 
 public external interface Base : JsAny {
   public val id: Int
@@ -14,6 +16,6 @@ public external interface Derived : Base {
   public val extra: Int
 }
 
-public external interface FromDom : JsAny {
-  public var onlost: kotlin.js.JsAny
+public abstract external class FromDom : EventTarget {
+  public var onlost: JsAny?
 }

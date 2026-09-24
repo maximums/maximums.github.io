@@ -24,10 +24,13 @@ kotlin {
     }
 
     sourceSets {
+        wasmJsMain.dependencies {
+            // Generated declarations extend and use kotlinx-browser types (EventTarget, ArrayBuffer, ...).
+            api(libs.kotlinx.browser)
+        }
         wasmJsTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
-            implementation(libs.kotlinx.browser)
         }
     }
 }

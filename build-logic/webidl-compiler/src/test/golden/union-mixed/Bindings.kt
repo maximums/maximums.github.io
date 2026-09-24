@@ -5,12 +5,13 @@ package fixtures.union_mixed
 
 import kotlin.Double
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPURenderPassEncoder : JsAny {
-  public fun setBlendConstant(color: kotlin.js.JsAny)
+  public fun setBlendConstant(color: JsAny)
 }
 
-public external interface GPUColorDict : kotlin.js.JsAny {
+public external interface GPUColorDict : JsAny {
   public var r: Double
 
   public var g: Double
@@ -20,6 +21,6 @@ public external interface GPUColorDict : kotlin.js.JsAny {
   public var a: Double
 }
 
-public external interface GPURenderPassColorAttachment : kotlin.js.JsAny {
-  public var clearValue: kotlin.js.JsAny?
+public external interface GPURenderPassColorAttachment : JsAny {
+  public var clearValue: JsAny?
 }

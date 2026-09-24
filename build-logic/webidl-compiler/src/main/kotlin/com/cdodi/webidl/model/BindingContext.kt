@@ -39,6 +39,7 @@ class ResolvedBindingContext(
     private val dictionaries: Map<String, Descriptor.InterfaceDescriptor>,
     private val enums: Map<String, Descriptor.EnumDescriptor>,
     private val namespaces: Map<String, Descriptor.InterfaceDescriptor>,
+    private val externalTypes: Map<String, ExternalType>,
 ) : BindingContext {
 
     @Suppress("UNCHECKED_CAST")
@@ -47,6 +48,7 @@ class ResolvedBindingContext(
         BindingSlices.DICTIONARY -> dictionaries as Map<String, V>
         BindingSlices.ENUM -> enums as Map<String, V>
         BindingSlices.NAMESPACE -> namespaces as Map<String, V>
+        BindingSlices.EXTERNAL_TYPE -> externalTypes as Map<String, V>
         else -> null
     }
 
@@ -68,5 +70,5 @@ object BindingSlices {
     val TYPEDEF = Slice<String, Descriptor.TypeDescriptor>("TYPEDEF")
     val INCLUDES = Slice<String, IncludesDirective>("INCLUDES")
     val NAMESPACE = Slice<String, Descriptor.InterfaceDescriptor>("NAMESPACE")
-    val EXTERNAL_TYPE = Slice<String, String>("EXTERNAL_TYPE")
+    val EXTERNAL_TYPE = Slice<String, ExternalType>("EXTERNAL_TYPE")
 }

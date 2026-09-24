@@ -4,5 +4,6 @@
 package fixtures.setlike
 
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUSupportedFeatures : JsAny

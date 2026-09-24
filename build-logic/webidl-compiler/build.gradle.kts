@@ -49,6 +49,7 @@ tasks.test {
     val runtimeSource = layout.projectDirectory.file("../../webgpu/src/wasmJsMain/kotlin/com/cdodi/webgpu/runtime/Runtime.kt")
     inputs.file(runtimeSource).withPathSensitivity(PathSensitivity.NONE).withPropertyName("runtimeSource")
     systemProperty("webidl.runtimeSource", runtimeSource.asFile.absolutePath)
+    systemProperty("webidl.kotlinxBrowser", libs.kotlinx.browser.get().toString())
     if (updateGoldens) outputs.upToDateWhen { false }
 }
 

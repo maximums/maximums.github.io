@@ -6,7 +6,9 @@ import com.cdodi.webidl.backend.TypeMapping.kotlinToJs
 import com.cdodi.webidl.backend.TypeMapping.toFactoryParameter
 import com.cdodi.webidl.backend.TypeMapping.toKotlin
 import com.cdodi.webidl.model.BindingContext
+import com.cdodi.webidl.model.BindingSlices
 import com.cdodi.webidl.model.Descriptor
+import com.cdodi.webidl.model.ExternalType
 import com.cdodi.webidl.model.InterfaceMember
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -18,8 +20,18 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
 
+/**
+ * An IDL interface becomes an `external abstract class` when it has a constructor or extends a class (an external one
+ * such as EventTarget, or a generated one): a Kotlin interface cannot extend a class. Otherwise it is an external interface.
+ */
+fun Descriptor.InterfaceDescriptor.isGeneratedAsClass(context: BindingContext): Boolean =
+    hasConstructor || superTypes.any { superName ->
+        context[BindingSlices.EXTERNAL_TYPE, superName]?.kind == ExternalType.Kind.Class ||
+            context[BindingSlices.INTERFACE, superName]?.isGeneratedAsClass(context) == true
+    }
+
 fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
-    val interfaceBuilder = if (hasConstructor) {
+    val interfaceBuilder = if (isGeneratedAsClass(context)) {
         TypeSpec.classBuilder(name).addModifiers(KModifier.ABSTRACT)
     } else {
         TypeSpec.interfaceBuilder(name)
@@ -27,7 +39,15 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     interfaceBuilder.addModifiers(KModifier.EXTERNAL)
 
     superTypes.forEach { superName ->
-        interfaceBuilder.addSuperinterface(ClassName(generatedPackageName, superName))
+        val external = context[BindingSlices.EXTERNAL_TYPE, superName]
+        val generated = context[BindingSlices.INTERFACE, superName]
+        when {
+            superName == "JsAny" -> interfaceBuilder.addSuperinterface(ClassName("kotlin.js", "JsAny"))
+            external?.kind == ExternalType.Kind.Class -> interfaceBuilder.superclass(ClassName.bestGuess(external.kotlinName))
+            external != null -> interfaceBuilder.addSuperinterface(ClassName.bestGuess(external.kotlinName))
+            generated?.isGeneratedAsClass(context) == true -> interfaceBuilder.superclass(ClassName(generatedPackageName, superName))
+            else -> interfaceBuilder.addSuperinterface(ClassName(generatedPackageName, superName))
+        }
     }
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->

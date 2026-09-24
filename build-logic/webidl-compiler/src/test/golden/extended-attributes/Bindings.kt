@@ -5,6 +5,7 @@ package fixtures.extended_attributes
 
 import kotlin.Int
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUThing : JsAny {
   public val self: GPUThing

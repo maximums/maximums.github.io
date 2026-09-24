@@ -4,6 +4,7 @@
 package fixtures.union_objects
 
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUSampler : GPUSamplerOrGPUTextureViewOrGPUBufferBinding
 
@@ -17,10 +18,10 @@ public external interface GPUDevice : JsAny {
 
 public external interface GPUSamplerOrGPUTextureViewOrGPUBufferBinding : JsAny
 
-public external interface GPUBufferBinding : kotlin.js.JsAny {
+public external interface GPUBufferBinding : JsAny {
   public var buffer: GPUBuffer
 }
 
-public external interface GPUBindGroupEntry : kotlin.js.JsAny {
+public external interface GPUBindGroupEntry : JsAny {
   public var resource: GPUSamplerOrGPUTextureViewOrGPUBufferBinding
 }

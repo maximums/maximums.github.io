@@ -3,6 +3,7 @@ package com.cdodi.webidl.backend
 import com.cdodi.webidl.model.BindingContext
 import com.cdodi.webidl.model.BindingSlices
 import com.cdodi.webidl.model.Descriptor
+import com.cdodi.webidl.model.ExternalType
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
@@ -61,6 +62,7 @@ object TypeMapping {
     fun Descriptor.TypeDescriptor.toKotlin(context: BindingContext, pkg: String, position: Position = Position.Value): TypeName {
         val type: TypeName = when {
             isKnownDescriptor(context) -> ClassName(pkg, name)
+            context[BindingSlices.EXTERNAL_TYPE, name] != null -> context[BindingSlices.EXTERNAL_TYPE, name]!!.toTypeName(position)
             promiseOf != null -> jsPromise.parameterizedBy(promiseOf.toKotlin(context, pkg, Position.TypeArgument))
             unionMembers.isNotEmpty() -> resolveUnion(context, pkg)
             sequenceOf != null -> jsArray.parameterizedBy(sequenceOf.toKotlin(context, pkg, Position.TypeArgument))
@@ -114,6 +116,18 @@ object TypeMapping {
         if (bridge != null) return CodeBlock.of("it%L%M()", safeCall, MemberName("kotlin.js", bridge))
         if (sequenceOf != null) return kotlinToJs(context, CodeBlock.of("it"), runtimePackage)
         return null
+    }
+
+    /** Kotlin primitives are not `JsAny` subtypes, so as type arguments they become their JS counterparts. */
+    private fun ExternalType.toTypeName(position: Position): TypeName {
+        val type = when {
+            position == Position.Value -> ClassName.bestGuess(kotlinName)
+            kotlinName == "kotlin.String" -> jsString
+            kotlinName in setOf("kotlin.Int", "kotlin.Double", "kotlin.Float") -> jsNumber
+            kotlinName == "kotlin.Boolean" -> jsBoolean
+            else -> ClassName.bestGuess(kotlinName)
+        }
+        return type.copy(nullable = isNullable)
     }
 
     val Descriptor.TypeDescriptor.isUndefined: Boolean

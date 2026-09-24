@@ -6,6 +6,7 @@ package fixtures.typedefs
 import kotlin.Double
 import kotlin.Int
 import kotlin.Suppress
+import kotlin.js.JsAny
 
 public external interface GPUBuffer : JsAny {
   public val size: Double

@@ -14,16 +14,18 @@ data class IdlDefinitions(
     val enums: Map<String, Descriptor.EnumDescriptor>,
     val typedefs: Map<String, Descriptor.TypeDescriptor>,
     val namespaces: Map<String, Descriptor.InterfaceDescriptor>,
+    val externalTypes: Map<String, ExternalType>,
 ) {
     fun toResolvedContext() = ResolvedBindingContext(
         interfaces = interfaces,
         dictionaries = dictionaries,
         enums = enums,
         namespaces = namespaces,
+        externalTypes = externalTypes,
     )
 
     companion object {
-        fun from(collected: BindingContext) = IdlDefinitions(
+        fun from(collected: BindingContext, externalTypes: Map<String, ExternalType>) = IdlDefinitions(
             interfaces = collected[BindingSlices.INTERFACE].orEmpty().toMap(),
             partialInterfaces = collected[BindingSlices.PARTIAL_INTERFACE].orEmpty().toMap(),
             mixins = collected[BindingSlices.MIXIN].orEmpty().toMap(),
@@ -33,6 +35,7 @@ data class IdlDefinitions(
             enums = collected[BindingSlices.ENUM].orEmpty().toMap(),
             typedefs = collected[BindingSlices.TYPEDEF].orEmpty().toMap(),
             namespaces = collected[BindingSlices.NAMESPACE].orEmpty().toMap(),
+            externalTypes = externalTypes,
         )
     }
 }
