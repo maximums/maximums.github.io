@@ -74,13 +74,13 @@ composeApp/                  site: Compose UI, framework adapters, SceneHost, sc
 
 Get main green, deployable and current before building on it.
 
-- [ ] Fix the Boids compile error (REVIEW 1.1). Stub the page out until Phase 6 replaces it.
-- [ ] Fix the Game of Life bugs (REVIEW 1.2, 1.3) and pull the CPU rules out into a pure `LifeEngine`. **Keep it**: it becomes the reference ("oracle") that GPU results are compared against in Phase 5, and the fallback when WebGPU is missing.
-- [ ] Cherry-pick the cleanup commits from `cdodi/webgpu-test` (`17664bf`, `08fe775`, `24dc5b7`, `8d6b335`, `00f80d8`). Leave out anything that removes or goes around the buses (e.g. `rememberAnimatedTime`, which would be a second clock).
-- [ ] Upgrade to Compose Multiplatform 1.12.0 (latest stable) and kotlinx-coroutines 1.11.x (note: the bound on `await` changed to `T : JsAny?`). Use version-catalog coordinates, not hard-coded versions.
-- [ ] Add a test source set with the first unit tests (`LifeEngine`: blinker, glider, a glider leaving the grid).
-- [ ] CI: `setup-java@v4`, Gradle wrapper validation, build cache on.
-- [ ] Branch strategy: main stays deployable. Each phase is a branch off main (`webgpu/phase-N-…`) that merges back when green. **Don't merge `cdodi/webgpu-test`**; bring its plugin code into the new structure in Phase 1 (`git checkout cdodi/webgpu-test -- plugins webGpuRuntime`, then restructure).
+- [x] Fix the Boids compile error (REVIEW 1.1). Stub the page out until Phase 6 replaces it. _Done: the error only existed in uncommitted work, now stashed; `main` already has the stub._
+- [x] Fix the Game of Life bugs (REVIEW 1.2, 1.3) and pull the CPU rules out into a pure `LifeEngine`. **Keep it**: it becomes the reference ("oracle") that GPU results are compared against in Phase 5, and the fallback when WebGPU is missing. _Done: `LifeEngine` + `LifeRule` (birth/survive masks, B/S notation); 1.6 fixed too._
+- [x] Cherry-pick the cleanup commits from `cdodi/webgpu-test` (`17664bf`, `08fe775`, `24dc5b7`, `8d6b335`, `00f80d8`). Leave out anything that removes or goes around the buses (e.g. `rememberAnimatedTime`, which would be a second clock). _Done: `08fe775`, `24dc5b7`, `00f80d8` cherry-picked; the `main`-relevant part of `17664bf` applied by hand along with the rest of REVIEW 4.2; `8d6b335` left out._
+- [x] Upgrade to Compose Multiplatform 1.12.0 (latest stable) and kotlinx-coroutines 1.11.x (note: the bound on `await` changed to `T : JsAny?`). Use version-catalog coordinates, not hard-coded versions. _Done: CMP 1.12.1, Kotlin 2.4.20, coroutines 1.11.0 (the latest stable at the time)._
+- [x] Add a test source set with the first unit tests (`LifeEngine`: blinker, glider, a glider leaving the grid). _Done: 12 tests in `wasmJsTest`, run in headless Chrome._
+- [x] CI: `setup-java@v4`, Gradle wrapper validation, build cache on. _Done: current action majors, `setup-gradle` (caching + wrapper validation), tests in CI, PRs built but not deployed; build and configuration cache on._
+- [x] Branch strategy: main stays deployable. Each phase is a branch off main (`webgpu/phase-N-…`) that merges back when green. **Don't merge `cdodi/webgpu-test`**; bring its plugin code into the new structure in Phase 1 (`git checkout cdodi/webgpu-test -- plugins webGpuRuntime`, then restructure).
 
 **Done when:** CI is green on main, the site is unchanged for visitors, and tests run.
 
