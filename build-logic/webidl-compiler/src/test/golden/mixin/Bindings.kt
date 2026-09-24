@@ -3,9 +3,9 @@
 
 package fixtures.mixin
 
+import kotlin.String
 import kotlin.Suppress
-import kotlin.js.JsString
 
 public external interface GPUThing : JsAny {
-  public var label: JsString?
+  public var label: String
 }

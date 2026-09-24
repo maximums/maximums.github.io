@@ -3,11 +3,12 @@
 
 package fixtures.typedefs
 
+import kotlin.Double
+import kotlin.Int
 import kotlin.Suppress
-import kotlin.js.JsNumber
 
 public external interface GPUBuffer : JsAny {
-  public val size: JsNumber?
+  public val size: Double
 
-  public fun resize(count: JsNumber?, limit: JsNumber?): kotlin.js.JsAny?
+  public fun resize(count: Int, limit: Double?)
 }

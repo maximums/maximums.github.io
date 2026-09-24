@@ -6,9 +6,8 @@ package fixtures.partial
 import com.cdodi.webgpu.runtime.createJsObject
 import kotlin.Boolean
 import kotlin.Suppress
-import kotlin.js.toJsBoolean
 
 public fun GPUThingOptions(first: Boolean? = null, second: Boolean? = null): GPUThingOptions = createJsObject {
-  first?.let { this.first = it.toJsBoolean() }
-  second?.let { this.second = it.toJsBoolean() }
+  first?.let { this.first = it }
+  second?.let { this.second = it }
 }

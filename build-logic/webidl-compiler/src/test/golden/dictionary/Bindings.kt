@@ -3,24 +3,24 @@
 
 package fixtures.dictionary
 
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
 import kotlin.Suppress
 import kotlin.js.JsAny
-import kotlin.js.JsBoolean
-import kotlin.js.JsNumber
-import kotlin.js.JsString
 
 public sealed external interface GPUKind : JsAny
 
 public external interface GPUObjectDescriptorBase : JsAny {
-  public var label: JsString?
+  public var label: String?
 }
 
 public external interface GPUThingDescriptor : JsAny {
-  public var size: JsNumber
+  public var size: Int
 
-  public var mappedAtCreation: JsBoolean?
+  public var mappedAtCreation: Boolean?
 
   public var kind: GPUKind?
 
-  public var label: JsString?
+  public var label: String?
 }

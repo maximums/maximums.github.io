@@ -3,13 +3,13 @@
 
 package fixtures.extended_attributes
 
+import kotlin.Int
 import kotlin.Suppress
-import kotlin.js.JsNumber
 
 public external interface GPUThing : JsAny {
   public val self: GPUThing
 
-  public fun draw(count: JsNumber?, level: JsNumber?): kotlin.js.JsAny?
+  public fun draw(count: Int, level: Int)
 
   public fun clone(): GPUThing
 }

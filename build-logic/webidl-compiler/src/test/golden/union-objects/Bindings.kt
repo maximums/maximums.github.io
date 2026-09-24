@@ -12,7 +12,7 @@ public external interface GPUTextureView : GPUSamplerOrGPUTextureViewOrGPUBuffer
 public external interface GPUBuffer : JsAny
 
 public external interface GPUDevice : JsAny {
-  public fun bind(resource: GPUSamplerOrGPUTextureViewOrGPUBufferBinding): kotlin.js.JsAny?
+  public fun bind(resource: GPUSamplerOrGPUTextureViewOrGPUBufferBinding)
 }
 
 public external interface GPUSamplerOrGPUTextureViewOrGPUBufferBinding : JsAny

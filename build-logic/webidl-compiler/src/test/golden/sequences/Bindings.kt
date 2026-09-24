@@ -9,11 +9,11 @@ import kotlin.js.JsNumber
 import kotlin.js.JsString
 
 public external interface GPUThing : JsAny {
-  public val tags: JsArray<JsString?>
+  public val tags: JsArray<JsString>
 }
 
 public external interface GPUThingList : kotlin.js.JsAny {
   public var things: JsArray<GPUThing>
 
-  public var counts: JsArray<JsNumber?>?
+  public var counts: JsArray<JsNumber>?
 }

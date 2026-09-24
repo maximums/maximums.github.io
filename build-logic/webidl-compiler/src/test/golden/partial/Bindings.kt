@@ -3,18 +3,18 @@
 
 package fixtures.partial
 
+import kotlin.Boolean
+import kotlin.Int
 import kotlin.Suppress
-import kotlin.js.JsBoolean
-import kotlin.js.JsNumber
 
 public external interface GPUThing : JsAny {
-  public val a: JsNumber?
+  public val a: Int
 
-  public val b: JsNumber?
+  public val b: Int
 }
 
 public external interface GPUThingOptions : kotlin.js.JsAny {
-  public var first: JsBoolean?
+  public var first: Boolean?
 
-  public var second: JsBoolean?
+  public var second: Boolean?
 }

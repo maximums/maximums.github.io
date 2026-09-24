@@ -130,6 +130,8 @@ class InterfaceCollector(
         return InterfaceMember.VariableDescriptor(
             name = argumentName()?.IDENTIFIER_WEBIDL()?.text?.trim().orEmpty(),
             type = type,
+            isOptional = getChild(0)?.text == "optional",
+            isVariadic = ellipsis()?.text == "...",
             defaultValue = default_()?.cleanDefValue
         )
     }

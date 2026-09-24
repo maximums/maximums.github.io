@@ -8,7 +8,7 @@ import kotlin.Suppress
 public external interface GPUBuffer : JsAny
 
 public external interface GPUQueue : JsAny {
-  public fun writeBuffer(buffer: GPUBuffer, `data`: kotlin.js.JsAny?): kotlin.js.JsAny?
+  public fun writeBuffer(buffer: GPUBuffer, `data`: kotlin.js.JsAny)
 
-  public fun copyFrom(source: kotlin.js.JsAny?): kotlin.js.JsAny?
+  public fun copyFrom(source: kotlin.js.JsAny)
 }

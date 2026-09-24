@@ -1,12 +1,15 @@
 package com.cdodi.webidl.backend
 
-import com.cdodi.webidl.backend.TypeMapping.asPoetJs
-import com.cdodi.webidl.backend.TypeMapping.asPoetKt
-import com.cdodi.webidl.backend.TypeMapping.conversionBridge
+import com.cdodi.webidl.backend.TypeMapping.Position
+import com.cdodi.webidl.backend.TypeMapping.isUndefined
+import com.cdodi.webidl.backend.TypeMapping.kotlinToJs
+import com.cdodi.webidl.backend.TypeMapping.toFactoryParameter
+import com.cdodi.webidl.backend.TypeMapping.toKotlin
 import com.cdodi.webidl.model.BindingContext
 import com.cdodi.webidl.model.Descriptor
 import com.cdodi.webidl.model.InterfaceMember
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
@@ -28,7 +31,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     }
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
-        val typeName = variable.type.asPoetJs(context, generatedPackageName)
+        val typeName = variable.type.toKotlin(context, generatedPackageName)
         interfaceBuilder.addProperty(
             PropertySpec.builder(variable.name, typeName).mutable(!variable.isReadonly).build()
         )
@@ -38,12 +41,13 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
         val funBuilder = if (function.name == "constructor") {
             FunSpec.constructorBuilder()
         } else {
-            FunSpec.builder(function.name).returns(function.returnType.asPoetJs(context, generatedPackageName))
+            FunSpec.builder(function.name).returns(function.returnType.toKotlin(context, generatedPackageName))
         }
 
         function.parameters.forEach { param ->
-            val paramSpec = ParameterSpec.builder(param.name, param.type.asPoetJs(context, generatedPackageName))
-                .also { if (param.defaultValue != null) it.defaultValue("definedExternally") }
+            val paramSpec = ParameterSpec.builder(param.name, param.type.toKotlin(context, generatedPackageName))
+                .also { if (param.isOptional) it.defaultValue("definedExternally") }
+                .also { if (param.isVariadic) it.addModifiers(KModifier.VARARG) }
                 .build()
             funBuilder.addParameter(paramSpec)
         }
@@ -60,8 +64,8 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
         .addSuperinterface(ClassName("kotlin.js", "JsAny"))
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
-        val typeName = variable.type.asPoetJs(context, generatedPackageName)
-            .copy(nullable = !variable.isRequired)
+        val type = variable.type.toKotlin(context, generatedPackageName)
+        val typeName = type.copy(nullable = type.isNullable || !variable.isRequired)
         interfaceBuilder.addProperty(
             PropertySpec.builder(variable.name, typeName)
                 .mutable(true)
@@ -82,7 +86,7 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
     val factoryBuilder = FunSpec.builder(name).returns(className)
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
-        val typeName = variable.type.asPoetKt(context, generatedPackageName)
+        val typeName = variable.type.toFactoryParameter(context, generatedPackageName)
         val isOptional = !variable.isRequired
         val paramType = if (isOptional) typeName.copy(nullable = true) else typeName
         val paramBuilder = ParameterSpec.builder(variable.name, paramType)
@@ -96,26 +100,16 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 
     factoryBuilder.beginControlFlow("return %M", createJsObjectMember)
 
+    // Absent optional members are left out entirely: WebIDL only skips `undefined`, and null is not undefined.
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
-        val typeName = variable.type.asPoetKt(context, generatedPackageName)
-        val isOptional = !variable.isRequired
-        val conversion = when {
-            variable.type.sequenceOf != null -> MemberName(runtimePackage, "toJsArray")
-            else -> typeName.copy(nullable = false).conversionBridge
-        }
-
-        if (isOptional) {
-            if (conversion != null) {
-                factoryBuilder.addStatement("%N?.let { this.%N = it.%M() }", variable.name, variable.name, conversion)
-            } else {
-                factoryBuilder.addStatement("%N?.let { this.%N = it }", variable.name, variable.name)
-            }
+        if (variable.isRequired) {
+            val value = variable.type.kotlinToJs(context, CodeBlock.of("%N", variable.name), runtimePackage)
+                ?: CodeBlock.of("%N", variable.name)
+            factoryBuilder.addStatement("this.%N = %L", variable.name, value)
         } else {
-            if (conversion != null) {
-                factoryBuilder.addStatement("this.%N = %N.%M()", variable.name, variable.name, conversion)
-            } else {
-                factoryBuilder.addStatement("this.%N = %N", variable.name, variable.name)
-            }
+            val value = variable.type.copy(isNullable = false).kotlinToJs(context, CodeBlock.of("it"), runtimePackage)
+                ?: CodeBlock.of("it")
+            factoryBuilder.addStatement("%N?.let { this.%N = %L }", variable.name, variable.name, value)
         }
     }
 
@@ -129,7 +123,7 @@ fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, gene
     val objectBuilder = TypeSpec.objectBuilder(name)
 
     members.filterIsInstance<InterfaceMember.ConstantDescriptor>().forEach { constant ->
-        val ktType = constant.type.asPoetKt(context, generatedPackageName)
+        val ktType = constant.type.toKotlin(context, generatedPackageName)
         objectBuilder.addProperty(
             PropertySpec.builder(constant.name, ktType)
                 .addModifiers(KModifier.CONST)
@@ -154,9 +148,9 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
         .filter { it.returnType.promiseOf != null }
         .forEach { function ->
             val promiseInner = function.returnType.promiseOf!!
-            val isVoid = promiseInner.name in listOf("undefined", "void")
-            val returnType = if (isVoid) UNIT else promiseInner.asPoetJs(context, generatedPackageName)
-            val hasOptionalParams = function.parameters.any { it.defaultValue != null }
+            val isVoid = promiseInner.isUndefined
+            val returnType = if (isVoid) UNIT else promiseInner.toKotlin(context, generatedPackageName, Position.TypeArgument)
+            val hasOptionalParams = function.parameters.any { it.isOptional }
 
             fun buildWrapper(params: List<InterfaceMember.VariableDescriptor>): FunSpec {
                 val builder = FunSpec.builder("${function.name}Suspend")
@@ -166,7 +160,7 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
 
                 val paramNames = mutableListOf<String>()
                 params.forEach { param ->
-                    builder.addParameter(param.name, param.type.asPoetJs(context, generatedPackageName))
+                    builder.addParameter(param.name, param.type.toKotlin(context, generatedPackageName))
                     paramNames.add(param.name)
                 }
 
@@ -183,11 +177,11 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
             wrappers.add(buildWrapper(function.parameters))
 
             if (hasOptionalParams) {
-                val lastRequiredIdx = function.parameters.indexOfLast { it.defaultValue == null }
-                val firstOptionalIdx = function.parameters.indexOfFirst { it.defaultValue != null }
+                val lastRequiredIdx = function.parameters.indexOfLast { !it.isOptional }
+                val firstOptionalIdx = function.parameters.indexOfFirst { it.isOptional }
                 val optionalsAreTrailing = firstOptionalIdx > lastRequiredIdx
                 if (optionalsAreTrailing) {
-                    wrappers.add(buildWrapper(function.parameters.filter { it.defaultValue == null }))
+                    wrappers.add(buildWrapper(function.parameters.filter { !it.isOptional }))
                 }
             }
         }

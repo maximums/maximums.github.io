@@ -5,7 +5,7 @@ sealed interface Descriptor {
 
     data class TypeDescriptor(
         override val name: String,
-        val isNullable: Boolean = true,
+        val isNullable: Boolean = false,
         val unionMembers: List<TypeDescriptor> = emptyList(),
         val record: Map<TypeDescriptor, TypeDescriptor>? = null,
         val sequenceOf: TypeDescriptor? = null,
@@ -38,7 +38,12 @@ sealed interface InterfaceMember : Descriptor {
         override val name: String,
         val type: Descriptor.TypeDescriptor,
         val isReadonly: Boolean = false,
+        /** Dictionary member marked `required`. */
         val isRequired: Boolean = false,
+        /** Operation argument marked `optional`, with or without a default value. */
+        val isOptional: Boolean = false,
+        /** Operation argument declared with `...`. */
+        val isVariadic: Boolean = false,
         val defaultValue: String? = null
     ) : InterfaceMember
 

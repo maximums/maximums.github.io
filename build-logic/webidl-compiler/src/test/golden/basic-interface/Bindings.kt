@@ -3,17 +3,17 @@
 
 package fixtures.basic_interface
 
+import kotlin.Boolean
+import kotlin.Double
+import kotlin.String
 import kotlin.Suppress
-import kotlin.js.JsBoolean
-import kotlin.js.JsNumber
-import kotlin.js.JsString
 
 public external interface GPUThing : JsAny {
-  public val name: JsString?
+  public val name: String
 
-  public var level: JsNumber?
+  public var level: Double
 
-  public fun reset(): kotlin.js.JsAny?
+  public fun reset()
 
-  public fun compare(other: GPUThing): JsBoolean?
+  public fun compare(other: GPUThing): Boolean
 }

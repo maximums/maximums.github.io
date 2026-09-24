@@ -13,23 +13,17 @@ import com.cdodi.webgpu.bindings.GPUShaderModuleDescriptor
 import com.cdodi.webgpu.bindings.mapAsyncSuspend
 import com.cdodi.webgpu.bindings.requestAdapterSuspend
 import com.cdodi.webgpu.bindings.requestDeviceSuspend
-import com.cdodi.webgpu.runtime.await
 import kotlinx.coroutines.test.runTest
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Float32Array
 import org.khronos.webgl.get
 import org.khronos.webgl.toFloat32Array
-import kotlin.js.Promise
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-// The generated requestAdapter() cannot express "no adapter" yet (REVIEW W1: nullability), and a null would
-// hang the suspend wrapper. So the test first asks in plain JS whether an adapter exists.
-@JsFun("() => navigator.gpu ? navigator.gpu.requestAdapter().then(a => a !== null) : Promise.resolve(false)")
-private external fun hasWebGpuAdapter(): Promise<JsBoolean>
-
-@JsFun("() => navigator.gpu")
-private external fun navigatorGpu(): GPU
+/** `navigator.gpu`, or null where the browser has no WebGPU. Replaced by the idiomatic layer in PLAN 1.6. */
+@JsFun("() => navigator.gpu ?? null")
+private external fun navigatorGpu(): GPU?
 
 // language=wgsl
 private const val DOUBLING_SHADER = """
@@ -48,14 +42,15 @@ class WebGpuSmokeTest {
 
     @Test
     fun computeShaderDoublesNumbers() = runTest {
-        if (!hasWebGpuAdapter().await().toBoolean()) {
+        val adapter = navigatorGpu()?.requestAdapterSuspend()
+        if (adapter == null) {
             println("WebGpuSmokeTest: no WebGPU adapter in this browser — skipped")
             return@runTest
         }
 
-        val device = navigatorGpu().requestAdapterSuspend().requestDeviceSuspend()
+        val device = adapter.requestDeviceSuspend()
         val input = floatArrayOf(1f, 4f, 5f)
-        val byteSize = input.size * Float.SIZE_BYTES
+        val byteSize = (input.size * Float.SIZE_BYTES).toDouble()
 
         val pipeline = device.createComputePipeline(
             GPUComputePipelineDescriptor(
@@ -72,33 +67,29 @@ class WebGpuSmokeTest {
         val readback = device.createBuffer(
             GPUBufferDescriptor(size = byteSize, usage = GPUBufferUsage.MAP_READ or GPUBufferUsage.COPY_DST)
         )
-
-        val data = input.toFloat32Array()
-        // `size` is optional in the IDL but required by the current bindings (REVIEW W1: optional arguments).
-        device.queue.writeBuffer(work, 0.toJsNumber(), data, 0.toJsNumber(), input.size.toJsNumber())
+        device.queue.writeBuffer(work, 0.0, input.toFloat32Array())
 
         val bindGroup = device.createBindGroup(
             GPUBindGroupDescriptor(
-                layout = pipeline.getBindGroupLayout(0.toJsNumber()),
+                layout = pipeline.getBindGroupLayout(0),
                 entries = listOf(GPUBindGroupEntry(binding = 0, resource = work)),
             )
         )
         val encoder = device.createCommandEncoder()
         encoder.beginComputePass().apply {
             setPipeline(pipeline)
-            setBindGroup(0.toJsNumber(), bindGroup)
-            dispatchWorkgroups(input.size.toJsNumber())
+            setBindGroup(0, bindGroup)
+            dispatchWorkgroups(input.size)
             end()
         }
-        encoder.copyBufferToBuffer(work, 0.toJsNumber(), readback, 0.toJsNumber(), byteSize.toJsNumber())
+        encoder.copyBufferToBuffer(work, 0.0, readback, 0.0, byteSize)
         device.queue.submit(listOf(encoder.finish()).toJsArray())
 
-        readback.mapAsyncSuspend(GPUMapMode.READ.toJsNumber(), 0.toJsNumber(), byteSize.toJsNumber())
-        val mapped = Float32Array(readback.getMappedRange(0.toJsNumber(), byteSize.toJsNumber())!!.unsafeCast<ArrayBuffer>())
+        readback.mapAsyncSuspend(GPUMapMode.READ)
+        val mapped = Float32Array(readback.getMappedRange().unsafeCast<ArrayBuffer>())
         val result = List(input.size) { i -> mapped[i] }
         readback.unmap()
 
         assertEquals(listOf(2f, 8f, 10f), result)
     }
 }
-

@@ -3,13 +3,13 @@
 
 package fixtures.constructors
 
+import kotlin.String
 import kotlin.Suppress
-import kotlin.js.JsString
 
 public external interface GPUError : JsAny {
-  public val message: JsString?
+  public val message: String
 }
 
 public abstract external class GPUValidationError : GPUError {
-  public constructor(message: JsString?)
+  public constructor(message: String)
 }

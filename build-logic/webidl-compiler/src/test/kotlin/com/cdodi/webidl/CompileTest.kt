@@ -86,8 +86,6 @@ class CompileTest {
 
     private companion object {
         /** Fixtures whose generated code does not compile yet. Each entry is a known bug; remove it with the fix. */
-        val KNOWN_NOT_COMPILING = setOf(
-            "sequences", // List<Int>.toJsArray(): toJsArray needs JsAny? elements (REVIEW W1, sequence<primitive>)
-        )
+        val KNOWN_NOT_COMPILING = setOf<String>()
     }
 }

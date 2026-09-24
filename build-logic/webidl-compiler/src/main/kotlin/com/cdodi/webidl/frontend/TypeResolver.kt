@@ -5,14 +5,12 @@ import com.cdodi.webidl.parser.WebIDLBaseVisitor
 import com.cdodi.webidl.parser.WebIDLParser
 
 class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
-    override fun visitType_(ctx: WebIDLParser.Type_Context): TypeDescriptor {
-        val baseType = when {
-            ctx.singleType() != null -> visit(ctx.singleType())
-            ctx.unionType() != null -> visit(ctx.unionType())
-            else -> TypeDescriptor(name = "any")
-        }
-        val isNullable = ctx.null_()?.text == "?"
-        return baseType.copy(isNullable = isNullable)
+    // The grammar puts `?` inside distinguishableType, and after a union in type_ and unionMemberType;
+    // each rule reads its own marker.
+    override fun visitType_(ctx: WebIDLParser.Type_Context): TypeDescriptor = when {
+        ctx.singleType() != null -> visit(ctx.singleType())
+        ctx.unionType() != null -> visit(ctx.unionType()).copy(isNullable = ctx.null_().isMarked)
+        else -> TypeDescriptor(name = "any", isNullable = true)
     }
 
     override fun visitSingleType(ctx: WebIDLParser.SingleTypeContext): TypeDescriptor {
@@ -33,29 +31,28 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
     }
 
     override fun visitDistinguishableType(ctx: WebIDLParser.DistinguishableTypeContext): TypeDescriptor {
+        val isNullable = ctx.null_().isMarked
         val firstChild = ctx.getChild(0).text
         if (firstChild == "sequence" || firstChild == "FrozenArray" || firstChild == "ObservableArray") {
             val inner = visit(ctx.typeWithExtendedAttributes())
-            return TypeDescriptor(name = "sequence", sequenceOf = inner)
+            return TypeDescriptor(name = "sequence", sequenceOf = inner, isNullable = isNullable)
         }
 
         ctx.recordType()?.let { record ->
             val keyType = TypeDescriptor(name = record.stringType().text)
             val valueType = visit(record.typeWithExtendedAttributes())
-            return TypeDescriptor(name = "record", record = mapOf(keyType to valueType))
+            return TypeDescriptor(name = "record", record = mapOf(keyType to valueType), isNullable = isNullable)
         }
 
-        return TypeDescriptor(name = ctx.getChild(0).text)
+        return TypeDescriptor(name = firstChild, isNullable = isNullable)
     }
 
     override fun visitUnionMemberType(ctx: WebIDLParser.UnionMemberTypeContext): TypeDescriptor {
         val dist = ctx.distinguishableType()
         return if (dist != null) {
-            val base = visitDistinguishableType(dist)
-            val isNullable = ctx.null_()?.text == "?"
-            base.copy(isNullable = isNullable)
+            visitDistinguishableType(dist)
         } else {
-            visit(ctx.unionType())
+            visit(ctx.unionType()).copy(isNullable = ctx.null_().isMarked)
         }
     }
 
@@ -72,4 +69,7 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
 
         return TypeDescriptor(name = "union", unionMembers = members)
     }
+
+    private val WebIDLParser.Null_Context?.isMarked: Boolean
+        get() = this?.text == "?"
 }

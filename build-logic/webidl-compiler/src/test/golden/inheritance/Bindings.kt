@@ -3,17 +3,17 @@
 
 package fixtures.inheritance
 
+import kotlin.Int
 import kotlin.Suppress
-import kotlin.js.JsNumber
 
 public external interface Base : JsAny {
-  public val id: JsNumber?
+  public val id: Int
 }
 
 public external interface Derived : Base {
-  public val extra: JsNumber?
+  public val extra: Int
 }
 
 public external interface FromDom : JsAny {
-  public var onlost: kotlin.js.JsAny?
+  public var onlost: kotlin.js.JsAny
 }

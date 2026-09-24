@@ -7,7 +7,6 @@ import com.cdodi.webgpu.runtime.createJsObject
 import kotlin.Double
 import kotlin.Suppress
 import kotlin.js.JsAny
-import kotlin.js.toJsNumber
 
 public fun GPUColorDict(
   r: Double,
@@ -15,10 +14,10 @@ public fun GPUColorDict(
   b: Double,
   a: Double,
 ): GPUColorDict = createJsObject {
-  this.r = r.toJsNumber()
-  this.g = g.toJsNumber()
-  this.b = b.toJsNumber()
-  this.a = a.toJsNumber()
+  this.r = r
+  this.g = g
+  this.b = b
+  this.a = a
 }
 
 public fun GPURenderPassColorAttachment(clearValue: JsAny? = null): GPURenderPassColorAttachment = createJsObject {

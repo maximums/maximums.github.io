@@ -3,9 +3,9 @@
 
 package fixtures.optional_arguments
 
+import kotlin.Double
 import kotlin.Suppress
-import kotlin.js.JsNumber
 
 public external interface GPUBuffer : JsAny {
-  public fun getMappedRange(offset: JsNumber? = definedExternally, size: JsNumber?): kotlin.js.JsAny?
+  public fun getMappedRange(offset: Double = definedExternally, size: Double = definedExternally): kotlin.js.JsAny
 }

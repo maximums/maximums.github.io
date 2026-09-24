@@ -8,8 +8,6 @@ import kotlin.Boolean
 import kotlin.Int
 import kotlin.String
 import kotlin.Suppress
-import kotlin.js.toJsBoolean
-import kotlin.js.toJsNumber
 import kotlin.js.toJsString
 
 public object GPUKindEntries {
@@ -21,7 +19,7 @@ public object GPUKindEntries {
 }
 
 public fun GPUObjectDescriptorBase(label: String? = null): GPUObjectDescriptorBase = createJsObject {
-  label?.let { this.label = it.toJsString() }
+  label?.let { this.label = it }
 }
 
 public fun GPUThingDescriptor(
@@ -30,8 +28,8 @@ public fun GPUThingDescriptor(
   kind: GPUKind? = null,
   label: String? = null,
 ): GPUThingDescriptor = createJsObject {
-  this.size = size.toJsNumber()
-  mappedAtCreation?.let { this.mappedAtCreation = it.toJsBoolean() }
+  this.size = size
+  mappedAtCreation?.let { this.mappedAtCreation = it }
   kind?.let { this.kind = it }
-  label?.let { this.label = it.toJsString() }
+  label?.let { this.label = it }
 }
