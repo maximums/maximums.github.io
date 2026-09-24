@@ -18,6 +18,8 @@ class InterfaceCollector(
         ctx.readonlyMember()?.readonlyMemberRest()?.attributeRest()?.extractVariable(isReadonly = true)?.let { return it }
         ctx.readWriteAttribute()?.attributeRest()?.extractVariable()?.let { return it }
         ctx.operation()?.regularOperation()?.extractFunction()?.let { return it }
+        ctx.readonlyMember()?.readonlyMemberRest()?.setlikeRest()?.extractSetlike(isReadonly = true)?.let { return it }
+        ctx.readWriteSetlike()?.setlikeRest()?.extractSetlike(isReadonly = false)?.let { return it }
 
         val text = ctx.text.trim()
         if (text.isNotEmpty()) onUnsupported("Skipping unsupported partial interface member: $text")
@@ -37,23 +39,13 @@ class InterfaceCollector(
         ctx.constructor()?.let { constructorCtx ->
             val parameters = constructorCtx.argumentList()?.extractArguments().orEmpty()
 
-            var parentNode: RuleContext? = ctx.parent
-            while (parentNode != null) {
-                if (parentNode is WebIDLParser.InterfaceRestContext) {
-                    val interfaceName = parentNode.IDENTIFIER_WEBIDL()?.text?.trim()
-                        ?: error("Constructor found in interface without a name")
-                    return listOf(
-                        InterfaceMember.FunctionDescriptor(
-                            name = "constructor",
-                            returnType = Descriptor.TypeDescriptor(name = interfaceName, isNullable = false),
-                            parameters = parameters,
-                        )
-                    )
-                }
-                parentNode = parentNode.parent
-            }
-
-            error("Constructor found outside of an interface context at ${ctx.start.line}:${ctx.start.charPositionInLine}")
+            return listOf(
+                InterfaceMember.FunctionDescriptor(
+                    name = "constructor",
+                    returnType = Descriptor.TypeDescriptor(name = ctx.enclosingInterfaceName()),
+                    parameters = parameters,
+                )
+            )
         }
 
         return super.visitInterfaceMember(ctx)
@@ -84,6 +76,39 @@ class InterfaceCollector(
                 defaultValue = defaultValue
             )
         )
+    }
+
+    /**
+     * `setlike<T>` declares the members of a JS Set (WebIDL "setlike declarations"): `size` and `has()`, plus `add()`,
+     * `delete()` and `clear()` unless it is readonly. forEach and the iterators need callback and iterator types that
+     * the model cannot express yet, so they are left out.
+     */
+    private fun WebIDLParser.SetlikeRestContext.extractSetlike(isReadonly: Boolean): List<InterfaceMember>? {
+        val element = typeWithExtendedAttributes()?.let { typeResolver.visit(it) } ?: return null
+        val value = listOf(InterfaceMember.VariableDescriptor(name = "value", type = element))
+        val boolean = Descriptor.TypeDescriptor(name = "boolean")
+
+        val members = mutableListOf<InterfaceMember>(
+            InterfaceMember.VariableDescriptor(name = "size", type = Descriptor.TypeDescriptor(name = "unsignedlong"), isReadonly = true),
+            InterfaceMember.FunctionDescriptor(name = "has", returnType = boolean, parameters = value),
+        )
+        if (!isReadonly) {
+            members += InterfaceMember.FunctionDescriptor(name = "add", returnType = Descriptor.TypeDescriptor(name = enclosingInterfaceName()), parameters = value)
+            members += InterfaceMember.FunctionDescriptor(name = "delete", returnType = boolean, parameters = value)
+            members += InterfaceMember.FunctionDescriptor(name = "clear", returnType = Descriptor.TypeDescriptor(name = "undefined"), parameters = emptyList())
+        }
+        return members
+    }
+
+    private fun RuleContext.enclosingInterfaceName(): String {
+        var node: RuleContext? = parent
+        while (node != null) {
+            if (node is WebIDLParser.InterfaceRestContext) {
+                return node.IDENTIFIER_WEBIDL()?.text?.trim() ?: error("Interface without a name")
+            }
+            node = node.parent
+        }
+        error("Member outside of an interface at ${(this as? org.antlr.v4.runtime.ParserRuleContext)?.start?.line}")
     }
 
     private fun WebIDLParser.AttributeRestContext.extractVariable(isReadonly: Boolean = false): List<InterfaceMember>? {

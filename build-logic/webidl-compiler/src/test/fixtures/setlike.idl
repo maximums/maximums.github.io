@@ -1,5 +1,9 @@
 // readonly setlike<DOMString> (GPUSupportedFeatures in WebGPU).
-// Target: val size: Int, fun has(value: String): Boolean, forEach, values().
+// Target: val size: Int, fun has(value: String): Boolean; a writable setlike adds add/delete/clear.
+// forEach and the iterators are not generated yet (they need callback and iterator types).
 interface GPUSupportedFeatures {
     readonly setlike<DOMString>;
+};
+interface GPUThingSet {
+    setlike<DOMString>;
 };

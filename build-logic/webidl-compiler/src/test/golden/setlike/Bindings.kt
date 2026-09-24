@@ -3,7 +3,26 @@
 
 package fixtures.setlike
 
+import kotlin.Boolean
+import kotlin.Int
+import kotlin.String
 import kotlin.Suppress
 import kotlin.js.JsAny
 
-public external interface GPUSupportedFeatures : JsAny
+public external interface GPUSupportedFeatures : JsAny {
+  public val size: Int
+
+  public fun has(`value`: String): Boolean
+}
+
+public external interface GPUThingSet : JsAny {
+  public val size: Int
+
+  public fun has(`value`: String): Boolean
+
+  public fun add(`value`: String): GPUThingSet
+
+  public fun delete(`value`: String): Boolean
+
+  public fun clear()
+}
