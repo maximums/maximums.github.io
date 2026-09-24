@@ -1,0 +1,6 @@
+// Optional arguments with and without a default value.
+// Target: both are `= definedExternally`; `size` has no default but is still optional.
+typedef [EnforceRange] unsigned long long GPUSize64;
+interface GPUBuffer {
+    ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
+};

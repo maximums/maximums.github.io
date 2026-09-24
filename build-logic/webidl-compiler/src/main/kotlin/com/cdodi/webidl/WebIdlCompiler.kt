@@ -1,0 +1,80 @@
+package com.cdodi.webidl
+
+import com.cdodi.webidl.backend.generateKotlin
+import com.cdodi.webidl.frontend.InterfaceCollector
+import com.cdodi.webidl.frontend.SymbolCollectorVisitor
+import com.cdodi.webidl.frontend.TypeResolver
+import com.cdodi.webidl.model.MutableBindingContext
+import com.cdodi.webidl.parser.WebIDLLexer
+import com.cdodi.webidl.parser.WebIDLParser
+import com.cdodi.webidl.passes.resolveSemantics
+import com.squareup.kotlinpoet.FileSpec
+import org.antlr.v4.runtime.BaseErrorListener
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonTokenStream
+import org.antlr.v4.runtime.RecognitionException
+import org.antlr.v4.runtime.Recognizer
+
+/** One WebIDL document, e.g. the contents of `webgpu.idl`. */
+data class IdlSource(val name: String, val text: String)
+
+data class CompilerOptions(
+    val packageName: String,
+    val runtimePackage: String,
+    val apiFileName: String = "Bindings",
+    val factoriesFileName: String = "Factories",
+)
+
+/**
+ * The whole pipeline — parse, collect symbols, resolve, generate — without Gradle,
+ * so the Gradle task and the tests run exactly the same code.
+ */
+object WebIdlCompiler {
+
+    fun compile(
+        sources: List<IdlSource>,
+        options: CompilerOptions,
+        onWarning: (String) -> Unit = {},
+    ): List<FileSpec> {
+        val collectionContext = MutableBindingContext()
+        val typeResolver = TypeResolver()
+        val membersCollector = InterfaceCollector(typeResolver, onWarning)
+        val symbolCollector = SymbolCollectorVisitor(collectionContext, membersCollector, typeResolver)
+
+        sources.sortedBy(IdlSource::name).forEach { source -> symbolCollector.visit(parse(source)) }
+
+        return generateKotlin(
+            resolveSemantics(collectionContext),
+            options.packageName,
+            options.runtimePackage,
+            options.apiFileName,
+            options.factoriesFileName,
+        )
+    }
+
+    private fun parse(source: IdlSource): WebIDLParser.WebIDLContext {
+        val errorListener = FailFastErrorListener(source.name)
+        val lexer = WebIDLLexer(CharStreams.fromString(source.text, source.name)).apply {
+            removeErrorListeners()
+            addErrorListener(errorListener)
+        }
+        val parser = WebIDLParser(CommonTokenStream(lexer)).apply {
+            removeErrorListeners()
+            addErrorListener(errorListener)
+        }
+        return parser.webIDL()
+    }
+}
+
+private class FailFastErrorListener(private val sourceName: String) : BaseErrorListener() {
+    override fun syntaxError(
+        recognizer: Recognizer<*, *>?,
+        offendingSymbol: Any?,
+        line: Int,
+        charPositionInLine: Int,
+        msg: String?,
+        e: RecognitionException?
+    ) {
+        throw IllegalStateException("WebIDL parse error in $sourceName at $line:$charPositionInLine — $msg")
+    }
+}

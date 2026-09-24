@@ -1,0 +1,8 @@
+// Types defined outside this file (AllowSharedBufferSource, ImageBitmap).
+// Target: mapped through the externalTypes table (org.khronos.webgl / org.w3c.dom); unknown names fail the build.
+interface GPUBuffer {
+};
+interface GPUQueue {
+    undefined writeBuffer(GPUBuffer buffer, AllowSharedBufferSource data);
+    undefined copyFrom(ImageBitmap source);
+};

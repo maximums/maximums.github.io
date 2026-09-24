@@ -1,0 +1,12 @@
+// Mixins are copied into the interfaces that include them.
+// Target: GPUThing gets `label`; `Navigator includes NavigatorThing` becomes an extension property Navigator.thing.
+interface mixin Labelled {
+    attribute USVString label;
+};
+interface GPUThing {
+};
+GPUThing includes Labelled;
+interface mixin NavigatorThing {
+    [SameObject] readonly attribute GPUThing thing;
+};
+Navigator includes NavigatorThing;

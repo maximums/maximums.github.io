@@ -1,0 +1,5 @@
+// readonly setlike<DOMString> (GPUSupportedFeatures in WebGPU).
+// Target: val size: Int, fun has(value: String): Boolean, forEach, values().
+interface GPUSupportedFeatures {
+    readonly setlike<DOMString>;
+};

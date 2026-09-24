@@ -10,6 +10,10 @@ dependencies {
     implementation(libs.antlr.runtime)
     implementation(libs.kotlinpoet)
     compileOnly(libs.kotlin.gradle.plugin)
+
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.generateGrammarSource {
@@ -19,6 +23,21 @@ tasks.generateGrammarSource {
 
 tasks.compileKotlin {
     dependsOn(tasks.generateGrammarSource)
+}
+
+/** `-PupdateGoldens` rewrites src/test/golden from the current compiler output instead of checking against it. */
+val updateGoldens = providers.gradleProperty("updateGoldens").isPresent
+tasks.test {
+    useJUnitPlatform()
+
+    val fixtures = layout.projectDirectory.dir("src/test/fixtures")
+    val golden = layout.projectDirectory.dir("src/test/golden")
+    inputs.dir(fixtures).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("fixtures")
+    inputs.files(golden).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("golden")
+    systemProperty("webidl.fixtures", fixtures.asFile.absolutePath)
+    systemProperty("webidl.golden", golden.asFile.absolutePath)
+    systemProperty("webidl.updateGoldens", updateGoldens)
+    if (updateGoldens) outputs.upToDateWhen { false }
 }
 
 gradlePlugin {

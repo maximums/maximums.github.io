@@ -1,0 +1,7 @@
+// record<K, V>.
+// Target: a small generated wrapper with get/set, or JsAny for now.
+interface GPUThing {
+};
+dictionary GPUThingRegistry {
+    record<DOMString, GPUThing> things;
+};

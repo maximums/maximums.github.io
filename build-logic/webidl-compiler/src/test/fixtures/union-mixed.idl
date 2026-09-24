@@ -1,0 +1,15 @@
+// A union of a sequence and a dictionary (GPUColor in WebGPU).
+// Target: property typed JsAny; arguments get one overload per member (a numbers array and GPUColorDict).
+dictionary GPUColorDict {
+    required double r;
+    required double g;
+    required double b;
+    required double a;
+};
+typedef (sequence<double> or GPUColorDict) GPUColor;
+dictionary GPURenderPassColorAttachment {
+    GPUColor clearValue;
+};
+interface GPURenderPassEncoder {
+    undefined setBlendConstant(GPUColor color);
+};

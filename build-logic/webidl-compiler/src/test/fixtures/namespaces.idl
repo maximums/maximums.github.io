@@ -1,0 +1,8 @@
+// Namespaces with constants (GPUBufferUsage in WebGPU).
+// Target: a Kotlin object with `const val` Ints.
+typedef [EnforceRange] unsigned long GPUFlagsConstant;
+[Exposed=(Window, Worker), SecureContext]
+namespace GPUBufferUsage {
+    const GPUFlagsConstant MAP_READ = 0x0001;
+    const GPUFlagsConstant COPY_DST = 0x0008;
+};

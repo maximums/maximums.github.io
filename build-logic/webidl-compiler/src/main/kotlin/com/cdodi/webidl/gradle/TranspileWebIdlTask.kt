@@ -1,18 +1,8 @@
 package com.cdodi.webidl.gradle
 
-import com.cdodi.webidl.backend.generateKotlin
-import com.cdodi.webidl.frontend.InterfaceCollector
-import com.cdodi.webidl.frontend.SymbolCollectorVisitor
-import com.cdodi.webidl.frontend.TypeResolver
-import com.cdodi.webidl.model.MutableBindingContext
-import com.cdodi.webidl.parser.WebIDLLexer
-import com.cdodi.webidl.parser.WebIDLParser
-import com.cdodi.webidl.passes.resolveSemantics
-import org.antlr.v4.runtime.BaseErrorListener
-import org.antlr.v4.runtime.CharStreams
-import org.antlr.v4.runtime.CommonTokenStream
-import org.antlr.v4.runtime.RecognitionException
-import org.antlr.v4.runtime.Recognizer
+import com.cdodi.webidl.CompilerOptions
+import com.cdodi.webidl.IdlSource
+import com.cdodi.webidl.WebIdlCompiler
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
@@ -24,7 +14,6 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
-import java.io.File
 
 @CacheableTask
 abstract class TranspileWebIdlTask : DefaultTask() {
@@ -55,47 +44,10 @@ abstract class TranspileWebIdlTask : DefaultTask() {
             dir.mkdirs()
         }
 
-        val collectionContext = MutableBindingContext()
-        val typeResolver = TypeResolver()
-        val membersCollector = InterfaceCollector(typeResolver) { msg -> logger.warn(msg) }
-        val symbolCollector = SymbolCollectorVisitor(collectionContext, membersCollector, typeResolver)
+        val sources = idlFiles.files.map { file -> IdlSource(file.name, file.readText()) }
+        val options = CompilerOptions(packageName.get(), runtimePackage.get(), apiFileName.get(), factoriesFileName.get())
 
-        idlFiles.files.sortedBy(File::getName).forEach { idlFile -> symbolCollector.visit(parse(idlFile)) }
-        val resolvedContext = resolveSemantics(collectionContext)
-
-        val fileSpecs = generateKotlin(
-            resolvedContext,
-            packageName.get(),
-            runtimePackage.get(),
-            apiFileName.get(),
-            factoriesFileName.get(),
-        )
-        fileSpecs.forEach { fileSpec -> fileSpec.writeTo(outputDir) }
-    }
-
-    private fun parse(idlFile: File): WebIDLParser.WebIDLContext {
-        val errorListener = FailFastErrorListener(idlFile.name)
-        val lexer = WebIDLLexer(CharStreams.fromFileName(idlFile.absolutePath)).apply {
-            removeErrorListeners()
-            addErrorListener(errorListener)
-        }
-        val parser = WebIDLParser(CommonTokenStream(lexer)).apply {
-            removeErrorListeners()
-            addErrorListener(errorListener)
-        }
-        return parser.webIDL()
-    }
-}
-
-private class FailFastErrorListener(private val fileName: String) : BaseErrorListener() {
-    override fun syntaxError(
-        recognizer: Recognizer<*, *>?,
-        offendingSymbol: Any?,
-        line: Int,
-        charPositionInLine: Int,
-        msg: String?,
-        e: RecognitionException?
-    ) {
-        throw IllegalStateException("WebIDL parse error in $fileName at $line:$charPositionInLine — $msg")
+        WebIdlCompiler.compile(sources, options) { warning -> logger.warn(warning) }
+            .forEach { fileSpec -> fileSpec.writeTo(outputDir) }
     }
 }

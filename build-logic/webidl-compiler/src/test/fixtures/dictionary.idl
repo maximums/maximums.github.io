@@ -1,0 +1,15 @@
+// Dictionaries: required, optional, defaults, inheritance, enum-typed members.
+// Target: the factory takes required members as non-null parameters and optional ones as `= null`,
+// and never sets absent keys (null for an enum member is a TypeError in the browser).
+enum GPUKind {
+    "plain",
+    "fancy"
+};
+dictionary GPUObjectDescriptorBase {
+    USVString label = "";
+};
+dictionary GPUThingDescriptor : GPUObjectDescriptorBase {
+    required unsigned long size;
+    boolean mappedAtCreation = false;
+    GPUKind kind = "plain";
+};
