@@ -5,6 +5,10 @@ package fixtures.union_objects
 
 import com.cdodi.webgpu.runtime.createJsObject
 import kotlin.Suppress
+import kotlin.js.toJsString
+
+public inline val GPUAutoLayoutMode.Companion.auto: GPUAutoLayoutMode
+  get() = "auto".toJsString().unsafeCast()
 
 public fun GPUBufferBinding(buffer: GPUBuffer): GPUBufferBinding = createJsObject {
   this.buffer = buffer
@@ -12,4 +16,8 @@ public fun GPUBufferBinding(buffer: GPUBuffer): GPUBufferBinding = createJsObjec
 
 public fun GPUBindGroupEntry(resource: GPUSamplerOrGPUTextureViewOrGPUBufferBinding): GPUBindGroupEntry = createJsObject {
   this.resource = resource
+}
+
+public fun GPUPipelineDescriptorBase(layout: GPUPipelineLayoutOrGPUAutoLayoutMode): GPUPipelineDescriptorBase = createJsObject {
+  this.layout = layout
 }

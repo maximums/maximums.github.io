@@ -29,7 +29,9 @@ sealed interface Descriptor {
 
     data class EnumDescriptor(
         override val name: String,
-        val values: List<String>
+        val values: List<String>,
+        /** Marker interfaces of the unions this enum belongs to. */
+        val superTypes: Set<String> = emptySet(),
     ) : Descriptor
 }
 

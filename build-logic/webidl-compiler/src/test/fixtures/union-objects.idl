@@ -16,3 +16,12 @@ dictionary GPUBindGroupEntry {
 interface GPUDevice {
     undefined bind(GPUBindingResource resource);
 };
+// An enum can join a marker too: every pipeline descriptor's layout is (GPUPipelineLayout or GPUAutoLayoutMode).
+enum GPUAutoLayoutMode {
+    "auto"
+};
+interface GPUPipelineLayout {
+};
+dictionary GPUPipelineDescriptorBase {
+    required (GPUPipelineLayout or GPUAutoLayoutMode) layout;
+};

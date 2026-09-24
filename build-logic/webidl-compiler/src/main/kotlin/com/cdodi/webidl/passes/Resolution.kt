@@ -139,7 +139,8 @@ private fun validateNames(definitions: IdlDefinitions): IdlDefinitions {
 /**
  * Unrolls typedefs and normalises unions in every member of every interface, dictionary and namespace.
  *
- * A union whose members are all interfaces or dictionaries becomes a marker interface that each member extends.
+ * A union whose members are all interfaces, dictionaries or enums becomes a marker interface that each member extends.
+ * Either way the normalised type keeps its (flattened) members, so the backend can still offer one overload per member.
  * The markers are collected first and applied afterwards, so no map is modified while it is being read.
  */
 private fun resolveTypes(definitions: IdlDefinitions): IdlDefinitions {
@@ -172,9 +173,15 @@ private fun resolveTypes(definitions: IdlDefinitions): IdlDefinitions {
         .filter { it !in interfaces }
         .associateWith { Descriptor.InterfaceDescriptor(name = it, members = emptyList(), superTypes = setOf("JsAny")) }
 
+    val enums = definitions.enums.mapValues { (name, enum) ->
+        val ownMarkers = markers.filterValues { name in it }.keys
+        if (ownMarkers.isEmpty()) enum else enum.copy(superTypes = enum.superTypes + ownMarkers)
+    }
+
     return definitions.copy(
         interfaces = interfaces.withMarkerSuperTypes() + markerInterfaces,
         dictionaries = dictionaries.withMarkerSuperTypes(),
+        enums = enums,
         namespaces = namespaces,
     )
 }
@@ -210,17 +217,20 @@ private fun Descriptor.TypeDescriptor.normalizeUnions(
     }
     if (unionMembers.isEmpty()) return copy(sequenceOf = sequence, promiseOf = promise, record = record)
 
+    // Nested unions are flattened: (A or (B or C)) has the members A, B and C.
     val members = unionMembers.map { it.normalizeUnions(definitions, markers) }
+        .flatMap { member -> member.unionMembers.ifEmpty { listOf(member) } }
     val allObjects = members.all {
-        it.name in definitions.interfaces || it.name in definitions.dictionaries || it.name in markers
+        it.name in definitions.interfaces || it.name in definitions.dictionaries || it.name in definitions.enums || it.name in markers
     }
 
     return if (allObjects) {
         val markerName = members.joinToString(separator = "Or") { it.name }
         markers.putIfAbsent(markerName, members.map { it.name })
-        Descriptor.TypeDescriptor(name = markerName, isNullable = isNullable || members.any { it.isNullable })
+        Descriptor.TypeDescriptor(name = markerName, isNullable = isNullable || members.any { it.isNullable }, unionMembers = members)
     } else {
-        // Not every member is an interface or dictionary, so there is no marker type: plain JsAny, non-null unless the IDL says `?`.
-        Descriptor.TypeDescriptor(name = "object", isNullable = isNullable)
+        // Some member is a primitive, sequence or external type, so there is no marker type: plain JsAny, non-null unless
+        // the IDL says `?`. Operations still get one overload per member.
+        Descriptor.TypeDescriptor(name = "object", isNullable = isNullable, unionMembers = members)
     }
 }

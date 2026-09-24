@@ -18,6 +18,7 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.MemberName
 import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
 
@@ -59,20 +60,22 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     }
 
     members.filterIsInstance<InterfaceMember.FunctionDescriptor>().forEach { function ->
-        val funBuilder = if (function.name == "constructor") {
-            FunSpec.constructorBuilder()
-        } else {
-            FunSpec.builder(function.name).returns(function.returnType.toKotlin(context, generatedPackageName))
-        }
+        function.overloads(context, generatedPackageName).forEach { parameterTypes ->
+            val funBuilder = if (function.name == "constructor") {
+                FunSpec.constructorBuilder()
+            } else {
+                FunSpec.builder(function.name).returns(function.returnType.toKotlin(context, generatedPackageName))
+            }
 
-        function.parameters.forEach { param ->
-            val paramSpec = ParameterSpec.builder(param.name, param.type.toKotlin(context, generatedPackageName))
-                .also { if (param.isOptional) it.defaultValue("definedExternally") }
-                .also { if (param.isVariadic) it.addModifiers(KModifier.VARARG) }
-                .build()
-            funBuilder.addParameter(paramSpec)
+            function.parameters.zip(parameterTypes).forEach { (param, type) ->
+                val paramSpec = ParameterSpec.builder(param.name, type)
+                    .also { if (param.isOptional) it.defaultValue("definedExternally") }
+                    .also { if (param.isVariadic) it.addModifiers(KModifier.VARARG) }
+                    .build()
+                funBuilder.addParameter(paramSpec)
+            }
+            interfaceBuilder.addFunction(funBuilder.build())
         }
-        interfaceBuilder.addFunction(funBuilder.build())
     }
 
     return interfaceBuilder.build()
@@ -215,11 +218,12 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
  * This is exactly how kotlinx-browser declares the DOM's enums: a companion object in an external interface is only
  * allowed with that diagnostic suppressed, and `@JsName("null")` stops Kotlin from looking up a JS global for the type.
  */
-fun Descriptor.EnumDescriptor.asEnumPoet(): TypeSpec = TypeSpec.interfaceBuilder(name)
+fun Descriptor.EnumDescriptor.asEnumPoet(generatedPackageName: String): TypeSpec = TypeSpec.interfaceBuilder(name)
     .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.js", "JsName")).addMember("%S", "null").build())
     .addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "NESTED_CLASS_IN_EXTERNAL_INTERFACE").build())
     .addModifiers(KModifier.EXTERNAL)
     .addSuperinterface(ClassName("kotlin.js", "JsAny"))
+    .apply { superTypes.forEach { marker -> addSuperinterface(ClassName(generatedPackageName, marker)) } }
     .addType(TypeSpec.companionObjectBuilder().build())
     .build()
 
@@ -283,4 +287,26 @@ fun Descriptor.InterfaceDescriptor.extensionMembersOn(
             is InterfaceMember.ConstantDescriptor -> null
         }
     }
+}
+
+private const val MAX_OVERLOADS = 8
+
+/**
+ * Parameter types for each overload of an operation. A parameter whose type is a union without a marker interface
+ * (it has a sequence, primitive or external member) would otherwise be a bare JsAny; instead it gets one overload per
+ * union member, like web-sys and kotlinx-browser do. Past [MAX_OVERLOADS] combinations it stays JsAny.
+ */
+private fun InterfaceMember.FunctionDescriptor.overloads(context: BindingContext, pkg: String): List<List<TypeName>> {
+    val alternatives = parameters.map { param ->
+        val type = param.type
+        val isMarker = context[BindingSlices.INTERFACE, type.name] != null
+        if (type.unionMembers.isEmpty() || isMarker) {
+            listOf(type.toKotlin(context, pkg))
+        } else {
+            type.unionMembers.map { member -> member.toKotlin(context, pkg).let { it.copy(nullable = it.isNullable || type.isNullable) } }
+        }
+    }
+    val combinations = alternatives.fold(listOf(emptyList<TypeName>())) { acc, options -> acc.flatMap { prefix -> options.map { prefix + it } } }
+
+    return if (combinations.size <= MAX_OVERLOADS) combinations else listOf(parameters.map { it.type.toKotlin(context, pkg) })
 }

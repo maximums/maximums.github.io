@@ -31,7 +31,7 @@ fun generateKotlin(
         .addAnnotation(fileAnnotation)
 
     context[BindingSlices.ENUM]?.values?.forEach { enumDesc ->
-        apiFileBuilder.addType(enumDesc.asEnumPoet())
+        apiFileBuilder.addType(enumDesc.asEnumPoet(generatedPackageName))
         enumDesc.enumValues(generatedPackageName).forEach(factoriesFileBuilder::addProperty)
     }
 
