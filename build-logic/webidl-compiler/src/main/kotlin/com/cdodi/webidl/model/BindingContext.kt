@@ -40,6 +40,7 @@ class ResolvedBindingContext(
     private val enums: Map<String, Descriptor.EnumDescriptor>,
     private val namespaces: Map<String, Descriptor.InterfaceDescriptor>,
     private val externalTypes: Map<String, ExternalType>,
+    private val externalIncludes: Map<String, List<String>>,
 ) : BindingContext {
 
     @Suppress("UNCHECKED_CAST")
@@ -49,6 +50,7 @@ class ResolvedBindingContext(
         BindingSlices.ENUM -> enums as Map<String, V>
         BindingSlices.NAMESPACE -> namespaces as Map<String, V>
         BindingSlices.EXTERNAL_TYPE -> externalTypes as Map<String, V>
+        BindingSlices.EXTERNAL_INCLUDES -> externalIncludes as Map<String, V>
         else -> null
     }
 
@@ -71,4 +73,7 @@ object BindingSlices {
     val INCLUDES = Slice<String, IncludesDirective>("INCLUDES")
     val NAMESPACE = Slice<String, Descriptor.InterfaceDescriptor>("NAMESPACE")
     val EXTERNAL_TYPE = Slice<String, ExternalType>("EXTERNAL_TYPE")
+
+    /** External type (e.g. Navigator) -> mixins it includes (e.g. NavigatorGPU); generated as extension members. */
+    val EXTERNAL_INCLUDES = Slice<String, List<String>>("EXTERNAL_INCLUDES")
 }

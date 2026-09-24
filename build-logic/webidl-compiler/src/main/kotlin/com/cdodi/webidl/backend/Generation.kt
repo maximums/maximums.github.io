@@ -4,6 +4,8 @@ import com.cdodi.webidl.model.BindingContext
 import com.cdodi.webidl.model.BindingSlices
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.FileSpec
+import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.PropertySpec
 
 fun generateKotlin(
     context: BindingContext,
@@ -48,6 +50,18 @@ fun generateKotlin(
         val dictFactoryFun = dictDesc.dictFactory(context, generatedPackageName, runtimePackage)
         apiFileBuilder.addType(dictInterface)
         factoriesFileBuilder.addFunction(dictFactoryFun)
+    }
+
+    context[BindingSlices.EXTERNAL_INCLUDES]?.forEach { (externalName, mixinNames) ->
+        val external = context[BindingSlices.EXTERNAL_TYPE, externalName] ?: return@forEach
+        mixinNames.mapNotNull { context[BindingSlices.INTERFACE, it] }.forEach { mixin ->
+            mixin.extensionMembersOn(external, context, generatedPackageName).forEach { member ->
+                when (member) {
+                    is PropertySpec -> factoriesFileBuilder.addProperty(member)
+                    is FunSpec -> factoriesFileBuilder.addFunction(member)
+                }
+            }
+        }
     }
 
     context[BindingSlices.NAMESPACE]?.values?.forEach { namespaceDesc ->

@@ -25,7 +25,7 @@ class InterfaceCollector(
     }
 
     override fun visitMixinMember(ctx: WebIDLParser.MixinMemberContext): List<InterfaceMember> {
-        ctx.attributeRest()?.extractVariable()?.let { return it }
+        ctx.attributeRest()?.extractVariable(isReadonly = ctx.optionalReadOnly()?.text == "readonly")?.let { return it }
         ctx.regularOperation()?.extractFunction()?.let { return it }
 
         val text = ctx.text.trim()

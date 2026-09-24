@@ -15,6 +15,8 @@ data class IdlDefinitions(
     val typedefs: Map<String, Descriptor.TypeDescriptor>,
     val namespaces: Map<String, Descriptor.InterfaceDescriptor>,
     val externalTypes: Map<String, ExternalType>,
+    /** External type -> mixins it includes, e.g. Navigator -> [NavigatorGPU]. */
+    val externalIncludes: Map<String, List<String>> = emptyMap(),
 ) {
     fun toResolvedContext() = ResolvedBindingContext(
         interfaces = interfaces,
@@ -22,6 +24,7 @@ data class IdlDefinitions(
         enums = enums,
         namespaces = namespaces,
         externalTypes = externalTypes,
+        externalIncludes = externalIncludes,
     )
 
     companion object {

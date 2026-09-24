@@ -1,6 +1,5 @@
 package com.cdodi.webgpu
 
-import com.cdodi.webgpu.bindings.GPU
 import com.cdodi.webgpu.bindings.GPUAutoLayoutModeEntries
 import com.cdodi.webgpu.bindings.GPUBindGroupDescriptor
 import com.cdodi.webgpu.bindings.GPUBindGroupEntry
@@ -10,9 +9,11 @@ import com.cdodi.webgpu.bindings.GPUComputePipelineDescriptor
 import com.cdodi.webgpu.bindings.GPUMapMode
 import com.cdodi.webgpu.bindings.GPUProgrammableStage
 import com.cdodi.webgpu.bindings.GPUShaderModuleDescriptor
+import com.cdodi.webgpu.bindings.gpu
 import com.cdodi.webgpu.bindings.mapAsyncSuspend
 import com.cdodi.webgpu.bindings.requestAdapterSuspend
 import com.cdodi.webgpu.bindings.requestDeviceSuspend
+import kotlinx.browser.window
 import kotlinx.coroutines.test.runTest
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Float32Array
@@ -20,10 +21,6 @@ import org.khronos.webgl.get
 import org.khronos.webgl.toFloat32Array
 import kotlin.test.Test
 import kotlin.test.assertEquals
-
-/** `navigator.gpu`, or null where the browser has no WebGPU. Replaced by the idiomatic layer in PLAN 1.6. */
-@JsFun("() => navigator.gpu ?? null")
-private external fun navigatorGpu(): GPU?
 
 // language=wgsl
 private const val DOUBLING_SHADER = """
@@ -42,7 +39,8 @@ class WebGpuSmokeTest {
 
     @Test
     fun computeShaderDoublesNumbers() = runTest {
-        val adapter = navigatorGpu()?.requestAdapterSuspend()
+        // `gpu` is the generated extension for `Navigator includes NavigatorGPU`; null without WebGPU.
+        val adapter = window.navigator.gpu?.requestAdapterSuspend()
         if (adapter == null) {
             println("WebGpuSmokeTest: no WebGPU adapter in this browser — skipped")
             return@runTest

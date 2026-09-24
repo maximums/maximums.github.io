@@ -21,15 +21,33 @@ fun resolveSemantics(collected: BindingContext, externalTypes: Map<String, Exter
         .let(::resolveTypes)
         .toResolvedContext()
 
-/** `A includes M;` copies the members of mixin M into interface A. */
+/**
+ * `A includes M;` copies the members of mixin M into interface A.
+ *
+ * When A is an external platform type (`Navigator includes NavigatorGPU`), M becomes an interface of its own, and the
+ * backend adds its members to A as extension members. Its attributes are made nullable: a browser that does not
+ * implement the spec simply lacks them (`navigator.gpu` is undefined without WebGPU).
+ */
 private fun applyMixins(definitions: IdlDefinitions): IdlDefinitions {
     val interfaces = definitions.interfaces.toMutableMap()
+    val externalIncludes = LinkedHashMap<String, List<String>>()
+
     for (directive in definitions.includes) {
-        val target = interfaces[directive.targetName] ?: continue
-        interfaces[directive.targetName] = target + definitions.mixins[directive.mixinName]
+        val mixin = definitions.mixins[directive.mixinName]
+        val target = interfaces[directive.targetName]
+        when {
+            target != null -> interfaces[directive.targetName] = target + mixin
+            mixin != null && directive.targetName in definitions.externalTypes -> {
+                interfaces.putIfAbsent(mixin.name, mixin.copy(members = mixin.members.map { it.asMaybeMissing() }))
+                externalIncludes[directive.targetName] = externalIncludes[directive.targetName].orEmpty() + mixin.name
+            }
+        }
     }
-    return definitions.copy(interfaces = interfaces)
+    return definitions.copy(interfaces = interfaces, externalIncludes = externalIncludes)
 }
+
+private fun InterfaceMember.asMaybeMissing(): InterfaceMember =
+    if (this is InterfaceMember.VariableDescriptor) copy(type = type.copy(isNullable = true)) else this
 
 private fun mergePartials(definitions: IdlDefinitions): IdlDefinitions = definitions.copy(
     interfaces = definitions.interfaces.mergedWith(definitions.partialInterfaces),
@@ -93,6 +111,9 @@ private fun validateNames(definitions: IdlDefinitions): IdlDefinitions {
     }
 
     for ((name, typedef) in definitions.typedefs) check(typedef, "typedef $name")
+    for (directive in definitions.includes) {
+        if (directive.targetName !in defined) unknown.getOrPut(directive.targetName) { sortedSetOf() } += "includes ${directive.mixinName}"
+    }
     for (owner in definitions.interfaces.values + definitions.dictionaries.values + definitions.namespaces.values) {
         owner.superTypes.filter { it !in defined }.forEach { unknown.getOrPut(it) { sortedSetOf() } += "${owner.name} (supertype)" }
         for (member in owner.members) {

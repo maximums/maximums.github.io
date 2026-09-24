@@ -10,3 +10,7 @@ import kotlin.js.JsAny
 public external interface GPUThing : JsAny {
   public var label: String
 }
+
+public external interface NavigatorThing : JsAny {
+  public val thing: GPUThing?
+}

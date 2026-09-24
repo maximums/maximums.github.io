@@ -237,3 +237,36 @@ fun Descriptor.EnumDescriptor.enumFactory(generatedPackageName: String): TypeSpe
     }
     return objectBuilder.build()
 }
+
+/**
+ * Members of a mixin included by an external platform type, as extension members on that type:
+ * `val Navigator.gpu: GPU? get() = unsafeCast<NavigatorGPU>().gpu`.
+ */
+fun Descriptor.InterfaceDescriptor.extensionMembersOn(
+    external: ExternalType,
+    context: BindingContext,
+    generatedPackageName: String,
+): List<Any> {
+    val receiver = ClassName.bestGuess(external.kotlinName)
+    val mixinType = ClassName(generatedPackageName, name)
+    val unsafeCast = MemberName("kotlin.js", "unsafeCast")
+
+    return members.mapNotNull { member ->
+        when (member) {
+            is InterfaceMember.VariableDescriptor -> PropertySpec.builder(member.name, member.type.toKotlin(context, generatedPackageName))
+                .receiver(receiver)
+                .getter(FunSpec.getterBuilder().addStatement("return %M<%T>().%N", unsafeCast, mixinType, member.name).build())
+                .build()
+            is InterfaceMember.FunctionDescriptor -> FunSpec.builder(member.name)
+                .receiver(receiver)
+                .returns(member.returnType.toKotlin(context, generatedPackageName))
+                .apply { member.parameters.forEach { addParameter(it.name, it.type.toKotlin(context, generatedPackageName)) } }
+                .addStatement(
+                    "return %M<%T>().%N(%L)", unsafeCast, mixinType, member.name,
+                    member.parameters.joinToString { it.name },
+                )
+                .build()
+            is InterfaceMember.ConstantDescriptor -> null
+        }
+    }
+}
