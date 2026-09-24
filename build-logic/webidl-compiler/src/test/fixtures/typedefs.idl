@@ -1,0 +1,9 @@
+// Typedefs resolve to their target type, keeping nullability.
+// Target: GPUSize64 (unsigned long long) -> Double, never Long (a BigInt in JS); GPUSize32 -> Int.
+typedef [EnforceRange] unsigned long GPUSize32;
+typedef [EnforceRange] unsigned long long GPUSize64;
+typedef GPUSize64 GPUSize64Out;
+interface GPUBuffer {
+    readonly attribute GPUSize64Out size;
+    undefined resize(GPUSize32 count, GPUSize64? limit);
+};

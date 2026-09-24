@@ -1,0 +1,8 @@
+// Extended attributes that do not change types.
+// Target: the same types as without them; [EnforceRange], [Clamp] and [SecureContext] documented in KDoc.
+[Exposed=(Window, DedicatedWorker), SecureContext]
+interface GPUThing {
+    [SameObject] readonly attribute GPUThing self;
+    undefined draw([EnforceRange] unsigned long count, [Clamp] octet level);
+    [NewObject] GPUThing clone();
+};

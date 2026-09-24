@@ -44,7 +44,7 @@ Module layout:
 ```
 build-logic/                 included build (replaces plugins/)
   webidl-compiler/           Gradle plugin: ANTLR parser, semantic passes, KotlinPoet backend
-    src/main/antlr/WebIDL.g4 committed grammar
+    src/main/antlr/com/cdodi/webidl/parser/WebIDL.g4   committed grammar
     src/test/                fixtures (mini IDL files), golden .kt files, TestKit tests
 core/                        pure Kotlin KMP module (wasmJs + jvm; the jvm target is only for fast tests)
                              Heartbeat, buses, navigation model. No Compose, no WebGPU.
@@ -91,8 +91,8 @@ Get main green, deployable and current before building on it.
 Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle end** (semantic passes over an immutable model), **back end** (KotlinPoet emission). Write the tests first; every bug from REVIEW W1 becomes a fixture before it gets fixed.
 
 ### 1.1 Structure and committed inputs
-- [ ] Move `plugins/` to `build-logic/webidl-compiler`. Create the `webgpu` library module and apply the plugin there, so `composeApp` only depends on `:webgpu`.
-- [ ] Extension DSL instead of hard-coded names:
+- [x] Move `plugins/` to `build-logic/webidl-compiler`. Create the `webgpu` library module and apply the plugin there, so `composeApp` only depends on `:webgpu`.
+- [x] Extension DSL instead of hard-coded names:
   ```kotlin
   webIdl {
       idlFiles.from("idl/webgpu.idl")          // committed file, read on every build
@@ -101,26 +101,26 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
       // …
   }
   ```
-- [ ] **Committed inputs, updated by hand:**
+- [x] **Committed inputs, updated by hand:**
   - `webgpu/idl/webgpu.idl` is committed. `transpileWebIdl` declares it as an `@InputFile` and never touches the network.
-  - `build-logic/webidl-compiler/src/main/antlr/WebIDL.g4` is committed, and the automatic grammar download is removed.
+  - `build-logic/webidl-compiler/src/main/antlr/com/cdodi/webidl/parser/WebIDL.g4` is committed, and the automatic grammar download is removed.
   - A task **only run by hand**, `./gradlew :webgpu:updateWebIdl -PwebrefVersion=3.84.0`, downloads `https://cdn.jsdelivr.net/npm/@webref/idl@<version>/webgpu.idl` (webref releases curated, parse-checked IDL roughly weekly) and overwrites the committed file. No other task depends on it, it isn't cacheable, and it prints a summary of what changed. The result is committed like any other change, and golden-test failures show exactly how the generated API moved. The IDL's first line records the version it came from.
   - The same kind of by-hand task for the grammar (`updateWebIdlGrammar -PgrammarRef=<commit>`), pinned to a grammars-v4 commit.
-- [ ] Generate the ANTLR parser into a real package (`-package com.cdodi.webidl.parser`).
-- [ ] Fix the `antlr` typo; remove the duplicated tasks and properties.
+- [x] Generate the ANTLR parser into a real package (`-package com.cdodi.webidl.parser`). _The grammar sits in the matching directory so ANTLR's output lands in the package directory too._
+- [x] Fix the `antlr` typo; remove the duplicated tasks and properties. _The convention plugin is gone: `antlr` is applied directly in `webidl-compiler`._
 
 ### 1.2 Test harness (before any fixes)
-- [ ] **Mini-IDL fixtures**, one per construct: interface, inheritance, mixin + includes, partials, dictionary (required / optional / default / inheritance), enum, typedef, union (all objects / mixed / sequence + dictionary), sequence, FrozenArray, record, Promise, optional arguments with and without defaults, `undefined` return, `readonly setlike`, namespace constants, extended attributes, external DOM types.
-- [ ] **Golden tests**: compare the generated `.kt` with committed expected files. Add an `-PupdateGoldens` flag.
-- [ ] **Compile test**: a Gradle TestKit fixture project that applies the plugin to a wasmJs project and runs `compileKotlinWasmJs`. This proves the output actually compiles.
-- [ ] **Runtime smoke test**: `wasmJsBrowserTest` that requests an adapter and runs the doubling compute shader. Skip it gracefully where WebGPU is missing.
+- [x] **Mini-IDL fixtures**, one per construct: interface, inheritance, mixin + includes, partials, dictionary (required / optional / default / inheritance), enum, typedef, union (all objects / mixed / sequence + dictionary), sequence, FrozenArray, record, Promise, optional arguments with and without defaults, `undefined` return, `readonly setlike`, namespace constants, extended attributes, external DOM types.
+- [x] **Golden tests**: compare the generated `.kt` with committed expected files. Add an `-PupdateGoldens` flag. _18 fixtures; the goldens record today's output with its known bugs, so each fix is a reviewable diff._
+- [x] **Compile test**: a Gradle TestKit fixture project that applies the plugin to a wasmJs project and runs `compileKotlinWasmJs`. This proves the output actually compiles.
+- [x] **Runtime smoke test**: `wasmJsBrowserTest` that requests an adapter and runs the doubling compute shader. Skip it gracefully where WebGPU is missing. _Runs on a real GPU locally; Chrome is launched without `--disable-gpu`. `sequences` is the one fixture that doesn't compile yet (tracked in `KNOWN_NOT_COMPILING`)._
 
 ### 1.3 Middle end: correct semantics
-- [ ] Rewrite the resolution passes as **pure functions from one model to the next** (no mutating a map while iterating it; fixes REVIEW W1 "maps mutated while iterated"): `mergePartials → applyMixins → flattenDictionaries → resolveTypedefs → normalizeUnions → attachExternalTypes`.
-- [ ] Record `optional` as its own flag, separate from having a default value.
-- [ ] Carry nullability faithfully for every kind of type (objects, primitives, promises, sequences).
-- [ ] Parse `readonly setlike<T>` and extended attributes (`[EnforceRange]`, `[Clamp]`, `[SameObject]`, `[SecureContext]`, `[Exposed]`) into the model.
-- [ ] Types from outside this IDL (`EventTarget`, `Event`, `DOMException`, `ArrayBuffer`, `BufferSource`, `ImageBitmap`, `HTMLCanvasElement`, `EventHandler`…) are resolved through the `externalTypes` table. This finally uses the `EXTERNAL_TYPE` slice. An unknown type fails the build with a clear message instead of silently becoming `JsAny`.
+- [x] Rewrite the resolution passes as **pure functions from one model to the next** (no mutating a map while iterating it; fixes REVIEW W1 "maps mutated while iterated"): `mergePartials → applyMixins → flattenDictionaries → resolveTypedefs → normalizeUnions → attachExternalTypes`. _Done: `IdlDefinitions` snapshot; applyMixins -> mergePartials -> flattenDictionaries -> validateNames -> resolveSuperTypes -> resolveTypes. Full WebGPU output was byte-identical before/after._
+- [x] Record `optional` as its own flag, separate from having a default value.
+- [x] Carry nullability faithfully for every kind of type (objects, primitives, promises, sequences). _The frontend read `?` in the wrong grammar rule, so every `T?` on a named or primitive type was lost; fixed._
+- [x] Parse `readonly setlike<T>` and extended attributes (`[EnforceRange]`, `[Clamp]`, `[SameObject]`, `[SecureContext]`, `[Exposed]`) into the model. _Setlike gives size/has (+ add/delete/clear); forEach and iterators still need callback/iterator types in the model._
+- [x] Types from outside this IDL (`EventTarget`, `Event`, `DOMException`, `ArrayBuffer`, `BufferSource`, `ImageBitmap`, `HTMLCanvasElement`, `EventHandler`…) are resolved through the `externalTypes` table. This finally uses the `EXTERNAL_TYPE` slice. An unknown type fails the build with a clear message instead of silently becoming `JsAny`. _Entries have a kind (class/interface/value): an interface extending an external class becomes an external abstract class. Mixins on platform types become extension members (`Navigator.gpu: GPU?`)._
 
 ### 1.4 Back end: type mapping
 
@@ -148,19 +148,21 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 | Promise-returning operation | extension `suspend fun …Suspend()` wrapper; overload without the trailing optional arguments |
 | extended attributes | KDoc (`[EnforceRange]`: "throws TypeError when out of range") |
 
-- [ ] Put the IDL member's name and spec link in KDoc, so the generated API documents itself.
-- [ ] Split the output into files by kind (`Enums.kt`, `Dictionaries.kt`, `Interfaces.kt`, `Namespaces.kt`, `Suspend.kt`) so diffs stay readable.
+- [x] Put the IDL member's name and spec link in KDoc, so the generated API documents itself. _Plus what each extended attribute means for the caller. All member anchors resolve against the live spec; 9 of 96 dictionary/enum anchors don't follow the Bikeshed default (see the follow-up below)._
+- [x] Split the output into files by kind (`Enums.kt`, `Dictionaries.kt`, `Interfaces.kt`, `Namespaces.kt`, `Suspend.kt`) so diffs stay readable. _Plus a `fileNamePrefix` (WebGpuEnums.kt, ...)._
+- [ ] Follow-up: exact spec anchors. webref publishes each spec's definitions with their real ids (`ed/dfns/webgpu.json`); commit it next to the IDL (same by-hand update task) and link from it instead of the Bikeshed default pattern.
+- [ ] Follow-up: dictionary properties typed by a mixed union (e.g. `canvas`, `source`) are still `JsAny`; typed accessors belong in the idiomatic layer (1.6).
 
 ### 1.5 Runtime (`:webgpu`)
-- [ ] `await()` that **keeps the JS rejection reason**: `class JsPromiseRejection(val reason: JsAny?) : Exception(…)`. For `GPUError` / `DOMException`, surface `name` and `message`.
-- [ ] `jsObject { }` builder that only sets present keys; `toJsArray` removed (it's in the stdlib).
-- [ ] Buffer helpers: reusable `Float32Array` / `Uint32Array` staging buffers filled in place (never a fresh conversion per frame).
+- [x] `await()` that **keeps the JS rejection reason**: `class JsPromiseRejection(val reason: JsAny?) : Exception(…)`. For `GPUError` / `DOMException`, surface `name` and `message`.
+- [x] `jsObject { }` builder that only sets present keys; `toJsArray` removed (it's in the stdlib). _Kept the name `createJsObject`; generated code now imports `kotlin.js.toJsArray`._
+- [x] Buffer helpers: reusable `Float32Array` / `Uint32Array` staging buffers filled in place (never a fresh conversion per frame).
 
 ### 1.6 Idiomatic layer (hand-written on top of the generated code)
-- [ ] `suspend fun Gpu.requestContext(): GpuContext?`. `null` covers both a missing `navigator.gpu` and a null adapter, and it can never NPE.
-- [ ] `GpuContext`: device, queue, preferred format, a set of enabled features (through the typed `has()`), `device.lost` watcher, `uncapturederror` listener (possible once `EventTarget` is mapped), and `pushErrorScope`/`popErrorScope` helpers.
-- [ ] Resource ownership: `GpuBuffer` / `GpuTexture` wrappers that are `AutoCloseable` (`destroy()`), plus a `ResourceScope` so a scene frees everything on dispose.
-- [ ] Shader modules: after `createShaderModule`, check `getCompilationInfo()` and log errors with line and column.
+- [x] `suspend fun Gpu.requestContext(): GpuContext?`. `null` covers both a missing `navigator.gpu` and a null adapter, and it can never NPE. _Named `requestGpuContext()`; optional features are only requested when the adapter has them._
+- [x] `GpuContext`: device, queue, preferred format, a set of enabled features (through the typed `has()`), `device.lost` watcher, `uncapturederror` listener (possible once `EventTarget` is mapped), and `pushErrorScope`/`popErrorScope` helpers.
+- [x] Resource ownership: `GpuBuffer` / `GpuTexture` wrappers that are `AutoCloseable` (`destroy()`), plus a `ResourceScope` so a scene frees everything on dispose. _Done as `ResourceScope` creating and owning the raw WebGPU objects, so the generated API stays usable on them; no wrapper types._
+- [x] Shader modules: after `createShaderModule`, check `getCompilationInfo()` and log errors with line and column.
 
 **Done when:** all goldens, compile and smoke tests are green. The triangle and doubling demos compile with **zero `toJsNumber()` calls** and no nullability workarounds. `requestAdapter` returning null is handled at the type level. A normal build makes no network requests.
 

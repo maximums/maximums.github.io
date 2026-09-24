@@ -1,0 +1,11 @@
+// Promise-returning operations, including a nullable result and Promise<undefined>.
+// Target: Promise<GPUAdapter?> keeps its `?`; Promise<undefined> -> Promise<JsAny?>, with a suspend wrapper returning Unit.
+dictionary GPURequestAdapterOptions {
+    boolean forceFallbackAdapter = false;
+};
+interface GPUAdapter {
+};
+interface GPU {
+    Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
+    Promise<undefined> onSubmittedWorkDone();
+};

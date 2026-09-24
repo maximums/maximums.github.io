@@ -1,0 +1,9 @@
+// sequence<> and FrozenArray<> of objects and of primitives.
+// Target: JsArray<T> for objects, JsArray<JsNumber> for primitives; the factory converts a List<Int> element by element.
+interface GPUThing {
+    readonly attribute FrozenArray<DOMString> tags;
+};
+dictionary GPUThingList {
+    required sequence<GPUThing> things;
+    sequence<long> counts = [];
+};

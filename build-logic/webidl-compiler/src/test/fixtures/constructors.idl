@@ -1,0 +1,8 @@
+// An interface with a constructor becomes a class.
+interface GPUError {
+    readonly attribute DOMString message;
+};
+[Exposed=(Window, Worker)]
+interface GPUValidationError : GPUError {
+    constructor(DOMString message);
+};

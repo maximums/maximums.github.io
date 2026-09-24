@@ -1,0 +1,11 @@
+// Inheritance inside the file and from a DOM type.
+// Target: Derived extends Base; FromDom extends org.w3c.dom.events.EventTarget (external type table).
+interface Base {
+    readonly attribute long id;
+};
+interface Derived : Base {
+    readonly attribute long extra;
+};
+interface FromDom : EventTarget {
+    attribute EventHandler onlost;
+};

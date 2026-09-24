@@ -1,0 +1,4 @@
+IllegalStateException: Unknown WebIDL types (map them in webIdl { externalTypes }):
+  AlsoMissing — used by GPUThing.use
+  Mystery — used by GPUThing.value
+  SomeUnknownBase — used by GPUThing (supertype)

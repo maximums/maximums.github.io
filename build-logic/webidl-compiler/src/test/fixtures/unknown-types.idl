@@ -1,0 +1,6 @@
+// Names that are neither defined here nor in the external types table.
+// Target: the build fails with every unknown name and where it is used (golden: ERROR.txt).
+interface GPUThing : SomeUnknownBase {
+    attribute Mystery value;
+    undefined use(sequence<AlsoMissing> items);
+};

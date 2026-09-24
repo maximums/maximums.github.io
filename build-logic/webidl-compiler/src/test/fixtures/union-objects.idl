@@ -1,0 +1,27 @@
+// A union whose members are all interfaces or dictionaries (GPUBindingResource in WebGPU).
+// Target: a marker interface for properties; one overload per member for arguments.
+interface GPUSampler {
+};
+interface GPUTextureView {
+};
+interface GPUBuffer {
+};
+dictionary GPUBufferBinding {
+    required GPUBuffer buffer;
+};
+typedef (GPUSampler or GPUTextureView or GPUBufferBinding) GPUBindingResource;
+dictionary GPUBindGroupEntry {
+    required GPUBindingResource resource;
+};
+interface GPUDevice {
+    undefined bind(GPUBindingResource resource);
+};
+// An enum can join a marker too: every pipeline descriptor's layout is (GPUPipelineLayout or GPUAutoLayoutMode).
+enum GPUAutoLayoutMode {
+    "auto"
+};
+interface GPUPipelineLayout {
+};
+dictionary GPUPipelineDescriptorBase {
+    required (GPUPipelineLayout or GPUAutoLayoutMode) layout;
+};

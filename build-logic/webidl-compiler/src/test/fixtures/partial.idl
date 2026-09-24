@@ -1,0 +1,13 @@
+// Partial interfaces and dictionaries merge into their main definition.
+interface GPUThing {
+    readonly attribute long a;
+};
+partial interface GPUThing {
+    readonly attribute long b;
+};
+dictionary GPUThingOptions {
+    boolean first = false;
+};
+partial dictionary GPUThingOptions {
+    boolean second = true;
+};

@@ -1,0 +1,9 @@
+// Attributes and operations of a plain interface.
+// Target (PLAN 1.4): readonly attribute DOMString -> val String; attribute double -> var Double;
+// undefined -> Unit; boolean -> Boolean. Nothing is nullable unless the IDL says `?`.
+interface GPUThing {
+    readonly attribute DOMString name;
+    attribute double level;
+    undefined reset();
+    boolean compare(GPUThing other);
+};

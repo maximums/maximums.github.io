@@ -1,0 +1,10 @@
+// Enum values that are not valid Kotlin identifiers.
+// Target: GPUPrimitiveTopology.triangleList; names starting with a digit stay backticked (`1d`, `2dArray`).
+enum GPUPrimitiveTopology {
+    "point-list",
+    "triangle-list"
+};
+enum GPUTextureViewDimension {
+    "1d",
+    "2d-array"
+};
