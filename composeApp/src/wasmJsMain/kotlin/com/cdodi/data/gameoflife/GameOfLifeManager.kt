@@ -3,7 +3,6 @@ package com.cdodi.data.gameoflife
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.util.fastRoundToInt
 import com.cdodi.buses.TimeBus
 import com.cdodi.data.Manager
 import kotlinx.coroutines.CoroutineDispatcher
@@ -23,14 +22,8 @@ private const val TICK_RATE_MS = 100L
 class GameOfLifeManager(
     bus: TimeBus,
     dispatcher: CoroutineDispatcher = Dispatchers.Main,
-    private val gameRules: Set<GameRule> = setOf(
-        ConwaySurvivalRule,
-        ConwayReproductionRule
-//        In my case death is implicit, because I only draw the alive cells
-//        ConwayUnderpopulationRule,
-//        ConwayOverpopulationRule,
-    )
-) : EvolutionEngine, Manager(bus) {
+    private val rule: LifeRule = LifeRule.Conway,
+) : Manager(bus) {
     private val _state = MutableStateFlow(LifeState())
     val state: StateFlow<LifeState> = _state.asStateFlow()
     private var accumulator = 0f
@@ -44,7 +37,7 @@ class GameOfLifeManager(
 
         while (accumulator >= TICK_RATE_MS) {
             _state.update { lifeState ->
-                val cells = evaluateNextGeneration(lifeState.aliveCells, gameRules)
+                val cells = LifeEngine.step(lifeState.aliveCells, lifeState.grid.columns, lifeState.grid.rows, rule)
                 lifeState.copy(isRunning = cells.isNotEmpty(), aliveCells = cells)
             }
             accumulator -= TICK_RATE_MS
@@ -67,6 +60,8 @@ class GameOfLifeManager(
         val newCell = IntOffset(x, y)
 
         _state.update { currentState ->
+            if (!(newCell isIn currentState.grid)) return@update currentState // tap below or right of the drawn grid
+
             val cells = when (newCell) {
                 in currentState.aliveCells -> currentState.aliveCells - newCell
                 else -> currentState.aliveCells + newCell
@@ -79,9 +74,7 @@ class GameOfLifeManager(
     fun updateGridBounds(newGridSize: IntSize) {
         _state.update { currentState ->
             val updatedGrid = currentState.grid.refresh(newGridSize)
-            val cells = currentState.aliveCells
-                .filter { it.x in 0 until updatedGrid.width && it.y in 0 until newGridSize.height }
-                .toSet()
+            val cells = currentState.aliveCells.filterTo(mutableSetOf()) { it isIn updatedGrid }
 
             currentState.copy(aliveCells = cells, grid = updatedGrid)
         }
@@ -95,41 +88,6 @@ class GameOfLifeManager(
         _state.update { currentState -> currentState.copy(isRunning = false, aliveCells = emptySet(), evolutionSpeed = .5f) }
     }
 
-    override fun evaluateNextGeneration(
-        currentGeneration: Set<Cell>,
-        rules: Collection<GameRule>
-    ): Set<Cell> {
-        val neighborCounts = getNeighborCounts(currentGeneration)
-
-        return buildSet {
-            neighborCounts.forEach { (cell, count) ->
-                if (!(cell isIn state.value.grid)) return@forEach
-
-                val isAlive = cell in currentGeneration
-                val survived = rules.any { it(isAlive, count) }
-
-                if (survived) add(cell)
-            }
-        }
-    }
-
-    private fun getNeighborCounts(population: Set<Cell>): Map<Cell, Int> {
-        val neighborCounts = mutableMapOf<Cell, Int>()
-
-        population.forEach { cell ->
-            for (dx in -1..1) {
-                for (dy in -1..1) {
-                    if (dx == 0 && dy == 0) continue // skip myself
-
-                    val neighbor = IntOffset(x = cell.x + dx, y = cell.y + dy)
-                    neighborCounts[neighbor] = neighborCounts.getOrElse(neighbor) { 0 } + 1
-                }
-            }
-        }
-
-        return neighborCounts
-    }
-
     private fun Grid.refresh(screenSize: IntSize): Grid {
         val cellSizeInt = CELL_SIZE_PX.toInt()
         val columns = (screenSize.width / CELL_SIZE_PX).toInt()
@@ -141,8 +99,8 @@ class GameOfLifeManager(
     }
 
     private infix fun Cell.isIn(grid: Grid): Boolean =
-        x in 0 until grid.width && y in 0 until grid.height
+        x in 0 until grid.columns && y in 0 until grid.rows
 
     private inline val Grid.isUnspecified: Boolean
-        get() = width <= 0 && height <= 0
+        get() = columns <= 0 || rows <= 0
 }

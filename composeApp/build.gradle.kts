@@ -13,6 +13,11 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
             }
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
         }
         binaries.executable()
     }
@@ -35,6 +40,10 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
+        }
+
+        wasmJsTest.dependencies {
+            implementation(libs.kotlin.test)
         }
     }
 }
