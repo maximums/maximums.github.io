@@ -110,10 +110,10 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 - [x] Fix the `antlr` typo; remove the duplicated tasks and properties. _The convention plugin is gone: `antlr` is applied directly in `webidl-compiler`._
 
 ### 1.2 Test harness (before any fixes)
-- [ ] **Mini-IDL fixtures**, one per construct: interface, inheritance, mixin + includes, partials, dictionary (required / optional / default / inheritance), enum, typedef, union (all objects / mixed / sequence + dictionary), sequence, FrozenArray, record, Promise, optional arguments with and without defaults, `undefined` return, `readonly setlike`, namespace constants, extended attributes, external DOM types.
-- [ ] **Golden tests**: compare the generated `.kt` with committed expected files. Add an `-PupdateGoldens` flag.
-- [ ] **Compile test**: a Gradle TestKit fixture project that applies the plugin to a wasmJs project and runs `compileKotlinWasmJs`. This proves the output actually compiles.
-- [ ] **Runtime smoke test**: `wasmJsBrowserTest` that requests an adapter and runs the doubling compute shader. Skip it gracefully where WebGPU is missing.
+- [x] **Mini-IDL fixtures**, one per construct: interface, inheritance, mixin + includes, partials, dictionary (required / optional / default / inheritance), enum, typedef, union (all objects / mixed / sequence + dictionary), sequence, FrozenArray, record, Promise, optional arguments with and without defaults, `undefined` return, `readonly setlike`, namespace constants, extended attributes, external DOM types.
+- [x] **Golden tests**: compare the generated `.kt` with committed expected files. Add an `-PupdateGoldens` flag. _18 fixtures; the goldens record today's output with its known bugs, so each fix is a reviewable diff._
+- [x] **Compile test**: a Gradle TestKit fixture project that applies the plugin to a wasmJs project and runs `compileKotlinWasmJs`. This proves the output actually compiles.
+- [x] **Runtime smoke test**: `wasmJsBrowserTest` that requests an adapter and runs the doubling compute shader. Skip it gracefully where WebGPU is missing. _Runs on a real GPU locally; Chrome is launched without `--disable-gpu`. `sequences` is the one fixture that doesn't compile yet (tracked in `KNOWN_NOT_COMPILING`)._
 
 ### 1.3 Middle end: correct semantics
 - [ ] Rewrite the resolution passes as **pure functions from one model to the next** (no mutating a map while iterating it; fixes REVIEW W1 "maps mutated while iterated"): `mergePartials → applyMixins → flattenDictionaries → resolveTypedefs → normalizeUnions → attachExternalTypes`.
