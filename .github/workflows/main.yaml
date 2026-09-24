@@ -36,6 +36,10 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # The WebIDL compiler is an included build; root tasks don't reach its tests.
+      - name: Test the WebIDL compiler
+        run: ./gradlew -p build-logic :webidl-compiler:test
+
       - name: Test and build wasm application
         run: ./gradlew wasmJsBrowserTest wasmJsBrowserDistribution
 
