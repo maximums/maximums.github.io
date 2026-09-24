@@ -4,13 +4,27 @@
 package fixtures.enums
 
 import kotlin.Suppress
+import kotlin.js.JsAny
+import kotlin.js.JsName
 import kotlin.js.toJsString
+
+@JsName("null")
+@Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
+public external interface GPUPrimitiveTopology : JsAny {
+  public companion object
+}
 
 public inline val GPUPrimitiveTopology.Companion.pointList: GPUPrimitiveTopology
   get() = "point-list".toJsString().unsafeCast()
 
 public inline val GPUPrimitiveTopology.Companion.triangleList: GPUPrimitiveTopology
   get() = "triangle-list".toJsString().unsafeCast()
+
+@JsName("null")
+@Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
+public external interface GPUTextureViewDimension : JsAny {
+  public companion object
+}
 
 public inline val GPUTextureViewDimension.Companion.`1d`: GPUTextureViewDimension
   get() = "1d".toJsString().unsafeCast()

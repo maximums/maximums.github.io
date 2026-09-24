@@ -3,17 +3,13 @@
 
 package fixtures.promises
 
-import com.cdodi.webgpu.runtime.await
 import com.cdodi.webgpu.runtime.createJsObject
 import kotlin.Boolean
 import kotlin.Suppress
+import kotlin.js.JsAny
 
-public suspend fun GPU.requestAdapterSuspend(options: GPURequestAdapterOptions): GPUAdapter? = requestAdapter(options).await()
-
-public suspend fun GPU.requestAdapterSuspend(): GPUAdapter? = requestAdapter().await()
-
-public suspend fun GPU.onSubmittedWorkDoneSuspend() {
-  onSubmittedWorkDone().await()
+public external interface GPURequestAdapterOptions : JsAny {
+  public var forceFallbackAdapter: Boolean?
 }
 
 public fun GPURequestAdapterOptions(forceFallbackAdapter: Boolean? = null): GPURequestAdapterOptions = createJsObject {

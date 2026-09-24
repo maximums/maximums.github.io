@@ -44,6 +44,5 @@ webIdl {
     idlFiles.from("idl/webgpu.idl")
     packageName = "com.cdodi.webgpu.bindings"
     runtimePackage = "com.cdodi.webgpu.runtime"
-    apiFileName = "WebGpuBindings"
-    factoriesFileName = "WebGpuFactories"
+    fileNamePrefix = "WebGpu"
 }

@@ -30,10 +30,7 @@ abstract class TranspileWebIdlTask : DefaultTask() {
     abstract val runtimePackage: Property<String>
 
     @get:Input
-    abstract val apiFileName: Property<String>
-
-    @get:Input
-    abstract val factoriesFileName: Property<String>
+    abstract val fileNamePrefix: Property<String>
 
     @get:Input
     abstract val externalTypes: MapProperty<String, String>
@@ -49,7 +46,7 @@ abstract class TranspileWebIdlTask : DefaultTask() {
         }
 
         val sources = idlFiles.files.map { file -> IdlSource(file.name, file.readText()) }
-        val options = CompilerOptions(packageName.get(), runtimePackage.get(), apiFileName.get(), factoriesFileName.get(), externalTypes.get())
+        val options = CompilerOptions(packageName.get(), runtimePackage.get(), fileNamePrefix.get(), externalTypes.get())
 
         WebIdlCompiler.compile(sources, options) { warning -> logger.warn(warning) }
             .forEach { fileSpec -> fileSpec.writeTo(outputDir) }

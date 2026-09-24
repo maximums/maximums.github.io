@@ -5,13 +5,6 @@ package fixtures.union_objects
 
 import kotlin.Suppress
 import kotlin.js.JsAny
-import kotlin.js.JsName
-
-@JsName("null")
-@Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
-public external interface GPUAutoLayoutMode : JsAny, GPUPipelineLayoutOrGPUAutoLayoutMode {
-  public companion object
-}
 
 public external interface GPUSampler : GPUSamplerOrGPUTextureViewOrGPUBufferBinding
 
@@ -28,15 +21,3 @@ public external interface GPUPipelineLayout : GPUPipelineLayoutOrGPUAutoLayoutMo
 public external interface GPUSamplerOrGPUTextureViewOrGPUBufferBinding : JsAny
 
 public external interface GPUPipelineLayoutOrGPUAutoLayoutMode : JsAny
-
-public external interface GPUBufferBinding : JsAny {
-  public var buffer: GPUBuffer
-}
-
-public external interface GPUBindGroupEntry : JsAny {
-  public var resource: GPUSamplerOrGPUTextureViewOrGPUBufferBinding
-}
-
-public external interface GPUPipelineDescriptorBase : JsAny {
-  public var layout: GPUPipelineLayoutOrGPUAutoLayoutMode
-}

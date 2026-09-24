@@ -11,8 +11,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 class WebIdlPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         val extension = extensions.create<WebIdlExtension>("webIdl").apply {
-            apiFileName.convention("Bindings")
-            factoriesFileName.convention("Factories")
+            fileNamePrefix.convention("")
             externalTypes.convention(ExternalType.DEFAULTS)
         }
 
@@ -22,8 +21,7 @@ class WebIdlPlugin : Plugin<Project> {
             idlFiles.from(extension.idlFiles)
             packageName = extension.packageName
             runtimePackage = extension.runtimePackage
-            apiFileName = extension.apiFileName
-            factoriesFileName = extension.factoriesFileName
+            fileNamePrefix = extension.fileNamePrefix
             externalTypes = extension.externalTypes
             outputDirectory = layout.buildDirectory.dir("generated/webidl/kotlin")
         }

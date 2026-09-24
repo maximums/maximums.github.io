@@ -22,8 +22,8 @@ data class IdlSource(val name: String, val text: String)
 data class CompilerOptions(
     val packageName: String,
     val runtimePackage: String,
-    val apiFileName: String = "Bindings",
-    val factoriesFileName: String = "Factories",
+    /** Prefix for the generated file names: "WebGpu" -> WebGpuEnums.kt, WebGpuInterfaces.kt, ... */
+    val fileNamePrefix: String = "",
     /** IDL name -> `"class|interface|value <Kotlin type>"`, see [ExternalType.parse]. */
     val externalTypes: Map<String, String> = ExternalType.DEFAULTS,
 )
@@ -50,8 +50,7 @@ object WebIdlCompiler {
             resolveSemantics(collectionContext, ExternalType.parseAll(options.externalTypes)),
             options.packageName,
             options.runtimePackage,
-            options.apiFileName,
-            options.factoriesFileName,
+            options.fileNamePrefix,
         )
     }
 

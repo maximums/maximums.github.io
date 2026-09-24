@@ -8,7 +8,16 @@ import com.cdodi.webgpu.runtime.toJsArray
 import kotlin.Int
 import kotlin.Suppress
 import kotlin.collections.List
+import kotlin.js.JsAny
+import kotlin.js.JsArray
+import kotlin.js.JsNumber
 import kotlin.js.toJsNumber
+
+public external interface GPUThingList : JsAny {
+  public var things: JsArray<GPUThing>
+
+  public var counts: JsArray<JsNumber>?
+}
 
 public fun GPUThingList(things: List<GPUThing>, counts: List<Int>? = null): GPUThingList = createJsObject {
   this.things = things.toJsArray()

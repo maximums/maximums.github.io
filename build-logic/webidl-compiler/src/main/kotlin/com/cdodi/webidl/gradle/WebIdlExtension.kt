@@ -25,9 +25,8 @@ abstract class WebIdlExtension {
     /** Package holding the runtime helpers the generated code calls (`createJsObject`, `await`, ...). */
     abstract val runtimePackage: Property<String>
 
-    abstract val apiFileName: Property<String>
-
-    abstract val factoriesFileName: Property<String>
+    /** Prefix for the generated file names: "WebGpu" -> WebGpuEnums.kt, WebGpuInterfaces.kt, ... */
+    abstract val fileNamePrefix: Property<String>
 
     /**
      * Types the IDL uses but does not define: IDL name -> `"class|interface|value <Kotlin type>"`.

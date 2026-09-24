@@ -7,12 +7,21 @@ import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.PropertySpec
 
+/**
+ * One file per kind of definition, each with the helpers that belong to it:
+ * - `Enums.kt`: enum types and their values
+ * - `Interfaces.kt`: interfaces, union marker interfaces, and mixin members on platform types (Navigator.gpu)
+ * - `Dictionaries.kt`: dictionary types and their factory functions
+ * - `Namespaces.kt`: namespace objects with their constants
+ * - `Suspend.kt`: suspend wrappers of Promise-returning operations
+ *
+ * Empty files are not written. [fileNamePrefix] turns `Enums.kt` into e.g. `WebGpuEnums.kt`.
+ */
 fun generateKotlin(
     context: BindingContext,
     generatedPackageName: String,
     runtimePackage: String,
-    apiFileName: String,
-    factoriesFileName: String,
+    fileNamePrefix: String,
 ): List<FileSpec> {
     val fileComment = "Current file is generated, please don't modify it manually because your changes will be lost."
     val fileAnnotation = AnnotationSpec.builder(Suppress::class).addMember(
@@ -23,31 +32,25 @@ fun generateKotlin(
         "ObjectPropertyName",
         "RemoveRedundantQualifierName"
     ).build()
-    val apiFileBuilder = FileSpec.builder(generatedPackageName, apiFileName)
-        .addFileComment(fileComment)
-        .addAnnotation(fileAnnotation)
-    val factoriesFileBuilder = FileSpec.builder(generatedPackageName, factoriesFileName)
+
+    fun file(kind: String) = FileSpec.builder(generatedPackageName, fileNamePrefix + kind)
         .addFileComment(fileComment)
         .addAnnotation(fileAnnotation)
 
+    val enums = file("Enums")
+    val interfaces = file("Interfaces")
+    val dictionaries = file("Dictionaries")
+    val namespaces = file("Namespaces")
+    val suspendWrappers = file("Suspend")
+
     context[BindingSlices.ENUM]?.values?.forEach { enumDesc ->
-        apiFileBuilder.addType(enumDesc.asEnumPoet(generatedPackageName))
-        enumDesc.enumValues(generatedPackageName).forEach(factoriesFileBuilder::addProperty)
+        enums.addType(enumDesc.asEnumPoet(generatedPackageName))
+        enumDesc.enumValues(generatedPackageName).forEach(enums::addProperty)
     }
 
     context[BindingSlices.INTERFACE]?.values?.forEach { interfaceDesc ->
-        val interfaceSpec = interfaceDesc.asInterfacePoet(context, generatedPackageName)
-        apiFileBuilder.addType(interfaceSpec)
-        interfaceDesc.suspendWrappers(context, generatedPackageName, runtimePackage).forEach { suspendFun ->
-            factoriesFileBuilder.addFunction(suspendFun)
-        }
-    }
-
-    context[BindingSlices.DICTIONARY]?.values?.forEach { dictDesc ->
-        val dictInterface = dictDesc.asDictionaryPoet(context, generatedPackageName)
-        val dictFactoryFun = dictDesc.dictFactory(context, generatedPackageName, runtimePackage)
-        apiFileBuilder.addType(dictInterface)
-        factoriesFileBuilder.addFunction(dictFactoryFun)
+        interfaces.addType(interfaceDesc.asInterfacePoet(context, generatedPackageName))
+        interfaceDesc.suspendWrappers(context, generatedPackageName, runtimePackage).forEach(suspendWrappers::addFunction)
     }
 
     context[BindingSlices.EXTERNAL_INCLUDES]?.forEach { (externalName, mixinNames) ->
@@ -55,17 +58,23 @@ fun generateKotlin(
         mixinNames.mapNotNull { context[BindingSlices.INTERFACE, it] }.forEach { mixin ->
             mixin.extensionMembersOn(external, context, generatedPackageName).forEach { member ->
                 when (member) {
-                    is PropertySpec -> factoriesFileBuilder.addProperty(member)
-                    is FunSpec -> factoriesFileBuilder.addFunction(member)
+                    is PropertySpec -> interfaces.addProperty(member)
+                    is FunSpec -> interfaces.addFunction(member)
                 }
             }
         }
     }
 
-    context[BindingSlices.NAMESPACE]?.values?.forEach { namespaceDesc ->
-        val namespaceObject = namespaceDesc.asNamespacePoet(context, generatedPackageName)
-        factoriesFileBuilder.addType(namespaceObject)
+    context[BindingSlices.DICTIONARY]?.values?.forEach { dictDesc ->
+        dictionaries.addType(dictDesc.asDictionaryPoet(context, generatedPackageName))
+        dictionaries.addFunction(dictDesc.dictFactory(context, generatedPackageName, runtimePackage))
     }
 
-    return listOf(apiFileBuilder.build(), factoriesFileBuilder.build())
+    context[BindingSlices.NAMESPACE]?.values?.forEach { namespaceDesc ->
+        namespaces.addType(namespaceDesc.asNamespacePoet(context, generatedPackageName))
+    }
+
+    return listOf(enums, interfaces, dictionaries, namespaces, suspendWrappers)
+        .map(FileSpec.Builder::build)
+        .filter { it.members.isNotEmpty() }
 }
