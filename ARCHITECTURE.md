@@ -88,7 +88,7 @@ maximums.github.io/
 ├── composeApp/                     :composeApp — the site
 ├── gradle/libs.versions.toml       single source of versions
 ├── .github/workflows/              CI + Pages deploy
-└── README.md · ARCHITECTURE.md · PLAN.md · REVIEW.md
+└── README.md · ARCHITECTURE.md · DESIGN.md · PLAN.md · REVIEW.md
 ```
 
 The base package stays `com.cdodi`. Each module gets its own sub-namespace (`com.cdodi.core`, `com.cdodi.webgpu`, `com.cdodi.webidl`), so a type's module is visible from its package name.
@@ -219,7 +219,7 @@ com.cdodi
 │   │   └── effects/         GpuEffectRegistry · DissolveEffect · CrossFadeEffect
 │   ├── input/               InputLayer (full-screen pointerInput Box) · InputState · PointerState
 │   └── browser/             BrowserHistoryAdapter · VisibilityLifecycleSource · ReducedMotionSource
-├── ui/                      design system, Compose only, no app logic
+├── ui/                      design system (tokens from DESIGN.md), Compose only, no app logic
 │   theme/ · components/ (UiCard, buttons, sliders) · modifiers/ (morphingShape,
 │   animatePlacement, QuadVertexProgress) · units (vw, vh)
 └── features/                one package per page; features never import each other or shell
