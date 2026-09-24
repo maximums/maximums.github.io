@@ -10,36 +10,47 @@ on:
     branches: [ "main" ]
     paths-ignore:
       - "**.md"
+  pull_request:
+    paths-ignore:
+      - "**.md"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Clone repo code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Setup environment
-        uses: actions/setup-java@v3
+      - name: Setup Java
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '21'
-          cache: gradle
+
+      # Caches Gradle state and validates the Gradle wrapper jar before it runs.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Test and build wasm application
+        run: ./gradlew wasmJsBrowserTest wasmJsBrowserDistribution
 
       - name: Setup pages
-        id: pages
-        uses: actions/configure-pages@v5
-
-      - name: Build wasm application
-        run: ./gradlew wasmJsBrowserDistribution
+        if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        id: deployment
-        uses: actions/upload-pages-artifact@v4
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: composeApp/build/dist/wasmJs/productionExecutable/
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -48,4 +59,4 @@ jobs:
     steps:
       - name: Deploy artifact to Github Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

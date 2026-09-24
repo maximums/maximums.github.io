@@ -132,11 +132,11 @@ private fun LookaheadScope.AppContent() {
         text = "About",
         onClick = { currentPage = Page.About }
     )
-    val contactsButton = movableCard(
+    val boidsButton = movableCard(
         text = "Boids",
         onClick = { currentPage = Page.Boids }
     )
-    val sketchButton = movableCard(
+    val lifeButton = movableCard(
         text = "Game Of Life",
         onClick = { currentPage = Page.GameOfLife }
     )
@@ -156,16 +156,16 @@ private fun LookaheadScope.AppContent() {
                 menuContent = {
                     homeButton(cardModifier.align(Alignment.TopStart), MorphingShape.TriangleTopStart)
                     aboutButton(cardModifier.align(Alignment.TopEnd), MorphingShape.TriangleTopEnd)
-                    contactsButton(cardModifier.align(Alignment.BottomStart), MorphingShape.TriangleBottomStart)
-                    sketchButton(cardModifier.align(Alignment.BottomEnd), MorphingShape.TriangleBottomEnd)
+                    boidsButton(cardModifier.align(Alignment.BottomStart), MorphingShape.TriangleBottomStart)
+                    lifeButton(cardModifier.align(Alignment.BottomEnd), MorphingShape.TriangleBottomEnd)
                 },
             )
         } else {
             TopBarForm {
                 homeButton(topBarModifier, MorphingShape.Rectangle)
                 aboutButton(topBarModifier, MorphingShape.Rectangle)
-                contactsButton(topBarModifier, MorphingShape.Rectangle)
-                sketchButton(topBarModifier, MorphingShape.Rectangle)
+                boidsButton(topBarModifier, MorphingShape.Rectangle)
+                lifeButton(topBarModifier, MorphingShape.Rectangle)
             }
 
             bodyCard(
@@ -214,27 +214,6 @@ private fun LookaheadScope.AppContent() {
                         }
                     }
                 }
-
-//                AnimatedContent(
-//                    targetState = currentScreen,
-//                    contentKey = { it },
-//                    transitionSpec = {
-//                        if (targetState.ordinal > initialState.ordinal) {
-//                            slideInHorizontally(tween(400)) { width -> width } togetherWith
-//                                    slideOutHorizontally(tween(400)) { width -> -width }
-//                        } else {
-//                            slideInHorizontally(tween(400)) { width -> -width } togetherWith
-//                                    slideOutHorizontally(tween(400)) { width -> width }
-//                        }
-//                    }
-//                ) {
-//                    when(currentScreen) {
-//                        Screen.About -> AboutPage()
-//                        Screen.Boids -> BoidsPage()
-//                        Screen.GameOfLife -> GameOfLifePage()
-//                        Screen.Home -> Unit
-//                    }
-//                }
             }
         }
     }
