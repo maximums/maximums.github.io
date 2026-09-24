@@ -54,6 +54,7 @@ class GoldenTest {
             options = CompilerOptions(
                 packageName = "fixtures." + fixture.nameWithoutExtension.replace('-', '_'),
                 runtimePackage = RUNTIME_PACKAGE,
+                specUrl = "https://gpuweb.github.io/gpuweb/",
             ),
         ).associate { spec -> "${spec.name}.kt" to spec.toString().normalized() }
     } catch (e: Exception) {

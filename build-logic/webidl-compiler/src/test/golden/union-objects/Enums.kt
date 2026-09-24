@@ -8,6 +8,9 @@ import kotlin.js.JsAny
 import kotlin.js.JsName
 import kotlin.js.toJsString
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#enumdef-gpuautolayoutmode).
+ */
 @JsName("null")
 @Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
 public external interface GPUAutoLayoutMode : JsAny, GPUPipelineLayoutOrGPUAutoLayoutMode {

@@ -8,8 +8,17 @@ import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsNumber
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gpurenderpassencoder).
+ */
 public external interface GPURenderPassEncoder : JsAny {
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendconstant).
+   */
   public fun setBlendConstant(color: JsArray<JsNumber>)
 
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendconstant).
+   */
   public fun setBlendConstant(color: GPUColorDict)
 }

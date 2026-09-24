@@ -45,4 +45,5 @@ webIdl {
     packageName = "com.cdodi.webgpu.bindings"
     runtimePackage = "com.cdodi.webgpu.runtime"
     fileNamePrefix = "WebGpu"
+    specUrl = "https://gpuweb.github.io/gpuweb/"
 }

@@ -11,6 +11,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
@@ -33,6 +34,10 @@ abstract class TranspileWebIdlTask : DefaultTask() {
     abstract val fileNamePrefix: Property<String>
 
     @get:Input
+    @get:Optional
+    abstract val specUrl: Property<String>
+
+    @get:Input
     abstract val externalTypes: MapProperty<String, String>
 
     @get:OutputDirectory
@@ -46,7 +51,13 @@ abstract class TranspileWebIdlTask : DefaultTask() {
         }
 
         val sources = idlFiles.files.map { file -> IdlSource(file.name, file.readText()) }
-        val options = CompilerOptions(packageName.get(), runtimePackage.get(), fileNamePrefix.get(), externalTypes.get())
+        val options = CompilerOptions(
+            packageName = packageName.get(),
+            runtimePackage = runtimePackage.get(),
+            fileNamePrefix = fileNamePrefix.get(),
+            specUrl = specUrl.orNull,
+            externalTypes = externalTypes.get(),
+        )
 
         WebIdlCompiler.compile(sources, options) { warning -> logger.warn(warning) }
             .forEach { fileSpec -> fileSpec.writeTo(outputDir) }

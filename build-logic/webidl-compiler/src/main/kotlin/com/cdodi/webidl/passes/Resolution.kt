@@ -169,9 +169,11 @@ private fun resolveTypes(definitions: IdlDefinitions): IdlDefinitions {
         if (ownMarkers.isEmpty()) descriptor else descriptor.copy(superTypes = descriptor.superTypes - "JsAny" + ownMarkers)
     }
 
-    val markerInterfaces = markers.keys
-        .filter { it !in interfaces }
-        .associateWith { Descriptor.InterfaceDescriptor(name = it, members = emptyList(), superTypes = setOf("JsAny")) }
+    val markerInterfaces = markers
+        .filterKeys { it !in interfaces }
+        .mapValues { (name, members) ->
+            Descriptor.InterfaceDescriptor(name = name, members = emptyList(), superTypes = setOf("JsAny"), unionOf = members)
+        }
 
     val enums = definitions.enums.mapValues { (name, enum) ->
         val ownMarkers = markers.filterValues { name in it }.keys
@@ -192,7 +194,10 @@ fun Descriptor.TypeDescriptor.unrollTypedefs(
 ): Descriptor.TypeDescriptor {
     check(name !in visited) { "Circular typedef detected: ${(visited + name).joinToString(" -> ")}" }
     val typedef = typedefs[name]
-    if (typedef != null) return typedef.unrollTypedefs(typedefs, visited + name).copy(isNullable = isNullable || typedef.isNullable)
+    if (typedef != null) {
+        val target = typedef.unrollTypedefs(typedefs, visited + name)
+        return target.copy(isNullable = isNullable || typedef.isNullable, extendedAttributes = target.extendedAttributes + extendedAttributes)
+    }
 
     val nextVisited = visited + name
     return copy(

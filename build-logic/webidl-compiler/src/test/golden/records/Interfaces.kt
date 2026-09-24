@@ -6,4 +6,7 @@ package fixtures.records
 import kotlin.Suppress
 import kotlin.js.JsAny
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gputhing).
+ */
 public external interface GPUThing : JsAny

@@ -28,6 +28,9 @@ abstract class WebIdlExtension {
     /** Prefix for the generated file names: "WebGpu" -> WebGpuEnums.kt, WebGpuInterfaces.kt, ... */
     abstract val fileNamePrefix: Property<String>
 
+    /** Base URL of the spec, for links in KDoc (e.g. https://gpuweb.github.io/gpuweb/). Optional. */
+    abstract val specUrl: Property<String>
+
     /**
      * Types the IDL uses but does not define: IDL name -> `"class|interface|value <Kotlin type>"`.
      * Starts with [com.cdodi.webidl.model.ExternalType.DEFAULTS]; any other unknown name fails the build.

@@ -9,12 +9,18 @@ import kotlin.String
 import kotlin.Suppress
 import kotlin.js.JsAny
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gpusupportedfeatures).
+ */
 public external interface GPUSupportedFeatures : JsAny {
   public val size: Int
 
   public fun has(`value`: String): Boolean
 }
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gputhingset).
+ */
 public external interface GPUThingSet : JsAny {
   public val size: Int
 

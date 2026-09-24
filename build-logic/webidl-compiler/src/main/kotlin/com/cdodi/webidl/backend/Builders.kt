@@ -32,13 +32,14 @@ fun Descriptor.InterfaceDescriptor.isGeneratedAsClass(context: BindingContext): 
             context[BindingSlices.INTERFACE, superName]?.isGeneratedAsClass(context) == true
     }
 
-fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
+fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String, docs: Docs): TypeSpec {
     val interfaceBuilder = if (isGeneratedAsClass(context)) {
         TypeSpec.classBuilder(name).addModifiers(KModifier.ABSTRACT)
     } else {
         TypeSpec.interfaceBuilder(name)
     }
     interfaceBuilder.addModifiers(KModifier.EXTERNAL)
+    interfaceBuilder.addKdoc(docs.forInterface(this))
 
     superTypes.forEach { superName ->
         val external = context[BindingSlices.EXTERNAL_TYPE, superName]
@@ -55,7 +56,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.toKotlin(context, generatedPackageName)
         interfaceBuilder.addProperty(
-            PropertySpec.builder(variable.name, typeName).mutable(!variable.isReadonly).build()
+            PropertySpec.builder(variable.name, typeName).mutable(!variable.isReadonly).addKdoc(docs.forMember(variable)).build()
         )
     }
 
@@ -67,6 +68,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
                 FunSpec.builder(function.name).returns(function.returnType.toKotlin(context, generatedPackageName))
             }
 
+            funBuilder.addKdoc(docs.forMember(function))
             function.parameters.zip(parameterTypes).forEach { (param, type) ->
                 val paramSpec = ParameterSpec.builder(param.name, type)
                     .also { if (param.isOptional) it.defaultValue("definedExternally") }
@@ -82,9 +84,10 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
 }
 
 
-fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, generatedPackageName: String): TypeSpec {
+fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, generatedPackageName: String, docs: Docs): TypeSpec {
     val interfaceBuilder = TypeSpec.interfaceBuilder(name)
         .addModifiers(KModifier.EXTERNAL)
+        .addKdoc(docs.forDictionary(this))
         .addSuperinterface(ClassName("kotlin.js", "JsAny"))
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
@@ -93,6 +96,7 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
         interfaceBuilder.addProperty(
             PropertySpec.builder(variable.name, typeName)
                 .mutable(true)
+                .addKdoc(docs.forMember(variable))
                 .build()
         )
     }
@@ -104,10 +108,11 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
     context: BindingContext,
     generatedPackageName: String,
     runtimePackage: String,
+    docs: Docs,
 ): FunSpec {
     val createJsObjectMember = MemberName(runtimePackage, "createJsObject")
     val className = ClassName(generatedPackageName, name)
-    val factoryBuilder = FunSpec.builder(name).returns(className)
+    val factoryBuilder = FunSpec.builder(name).returns(className).addKdoc(docs.forFactory(this))
 
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val typeName = variable.type.toFactoryParameter(context, generatedPackageName)
@@ -143,8 +148,8 @@ fun Descriptor.InterfaceDescriptor.dictFactory(
 }
 
 
-fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, generatedPackageName: String): TypeSpec {
-    val objectBuilder = TypeSpec.objectBuilder(name)
+fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, generatedPackageName: String, docs: Docs): TypeSpec {
+    val objectBuilder = TypeSpec.objectBuilder(name).addKdoc(docs.forNamespace(this))
 
     members.filterIsInstance<InterfaceMember.ConstantDescriptor>().forEach { constant ->
         val ktType = constant.type.toKotlin(context, generatedPackageName)
@@ -152,6 +157,7 @@ fun Descriptor.InterfaceDescriptor.asNamespacePoet(context: BindingContext, gene
             PropertySpec.builder(constant.name, ktType)
                 .addModifiers(KModifier.CONST)
                 .initializer(constant.value)
+                .addKdoc(docs.forMember(constant))
                 .build()
         )
     }
@@ -180,6 +186,7 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
                 val builder = FunSpec.builder("${function.name}Suspend")
                     .receiver(className)
                     .addModifiers(KModifier.SUSPEND)
+                    .addKdoc("Suspending [%T.%N]: awaits the Promise it returns.\n", className, function.name)
                 if (!isVoid) builder.returns(returnType)
 
                 val paramNames = mutableListOf<String>()
@@ -218,7 +225,8 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
  * This is exactly how kotlinx-browser declares the DOM's enums: a companion object in an external interface is only
  * allowed with that diagnostic suppressed, and `@JsName("null")` stops Kotlin from looking up a JS global for the type.
  */
-fun Descriptor.EnumDescriptor.asEnumPoet(generatedPackageName: String): TypeSpec = TypeSpec.interfaceBuilder(name)
+fun Descriptor.EnumDescriptor.asEnumPoet(generatedPackageName: String, docs: Docs): TypeSpec = TypeSpec.interfaceBuilder(name)
+    .addKdoc(docs.forEnum(this))
     .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.js", "JsName")).addMember("%S", "null").build())
     .addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "NESTED_CLASS_IN_EXTERNAL_INTERFACE").build())
     .addModifiers(KModifier.EXTERNAL)
@@ -264,6 +272,7 @@ fun Descriptor.InterfaceDescriptor.extensionMembersOn(
     external: ExternalType,
     context: BindingContext,
     generatedPackageName: String,
+    docs: Docs,
 ): List<Any> {
     val receiver = ClassName.bestGuess(external.kotlinName)
     val mixinType = ClassName(generatedPackageName, name)
@@ -273,10 +282,12 @@ fun Descriptor.InterfaceDescriptor.extensionMembersOn(
         when (member) {
             is InterfaceMember.VariableDescriptor -> PropertySpec.builder(member.name, member.type.toKotlin(context, generatedPackageName))
                 .receiver(receiver)
+                .addKdoc(docs.forMember(member))
                 .getter(FunSpec.getterBuilder().addStatement("return %M<%T>().%N", unsafeCast, mixinType, member.name).build())
                 .build()
             is InterfaceMember.FunctionDescriptor -> FunSpec.builder(member.name)
                 .receiver(receiver)
+                .addKdoc(docs.forMember(member))
                 .returns(member.returnType.toKotlin(context, generatedPackageName))
                 .apply { member.parameters.forEach { addParameter(it.name, it.type.toKotlin(context, generatedPackageName)) } }
                 .addStatement(

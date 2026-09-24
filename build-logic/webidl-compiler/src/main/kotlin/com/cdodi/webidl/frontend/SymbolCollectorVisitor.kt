@@ -16,7 +16,7 @@ class SymbolCollectorVisitor(
 
     override fun visitMixinRest(ctx: WebIDLParser.MixinRestContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
-        val collectedMembers = ctx.mixinMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.mixinMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
@@ -29,7 +29,7 @@ class SymbolCollectorVisitor(
 
     override fun visitPartialInterfaceRest(ctx: WebIDLParser.PartialInterfaceRestContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
-        val collectedMembers = ctx.partialInterfaceMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.partialInterfaceMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
@@ -43,12 +43,13 @@ class SymbolCollectorVisitor(
     override fun visitInterfaceRest(ctx: WebIDLParser.InterfaceRestContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
         val superTypes = ctx.inheritance()?.IDENTIFIER_WEBIDL()?.text?.trim().let(::setOfNotNull)
-        val collectedMembers = ctx.interfaceMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.interfaceMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
 
         context[BindingSlices.INTERFACE, name] = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
-            superTypes = superTypes
+            superTypes = superTypes,
+            extendedAttributes = ctx.precedingExtendedAttributes(),
         )
     }
 
@@ -62,7 +63,7 @@ class SymbolCollectorVisitor(
 
     override fun visitNamespace_(ctx: WebIDLParser.Namespace_Context) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
-        val collectedMembers = ctx.namespaceMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.namespaceMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
         context[BindingSlices.NAMESPACE, name] = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,
@@ -73,7 +74,7 @@ class SymbolCollectorVisitor(
     override fun visitDictionary(ctx: WebIDLParser.DictionaryContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text ?: return
         val superTypes = ctx.inheritance()?.IDENTIFIER_WEBIDL()?.text?.trim().let(::setOfNotNull)
-        val collectedMembers = ctx.dictionaryMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.dictionaryMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
 
         context[BindingSlices.DICTIONARY, name] = Descriptor.InterfaceDescriptor(
             name = name,
@@ -84,7 +85,7 @@ class SymbolCollectorVisitor(
 
     override fun visitPartialDictionary(ctx: WebIDLParser.PartialDictionaryContext) {
         val name = ctx.IDENTIFIER_WEBIDL()?.text?.trim() ?: return
-        val collectedMembers = ctx.dictionaryMembers()?.let { membersCollector.visit(it) }.orEmpty()
+        val collectedMembers = ctx.dictionaryMembers()?.let { membersCollector.visit(it) }.orEmpty().map { it.withDeclaredIn(name) }
         val descriptor = Descriptor.InterfaceDescriptor(
             name = name,
             members = collectedMembers,

@@ -116,11 +116,11 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 - [x] **Runtime smoke test**: `wasmJsBrowserTest` that requests an adapter and runs the doubling compute shader. Skip it gracefully where WebGPU is missing. _Runs on a real GPU locally; Chrome is launched without `--disable-gpu`. `sequences` is the one fixture that doesn't compile yet (tracked in `KNOWN_NOT_COMPILING`)._
 
 ### 1.3 Middle end: correct semantics
-- [ ] Rewrite the resolution passes as **pure functions from one model to the next** (no mutating a map while iterating it; fixes REVIEW W1 "maps mutated while iterated"): `mergePartials → applyMixins → flattenDictionaries → resolveTypedefs → normalizeUnions → attachExternalTypes`.
-- [ ] Record `optional` as its own flag, separate from having a default value.
-- [ ] Carry nullability faithfully for every kind of type (objects, primitives, promises, sequences).
-- [ ] Parse `readonly setlike<T>` and extended attributes (`[EnforceRange]`, `[Clamp]`, `[SameObject]`, `[SecureContext]`, `[Exposed]`) into the model.
-- [ ] Types from outside this IDL (`EventTarget`, `Event`, `DOMException`, `ArrayBuffer`, `BufferSource`, `ImageBitmap`, `HTMLCanvasElement`, `EventHandler`…) are resolved through the `externalTypes` table. This finally uses the `EXTERNAL_TYPE` slice. An unknown type fails the build with a clear message instead of silently becoming `JsAny`.
+- [x] Rewrite the resolution passes as **pure functions from one model to the next** (no mutating a map while iterating it; fixes REVIEW W1 "maps mutated while iterated"): `mergePartials → applyMixins → flattenDictionaries → resolveTypedefs → normalizeUnions → attachExternalTypes`. _Done: `IdlDefinitions` snapshot; applyMixins -> mergePartials -> flattenDictionaries -> validateNames -> resolveSuperTypes -> resolveTypes. Full WebGPU output was byte-identical before/after._
+- [x] Record `optional` as its own flag, separate from having a default value.
+- [x] Carry nullability faithfully for every kind of type (objects, primitives, promises, sequences). _The frontend read `?` in the wrong grammar rule, so every `T?` on a named or primitive type was lost; fixed._
+- [x] Parse `readonly setlike<T>` and extended attributes (`[EnforceRange]`, `[Clamp]`, `[SameObject]`, `[SecureContext]`, `[Exposed]`) into the model. _Setlike gives size/has (+ add/delete/clear); forEach and iterators still need callback/iterator types in the model._
+- [x] Types from outside this IDL (`EventTarget`, `Event`, `DOMException`, `ArrayBuffer`, `BufferSource`, `ImageBitmap`, `HTMLCanvasElement`, `EventHandler`…) are resolved through the `externalTypes` table. This finally uses the `EXTERNAL_TYPE` slice. An unknown type fails the build with a clear message instead of silently becoming `JsAny`. _Entries have a kind (class/interface/value): an interface extending an external class becomes an external abstract class. Mixins on platform types become extension members (`Navigator.gpu: GPU?`)._
 
 ### 1.4 Back end: type mapping
 
@@ -148,8 +148,10 @@ Treat it as a real compiler: **front end** (ANTLR parse tree → AST), **middle 
 | Promise-returning operation | extension `suspend fun …Suspend()` wrapper; overload without the trailing optional arguments |
 | extended attributes | KDoc (`[EnforceRange]`: "throws TypeError when out of range") |
 
-- [ ] Put the IDL member's name and spec link in KDoc, so the generated API documents itself.
-- [ ] Split the output into files by kind (`Enums.kt`, `Dictionaries.kt`, `Interfaces.kt`, `Namespaces.kt`, `Suspend.kt`) so diffs stay readable.
+- [x] Put the IDL member's name and spec link in KDoc, so the generated API documents itself. _Plus what each extended attribute means for the caller. All member anchors resolve against the live spec; 9 of 96 dictionary/enum anchors don't follow the Bikeshed default (see the follow-up below)._
+- [x] Split the output into files by kind (`Enums.kt`, `Dictionaries.kt`, `Interfaces.kt`, `Namespaces.kt`, `Suspend.kt`) so diffs stay readable. _Plus a `fileNamePrefix` (WebGpuEnums.kt, ...)._
+- [ ] Follow-up: exact spec anchors. webref publishes each spec's definitions with their real ids (`ed/dfns/webgpu.json`); commit it next to the IDL (same by-hand update task) and link from it instead of the Bikeshed default pattern.
+- [ ] Follow-up: dictionary properties typed by a mixed union (e.g. `canvas`, `source`) are still `JsAny`; typed accessors belong in the idiomatic layer (1.6).
 
 ### 1.5 Runtime (`:webgpu`)
 - [ ] `await()` that **keeps the JS rejection reason**: `class JsPromiseRejection(val reason: JsAny?) : Exception(…)`. For `GPUError` / `DOMException`, surface `name` and `message`.

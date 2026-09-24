@@ -13,6 +13,11 @@ class TypeResolver : WebIDLBaseVisitor<TypeDescriptor>() {
         else -> TypeDescriptor(name = "any", isNullable = true)
     }
 
+    override fun visitTypeWithExtendedAttributes(ctx: WebIDLParser.TypeWithExtendedAttributesContext): TypeDescriptor {
+        val type = visit(ctx.type_())
+        return type.copy(extendedAttributes = ctx.extendedAttributeList().attributes() + type.extendedAttributes)
+    }
+
     override fun visitSingleType(ctx: WebIDLParser.SingleTypeContext): TypeDescriptor {
         ctx.promiseType()?.let { promise ->
             val inner = visit(promise.type_())

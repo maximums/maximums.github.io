@@ -8,6 +8,12 @@ import kotlin.js.JsAny
 import kotlin.js.JsArray
 import kotlin.js.JsString
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gputhing).
+ */
 public external interface GPUThing : JsAny {
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gputhing-tags).
+   */
   public val tags: JsArray<JsString>
 }

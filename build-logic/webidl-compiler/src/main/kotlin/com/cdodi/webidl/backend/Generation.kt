@@ -22,7 +22,9 @@ fun generateKotlin(
     generatedPackageName: String,
     runtimePackage: String,
     fileNamePrefix: String,
+    specUrl: String? = null,
 ): List<FileSpec> {
+    val docs = Docs(specUrl)
     val fileComment = "Current file is generated, please don't modify it manually because your changes will be lost."
     val fileAnnotation = AnnotationSpec.builder(Suppress::class).addMember(
         "%S, %S, %S, %S, %S",
@@ -44,19 +46,19 @@ fun generateKotlin(
     val suspendWrappers = file("Suspend")
 
     context[BindingSlices.ENUM]?.values?.forEach { enumDesc ->
-        enums.addType(enumDesc.asEnumPoet(generatedPackageName))
+        enums.addType(enumDesc.asEnumPoet(generatedPackageName, docs))
         enumDesc.enumValues(generatedPackageName).forEach(enums::addProperty)
     }
 
     context[BindingSlices.INTERFACE]?.values?.forEach { interfaceDesc ->
-        interfaces.addType(interfaceDesc.asInterfacePoet(context, generatedPackageName))
+        interfaces.addType(interfaceDesc.asInterfacePoet(context, generatedPackageName, docs))
         interfaceDesc.suspendWrappers(context, generatedPackageName, runtimePackage).forEach(suspendWrappers::addFunction)
     }
 
     context[BindingSlices.EXTERNAL_INCLUDES]?.forEach { (externalName, mixinNames) ->
         val external = context[BindingSlices.EXTERNAL_TYPE, externalName] ?: return@forEach
         mixinNames.mapNotNull { context[BindingSlices.INTERFACE, it] }.forEach { mixin ->
-            mixin.extensionMembersOn(external, context, generatedPackageName).forEach { member ->
+            mixin.extensionMembersOn(external, context, generatedPackageName, docs).forEach { member ->
                 when (member) {
                     is PropertySpec -> interfaces.addProperty(member)
                     is FunSpec -> interfaces.addFunction(member)
@@ -66,12 +68,12 @@ fun generateKotlin(
     }
 
     context[BindingSlices.DICTIONARY]?.values?.forEach { dictDesc ->
-        dictionaries.addType(dictDesc.asDictionaryPoet(context, generatedPackageName))
-        dictionaries.addFunction(dictDesc.dictFactory(context, generatedPackageName, runtimePackage))
+        dictionaries.addType(dictDesc.asDictionaryPoet(context, generatedPackageName, docs))
+        dictionaries.addFunction(dictDesc.dictFactory(context, generatedPackageName, runtimePackage, docs))
     }
 
     context[BindingSlices.NAMESPACE]?.values?.forEach { namespaceDesc ->
-        namespaces.addType(namespaceDesc.asNamespacePoet(context, generatedPackageName))
+        namespaces.addType(namespaceDesc.asNamespacePoet(context, generatedPackageName, docs))
     }
 
     return listOf(enums, interfaces, dictionaries, namespaces, suspendWrappers)

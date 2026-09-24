@@ -14,7 +14,10 @@ class InterfaceCollector(
 
     override fun aggregateResult(aggregate: List<InterfaceMember>, nextResult: List<InterfaceMember>) = aggregate + nextResult
 
-    override fun visitPartialInterfaceMember(ctx: WebIDLParser.PartialInterfaceMemberContext): List<InterfaceMember> {
+    override fun visitPartialInterfaceMember(ctx: WebIDLParser.PartialInterfaceMemberContext): List<InterfaceMember> =
+        collectPartialInterfaceMember(ctx).withAttributes(ctx.precedingExtendedAttributes())
+
+    private fun collectPartialInterfaceMember(ctx: WebIDLParser.PartialInterfaceMemberContext): List<InterfaceMember> {
         ctx.readonlyMember()?.readonlyMemberRest()?.attributeRest()?.extractVariable(isReadonly = true)?.let { return it }
         ctx.readWriteAttribute()?.attributeRest()?.extractVariable()?.let { return it }
         ctx.operation()?.regularOperation()?.extractFunction()?.let { return it }
@@ -26,7 +29,10 @@ class InterfaceCollector(
         return super.visitPartialInterfaceMember(ctx)
     }
 
-    override fun visitMixinMember(ctx: WebIDLParser.MixinMemberContext): List<InterfaceMember> {
+    override fun visitMixinMember(ctx: WebIDLParser.MixinMemberContext): List<InterfaceMember> =
+        collectMixinMember(ctx).withAttributes(ctx.precedingExtendedAttributes())
+
+    private fun collectMixinMember(ctx: WebIDLParser.MixinMemberContext): List<InterfaceMember> {
         ctx.attributeRest()?.extractVariable(isReadonly = ctx.optionalReadOnly()?.text == "readonly")?.let { return it }
         ctx.regularOperation()?.extractFunction()?.let { return it }
 
@@ -58,7 +64,7 @@ class InterfaceCollector(
             ?: return super.visitConst_(ctx)
         val type = Descriptor.TypeDescriptor(name = typeName, isNullable = false)
         val value = ctx.constValue()?.text?.trim() ?: return super.visitConst_(ctx)
-        return listOf(InterfaceMember.ConstantDescriptor(name = name, type = type, value = value))
+        return listOf(InterfaceMember.ConstantDescriptor(name = name, type = type, value = value, extendedAttributes = ctx.precedingExtendedAttributes()))
     }
 
     override fun visitDictionaryMemberRest(ctx: WebIDLParser.DictionaryMemberRestContext): List<InterfaceMember> {
@@ -73,7 +79,8 @@ class InterfaceCollector(
                 name = name,
                 type = type,
                 isRequired = isRequired,
-                defaultValue = defaultValue
+                defaultValue = defaultValue,
+                extendedAttributes = ctx.precedingExtendedAttributes(),
             )
         )
     }
@@ -89,16 +96,26 @@ class InterfaceCollector(
         val boolean = Descriptor.TypeDescriptor(name = "boolean")
 
         val members = mutableListOf<InterfaceMember>(
-            InterfaceMember.VariableDescriptor(name = "size", type = Descriptor.TypeDescriptor(name = "unsignedlong"), isReadonly = true),
-            InterfaceMember.FunctionDescriptor(name = "has", returnType = boolean, parameters = value),
+            InterfaceMember.VariableDescriptor(name = "size", type = Descriptor.TypeDescriptor(name = "unsignedlong"), isReadonly = true, isSynthesized = true),
+            InterfaceMember.FunctionDescriptor(name = "has", returnType = boolean, parameters = value, isSynthesized = true),
         )
         if (!isReadonly) {
-            members += InterfaceMember.FunctionDescriptor(name = "add", returnType = Descriptor.TypeDescriptor(name = enclosingInterfaceName()), parameters = value)
-            members += InterfaceMember.FunctionDescriptor(name = "delete", returnType = boolean, parameters = value)
-            members += InterfaceMember.FunctionDescriptor(name = "clear", returnType = Descriptor.TypeDescriptor(name = "undefined"), parameters = emptyList())
+            val self = Descriptor.TypeDescriptor(name = enclosingInterfaceName())
+            members += InterfaceMember.FunctionDescriptor(name = "add", returnType = self, parameters = value, isSynthesized = true)
+            members += InterfaceMember.FunctionDescriptor(name = "delete", returnType = boolean, parameters = value, isSynthesized = true)
+            members += InterfaceMember.FunctionDescriptor(name = "clear", returnType = Descriptor.TypeDescriptor(name = "undefined"), parameters = emptyList(), isSynthesized = true)
         }
         return members
     }
+
+    private fun List<InterfaceMember>.withAttributes(attributes: List<String>): List<InterfaceMember> =
+        if (attributes.isEmpty()) this else map { member ->
+            when (member) {
+                is InterfaceMember.VariableDescriptor -> member.copy(extendedAttributes = attributes + member.extendedAttributes)
+                is InterfaceMember.FunctionDescriptor -> member.copy(extendedAttributes = attributes + member.extendedAttributes)
+                is InterfaceMember.ConstantDescriptor -> member.copy(extendedAttributes = attributes + member.extendedAttributes)
+            }
+        }
 
     private fun RuleContext.enclosingInterfaceName(): String {
         var node: RuleContext? = parent
@@ -152,9 +169,11 @@ class InterfaceCollector(
         val typeCtx = type_() ?: typeWithExtendedAttributes()
         val type = typeCtx?.let { typeResolver.visit(it) } ?: return null
 
+        // An argument's own [EnforceRange]/[Clamp] belongs to its type, like one written inside a typedef.
+        val argumentAttributes = precedingExtendedAttributes(maxDepth = 1)
         return InterfaceMember.VariableDescriptor(
             name = argumentName()?.IDENTIFIER_WEBIDL()?.text?.trim().orEmpty(),
-            type = type,
+            type = type.copy(extendedAttributes = argumentAttributes + type.extendedAttributes),
             isOptional = getChild(0)?.text == "optional",
             isVariadic = ellipsis()?.text == "...",
             defaultValue = default_()?.cleanDefValue

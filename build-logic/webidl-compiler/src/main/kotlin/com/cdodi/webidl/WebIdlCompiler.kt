@@ -24,6 +24,8 @@ data class CompilerOptions(
     val runtimePackage: String,
     /** Prefix for the generated file names: "WebGpu" -> WebGpuEnums.kt, WebGpuInterfaces.kt, ... */
     val fileNamePrefix: String = "",
+    /** Base URL of the spec, for links in KDoc (e.g. https://gpuweb.github.io/gpuweb/); null means no links. */
+    val specUrl: String? = null,
     /** IDL name -> `"class|interface|value <Kotlin type>"`, see [ExternalType.parse]. */
     val externalTypes: Map<String, String> = ExternalType.DEFAULTS,
 )
@@ -51,6 +53,7 @@ object WebIdlCompiler {
             options.packageName,
             options.runtimePackage,
             options.fileNamePrefix,
+            options.specUrl,
         )
     }
 

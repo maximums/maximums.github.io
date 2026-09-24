@@ -13,12 +13,24 @@ import kotlin.js.JsArray
 import kotlin.js.JsNumber
 import kotlin.js.toJsNumber
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#dictdef-gputhinglist).
+ */
 public external interface GPUThingList : JsAny {
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gputhinglist-things).
+   */
   public var things: JsArray<GPUThing>
 
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gputhinglist-counts).
+   */
   public var counts: JsArray<JsNumber>?
 }
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#dictdef-gputhinglist).
+ */
 public fun GPUThingList(things: List<GPUThing>, counts: List<Int>? = null): GPUThingList = createJsObject {
   this.things = things.toJsArray()
   counts?.let { this.counts = it.map { it.toJsNumber() }.toJsArray() }

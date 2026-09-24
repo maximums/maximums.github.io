@@ -22,6 +22,7 @@ class WebIdlPlugin : Plugin<Project> {
             packageName = extension.packageName
             runtimePackage = extension.runtimePackage
             fileNamePrefix = extension.fileNamePrefix
+            specUrl = extension.specUrl
             externalTypes = extension.externalTypes
             outputDirectory = layout.buildDirectory.dir("generated/webidl/kotlin")
         }

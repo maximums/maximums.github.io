@@ -7,8 +7,17 @@ import kotlin.Int
 import kotlin.Suppress
 import kotlin.js.JsAny
 
+/**
+ * See the [specification](https://gpuweb.github.io/gpuweb/#gputhing).
+ */
 public external interface GPUThing : JsAny {
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gputhing-a).
+   */
   public val a: Int
 
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gputhing-b).
+   */
   public val b: Int
 }
