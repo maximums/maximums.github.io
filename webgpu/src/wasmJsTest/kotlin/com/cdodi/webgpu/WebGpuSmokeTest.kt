@@ -1,6 +1,6 @@
 package com.cdodi.webgpu
 
-import com.cdodi.webgpu.bindings.GPUAutoLayoutModeEntries
+import com.cdodi.webgpu.bindings.GPUAutoLayoutMode
 import com.cdodi.webgpu.bindings.GPUBindGroupDescriptor
 import com.cdodi.webgpu.bindings.GPUBindGroupEntry
 import com.cdodi.webgpu.bindings.GPUBufferDescriptor
@@ -9,6 +9,7 @@ import com.cdodi.webgpu.bindings.GPUComputePipelineDescriptor
 import com.cdodi.webgpu.bindings.GPUMapMode
 import com.cdodi.webgpu.bindings.GPUProgrammableStage
 import com.cdodi.webgpu.bindings.GPUShaderModuleDescriptor
+import com.cdodi.webgpu.bindings.auto
 import com.cdodi.webgpu.bindings.gpu
 import com.cdodi.webgpu.bindings.mapAsyncSuspend
 import com.cdodi.webgpu.bindings.requestAdapterSuspend
@@ -52,7 +53,7 @@ class WebGpuSmokeTest {
 
         val pipeline = device.createComputePipeline(
             GPUComputePipelineDescriptor(
-                layout = GPUAutoLayoutModeEntries.auto,
+                layout = GPUAutoLayoutMode.auto,
                 compute = GPUProgrammableStage(
                     module = device.createShaderModule(GPUShaderModuleDescriptor(code = DOUBLING_SHADER)),
                     entryPoint = "double",

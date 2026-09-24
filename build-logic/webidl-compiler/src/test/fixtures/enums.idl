@@ -1,5 +1,5 @@
 // Enum values that are not valid Kotlin identifiers.
-// Target: camelCase names (triangleList, dimension1d) holding the exact IDL strings.
+// Target: GPUPrimitiveTopology.triangleList; names starting with a digit stay backticked (`1d`, `2dArray`).
 enum GPUPrimitiveTopology {
     "point-list",
     "triangle-list"

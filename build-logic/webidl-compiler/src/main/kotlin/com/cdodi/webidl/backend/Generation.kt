@@ -31,10 +31,8 @@ fun generateKotlin(
         .addAnnotation(fileAnnotation)
 
     context[BindingSlices.ENUM]?.values?.forEach { enumDesc ->
-        val enumInterface = enumDesc.asEnumPoet()
-        val enumEntries = enumDesc.enumFactory(generatedPackageName)
-        apiFileBuilder.addType(enumInterface)
-        factoriesFileBuilder.addType(enumEntries)
+        apiFileBuilder.addType(enumDesc.asEnumPoet())
+        enumDesc.enumValues(generatedPackageName).forEach(factoriesFileBuilder::addProperty)
     }
 
     context[BindingSlices.INTERFACE]?.values?.forEach { interfaceDesc ->

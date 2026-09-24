@@ -10,13 +10,11 @@ import kotlin.String
 import kotlin.Suppress
 import kotlin.js.toJsString
 
-public object GPUKindEntries {
-  public inline val `plain`: GPUKind
-    get() = "plain".toJsString().unsafeCast()
+public inline val GPUKind.Companion.plain: GPUKind
+  get() = "plain".toJsString().unsafeCast()
 
-  public inline val `fancy`: GPUKind
-    get() = "fancy".toJsString().unsafeCast()
-}
+public inline val GPUKind.Companion.fancy: GPUKind
+  get() = "fancy".toJsString().unsafeCast()
 
 public fun GPUObjectDescriptorBase(label: String? = null): GPUObjectDescriptorBase = createJsObject {
   label?.let { this.label = it }

@@ -8,8 +8,13 @@ import kotlin.Int
 import kotlin.String
 import kotlin.Suppress
 import kotlin.js.JsAny
+import kotlin.js.JsName
 
-public sealed external interface GPUKind : JsAny
+@JsName("null")
+@Suppress("NESTED_CLASS_IN_EXTERNAL_INTERFACE")
+public external interface GPUKind : JsAny {
+  public companion object
+}
 
 public external interface GPUObjectDescriptorBase : JsAny {
   public var label: String?

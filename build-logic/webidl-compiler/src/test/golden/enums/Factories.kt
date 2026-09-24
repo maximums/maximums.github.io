@@ -6,18 +6,14 @@ package fixtures.enums
 import kotlin.Suppress
 import kotlin.js.toJsString
 
-public object GPUPrimitiveTopologyEntries {
-  public inline val `point-list`: GPUPrimitiveTopology
-    get() = "point-list".toJsString().unsafeCast()
+public inline val GPUPrimitiveTopology.Companion.pointList: GPUPrimitiveTopology
+  get() = "point-list".toJsString().unsafeCast()
 
-  public inline val `triangle-list`: GPUPrimitiveTopology
-    get() = "triangle-list".toJsString().unsafeCast()
-}
+public inline val GPUPrimitiveTopology.Companion.triangleList: GPUPrimitiveTopology
+  get() = "triangle-list".toJsString().unsafeCast()
 
-public object GPUTextureViewDimensionEntries {
-  public inline val `1d`: GPUTextureViewDimension
-    get() = "1d".toJsString().unsafeCast()
+public inline val GPUTextureViewDimension.Companion.`1d`: GPUTextureViewDimension
+  get() = "1d".toJsString().unsafeCast()
 
-  public inline val `2d-array`: GPUTextureViewDimension
-    get() = "2d-array".toJsString().unsafeCast()
-}
+public inline val GPUTextureViewDimension.Companion.`2dArray`: GPUTextureViewDimension
+  get() = "2d-array".toJsString().unsafeCast()

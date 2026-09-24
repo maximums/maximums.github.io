@@ -10,6 +10,7 @@ import com.cdodi.webidl.model.BindingSlices
 import com.cdodi.webidl.model.Descriptor
 import com.cdodi.webidl.model.ExternalType
 import com.cdodi.webidl.model.InterfaceMember
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FunSpec
@@ -209,33 +210,46 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
     return wrappers
 }
 
-fun Descriptor.EnumDescriptor.asEnumPoet(): TypeSpec {
-    val interfaceBuilder = TypeSpec.interfaceBuilder(name)
-        .addModifiers(KModifier.SEALED, KModifier.EXTERNAL)
-        .addSuperinterface(ClassName("kotlin.js", "JsAny"))
+/**
+ * A WebIDL enum is a set of strings. It becomes an external interface with an empty companion object that the values hang off as extensions: `GPUPrimitiveTopology.triangleList`.
+ * This is exactly how kotlinx-browser declares the DOM's enums: a companion object in an external interface is only
+ * allowed with that diagnostic suppressed, and `@JsName("null")` stops Kotlin from looking up a JS global for the type.
+ */
+fun Descriptor.EnumDescriptor.asEnumPoet(): TypeSpec = TypeSpec.interfaceBuilder(name)
+    .addAnnotation(AnnotationSpec.builder(ClassName("kotlin.js", "JsName")).addMember("%S", "null").build())
+    .addAnnotation(AnnotationSpec.builder(Suppress::class).addMember("%S", "NESTED_CLASS_IN_EXTERNAL_INTERFACE").build())
+    .addModifiers(KModifier.EXTERNAL)
+    .addSuperinterface(ClassName("kotlin.js", "JsAny"))
+    .addType(TypeSpec.companionObjectBuilder().build())
+    .build()
 
-    return interfaceBuilder.build()
+fun Descriptor.EnumDescriptor.enumValues(generatedPackageName: String): List<PropertySpec> {
+    val enumType = ClassName(generatedPackageName, name)
+    val toJsString = MemberName("kotlin.js", "toJsString")
+    values.groupBy(::enumValueName).filterValues { it.size > 1 }.forEach { (kotlinName, clashing) ->
+        error("Enum $name: values ${clashing.joinToString { "\"$it\"" }} would all be named $kotlinName")
+    }
+
+    return values.map { rawValue ->
+        PropertySpec.builder(enumValueName(rawValue), enumType)
+            .receiver(enumType.nestedClass("Companion"))
+            .getter(
+                FunSpec.getterBuilder()
+                    .addModifiers(KModifier.INLINE)
+                    .addStatement("return %S.%M().unsafeCast()", rawValue, toJsString)
+                    .build()
+            )
+            .build()
+    }
 }
 
-fun Descriptor.EnumDescriptor.enumFactory(generatedPackageName: String): TypeSpec {
-    val className = ClassName(generatedPackageName, name)
-    val objectName = "${name}Entries"
-    val objectBuilder = TypeSpec.objectBuilder(objectName)
-    val toJsStringMember = MemberName("kotlin.js", "toJsString")
-    values.forEach { rawValue ->
-        val safeName = "`$rawValue`"
-        val getter = FunSpec.getterBuilder()
-            .addModifiers(KModifier.INLINE)
-            .addStatement("return %S.%M().unsafeCast()", rawValue, toJsStringMember)
-            .build()
+/** `"triangle-list"` -> `triangleList`; `"2d-array"` -> `2dArray` (KotlinPoet backticks names starting with a digit); `""` -> `empty`. */
+fun enumValueName(rawValue: String): String {
+    val words = rawValue.split('-', '_', ' ').filter(String::isNotEmpty)
+    if (words.isEmpty()) return "empty"
 
-        val property = PropertySpec.builder(safeName, className)
-            .getter(getter)
-            .build()
-
-        objectBuilder.addProperty(property)
-    }
-    return objectBuilder.build()
+    return words.first().replaceFirstChar(Char::lowercaseChar) +
+        words.drop(1).joinToString("") { word -> word.replaceFirstChar(Char::uppercaseChar) }
 }
 
 /**
