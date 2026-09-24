@@ -16,6 +16,13 @@ dependencies {
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
+// TestKit loads the plugin under test in its own classloader, which must also see the Kotlin Gradle plugin it builds on.
+val testKitKotlinPlugin by configurations.creating
+dependencies { testKitKotlinPlugin(libs.kotlin.gradle.plugin) }
+tasks.pluginUnderTestMetadata {
+    pluginClasspath.from(testKitKotlinPlugin)
+}
+
 tasks.generateGrammarSource {
     // The grammar lives in src/main/antlr/com/cdodi/webidl/parser, so the generated sources land in that package's directory.
     arguments = arguments + listOf("-visitor", "-long-messages", "-package", "com.cdodi.webidl.parser")
@@ -37,6 +44,11 @@ tasks.test {
     systemProperty("webidl.fixtures", fixtures.asFile.absolutePath)
     systemProperty("webidl.golden", golden.asFile.absolutePath)
     systemProperty("webidl.updateGoldens", updateGoldens)
+
+    // CompileTest compiles the generated code against the real runtime helpers of :webgpu.
+    val runtimeSource = layout.projectDirectory.file("../../webgpu/src/wasmJsMain/kotlin/com/cdodi/webgpu/runtime/Runtime.kt")
+    inputs.file(runtimeSource).withPathSensitivity(PathSensitivity.NONE).withPropertyName("runtimeSource")
+    systemProperty("webidl.runtimeSource", runtimeSource.asFile.absolutePath)
     if (updateGoldens) outputs.upToDateWhen { false }
 }
 
