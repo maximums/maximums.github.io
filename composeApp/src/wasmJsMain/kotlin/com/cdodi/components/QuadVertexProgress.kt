@@ -1,8 +1,7 @@
 package com.cdodi.components
 
-import androidx.compose.animation.core.AnimationVector4D
-import androidx.compose.animation.core.TwoWayConverter
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.util.lerp
 
 data class QuadVertexProgress(
     val topStart: Float,
@@ -36,22 +35,10 @@ enum class MorphingShape(
         }
 }
 
-val VertexesProgressToVector: TwoWayConverter<QuadVertexProgress, AnimationVector4D> =
-    TwoWayConverter(
-        convertToVector = { shape ->
-            AnimationVector4D(
-                v1 = shape.topStart,
-                v2 = shape.topEnd,
-                v3 = shape.bottomEnd,
-                v4 = shape.bottomStart
-            )
-        },
-        convertFromVector = { vector ->
-            QuadVertexProgress(
-                topStart = vector.v1,
-                topEnd = vector.v2,
-                bottomEnd = vector.v3,
-                bottomStart = vector.v4
-            )
-        }
-    )
+/** The quad [fraction] of the way from [from] to [to], corner by corner. */
+fun lerp(from: QuadVertexProgress, to: QuadVertexProgress, fraction: Float) = QuadVertexProgress(
+    topStart = lerp(from.topStart, to.topStart, fraction),
+    topEnd = lerp(from.topEnd, to.topEnd, fraction),
+    bottomEnd = lerp(from.bottomEnd, to.bottomEnd, fraction),
+    bottomStart = lerp(from.bottomStart, to.bottomStart, fraction),
+)

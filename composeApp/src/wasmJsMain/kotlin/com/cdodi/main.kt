@@ -8,8 +8,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -19,12 +17,15 @@ import com.cdodi.adapters.compose.HeartbeatDriver
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.LocalNavigationBus
 import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.adapters.compose.NavPages
+import com.cdodi.adapters.compose.effects.LocalMorph
+import com.cdodi.adapters.compose.effects.MorphSource
 import com.cdodi.adapters.compose.effects.UiEffectIds
+import com.cdodi.adapters.compose.effects.morph
 import com.cdodi.adapters.input.InputLayer
 import com.cdodi.components.*
 import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.NavState
-import com.cdodi.core.navigation.effect.EffectState
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
@@ -37,10 +38,7 @@ import com.cdodi.pages.SmallScreenPage
 import com.cdodi.shell.AppRoot
 import com.cdodi.shell.GpuStatus
 import com.cdodi.shell.bootstrap
-import com.cdodi.shell.menuOrder
-import org.jetbrains.skia.ImageFilter
-import org.jetbrains.skia.RuntimeEffect
-import org.jetbrains.skia.RuntimeShaderBuilder
+import com.cdodi.shell.rememberPageEffects
 
 fun main() {
     val runtime = bootstrap()
@@ -105,8 +103,11 @@ private fun FallbackNotice() {
 private fun LookaheadScope.AppContent() {
     val navigation = LocalNavigationBus.current
     val navState = navigation.state.collectEachFrame()
-    // The layout follows where navigation is heading, so the menu starts morphing on the click.
-    val target by remember(navState) { derivedStateOf { navState.value.target } }
+    // The layout switches sides when the menu morph starts: at the click going to a page, but only after the page has
+    // faded going back to Home. Until then it stays on the side being left.
+    val layoutAt by remember(navState) { derivedStateOf { navState.value.layoutAt() } }
+    val morph = remember(navState) { MorphSource { navState.value.morph(UiEffectIds.MENU_MORPH) } }
+    val pageEffects = rememberPageEffects()
 
     fun open(destination: Destination): () -> Unit = { navigation.send(NavIntent.NavigateTo(destination)) }
 
@@ -129,8 +130,9 @@ private fun LookaheadScope.AppContent() {
     )
     val bodyCard = movableBodyCard()
 
+    CompositionLocalProvider(LocalMorph provides morph) {
     Box(contentAlignment = Alignment.Center) {
-        if (target == HomeDestination) {
+        if (layoutAt == HomeDestination) {
             MainMenu(
                 body = {
                     bodyCard(Modifier.size(20.vw).align(Alignment.Center), MorphingShape.Rhombus, false) {
@@ -160,53 +162,7 @@ private fun LookaheadScope.AppContent() {
                 MorphingShape.Rectangle,
                 true
             ) {
-                PageLayers(navState)
-            }
-        }
-    }
-}
-
-private val NavState.target: Destination
-    get() = when (this) {
-        is NavState.Idle -> at
-        is NavState.Transitioning -> to
-    }
-
-/** How one page looks this frame: its opacity, and how far it has melted away (and in which direction). */
-private data class PageLook(val alpha: Float, val melt: Float = 0f, val meltDirection: Float = 0f)
-
-/**
- * The page on screen, or both pages during a transition, as the transition's effects say: the page being entered
- * fades in, the one being left fades out and melts. Each page is keyed by its destination, so it keeps its state
- * (a running Game of Life) as it goes from being entered to being shown.
- */
-@Composable
-private fun PageLayers(navState: State<NavState>) {
-    val pixelMeltEffect = remember { RuntimeEffect.makeForShader(PIXEL_MELT_SHADER) }
-
-    Box(Modifier.fillMaxSize()) {
-        for ((destination, look) in navState.value.pageLooks()) {
-            key(destination) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                        .graphicsLayer {
-                            alpha = look.alpha
-                            if (look.melt > 0f) {
-                                val builder = RuntimeShaderBuilder(pixelMeltEffect).apply {
-                                    uniform("resolution", size.width, size.height)
-                                    uniform("progress", look.melt)
-                                    uniform("direction", look.meltDirection, 0.2f)
-                                }
-                                val skiaImageFilter = ImageFilter.makeRuntimeShader(
-                                    runtimeShaderBuilder = builder,
-                                    shaderName = "composable",
-                                    input = null
-                                )
-
-                                renderEffect = skiaImageFilter.asComposeRenderEffect()
-                            }
-                        }
-                ) {
+                NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
                     when (destination) {
                         AboutDestination -> AboutPage()
                         BoidsDestination -> BoidsPage()
@@ -217,24 +173,14 @@ private fun PageLayers(navState: State<NavState>) {
             }
         }
     }
-}
-
-private fun NavState.pageLooks(): List<Pair<Destination, PageLook>> = when (this) {
-    is NavState.Idle -> listOf(at to PageLook(alpha = 1f))
-    is NavState.Transitioning -> {
-        // Until its fade starts, the page being entered waits unseen (under the fog, for instance).
-        val fade = effects.travelled(UiEffectIds.FADE) ?: 0f
-        val melt = effects.travelled(UiEffectIds.PIXEL_MELT) ?: 0f
-        // The page melts towards the left when the next one comes later in the menu.
-        val direction = if (menuOrder.indexOf(to.route) > menuOrder.indexOf(from.route)) -1f else 1f
-        listOf(
-            from to PageLook(alpha = 1f - fade, melt = melt, meltDirection = direction),
-            to to PageLook(alpha = fade),
-        )
     }
 }
 
-private fun List<EffectState>.travelled(id: String): Float? = firstOrNull { it.effect.id == id }?.travelled
+/** Which side of the menu morph the layout is on. */
+private fun NavState.layoutAt(): Destination = when (this) {
+    is NavState.Idle -> at
+    is NavState.Transitioning -> if (effects.any { it.effect.id == UiEffectIds.MENU_MORPH }) to else from
+}
 
 @Composable
 private fun BoxScope.TopBarForm(content: @Composable () -> Unit) {
