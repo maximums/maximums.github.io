@@ -3,14 +3,14 @@ package com.cdodi.pages
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
-import com.cdodi.buses.LocalTimeBus
-import kotlinx.coroutines.flow.scan
+import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.ambient
+import com.cdodi.adapters.compose.shaderTime
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -57,11 +57,7 @@ const val MY_TRY = """
 @Composable
 fun AboutPage() {
     val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
-    val heartBeat = LocalTimeBus.current
-    val accumulatedTimeFlow = remember(effect, heartBeat) {
-        heartBeat.ticks.scan(0f) { accumulator, tick ->  (accumulator + tick) % 10000f }
-    }
-    val time by accumulatedTimeFlow.collectAsState(0f)
+    val time by LocalHeartbeat.current.ambient.shaderTime()
 
     Box(
         modifier = Modifier

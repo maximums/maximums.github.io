@@ -155,29 +155,29 @@ Pure Kotlin (stdlib + kotlinx-coroutines only). It has its own `Easing` so it do
 ```
 com.cdodi.core
 ├── time/                  the single clock
-│   Heartbeat · Frame · FramePhase · Clock · Subscription
-│   FrameSource (what drives tick; implemented by the Compose adapter)
-│   FixedStepper (accumulator for deterministic simulations)
+│   Heartbeat · DefaultHeartbeat (tick(nanos), driven by the Compose adapter) · Clock (child clocks by name)
+│   Frame · FramePhase · Subscription · FixedStepper (accumulator for deterministic simulations)
 ├── bus/
-│   NavigationBus · NavIntent (NavigateTo, Back, Forward)
-│   LifecycleBus · LifecycleEvent (Foreground, Background, ReducedMotionChanged)
+│   NavigationBus · NavIntent (NavigateTo, Back, Forward) · DefaultNavigationBus (runs a Navigator on a clock)
+│   LifecycleBus · LifecycleEvent (Foreground, Background, ReducedMotionChanged) · Lifecycle (state)
+│   Clock.pauseWhile(lifecycle) { … }
 ├── navigation/
-│   Navigator · NavState (Idle, Transitioning) · BackStack · InterruptPolicy
-│   DestinationCodec (destination ⇄ URL path)
-│   ├── graph/             Destination · NavGraph · NavGraphBuilder (DSL)
-│   │                      Edge · EdgeMatcher (exact, anyOf, any) · GraphValidator
-│   ├── transition/        Transition (Basic, Sequence, Parallel, Race, None)
+│   Navigator · NavState (Idle, Transitioning) · BackStack · NavResult (Accepted, AlreadyThere, Refused)
+│   DestinationCodec (destination ⇄ `life?rule=B36/S23`)
+│   ├── graph/             Destination · Route (path + argument codec; also the exact matcher) · SingletonDestination
+│   │                      NavGraph · navGraph { } DSL (edge, andBack, reducedMotion)
+│   │                      Edge · EdgeMatcher (Route, AnyOf, AnyDestination) · Interrupt · EdgeGuard
+│   │                      GraphValidator · GraphProblem · Signal.sceneReady(route)
+│   ├── transition/        Transition (Basic, Sequence, Parallel, Race, RepeatUntil, None)
 │   │                      operators: +, with, or · modifiers: delayed, withTimeout, reversed, repeatUntil
 │   │                      Completion (after, whenever, atLeast, and, or) · Easing
-│   │                      TransitionRunner (walks the tree, yields per-segment progress)
-│   ├── effect/            Effect (open base) · AnimatedEffect · ShaderEffect · Layer (Ui, Gpu)
-│   │                      EffectRenderer · EffectRegistry (interfaces; adapters implement them)
-│   └── signal/            Signal · SignalSource · Signals (e.g. sceneReady(destination))
-└── util/                  small shared helpers (no platform code)
+│   │                      TransitionRunner (walks the tree: per-segment progress, finished effects held)
+│   ├── effect/            Effect (open) · AnimatedEffect · ShaderEffect · Layer (Ui, Gpu)
+│   │                      EffectState (progress, travelled) · EffectRegistry (adapters implement it)
+│   └── signal/            Signal · Signals · MutableSignals
 
-src/commonTest/
-├── fixtures/              ManualFrameSource · fake registries · Arb generators for Transition trees
-└── …                      HeartbeatTest · NavigatorTest · TransitionLawsTest (property-based) · GraphValidatorTest
+src/commonTest/            HeartbeatTest · FixedStepperTest · TransitionTest · TransitionLawsTest (property-based)
+                           NavigatorTest · GraphValidatorTest · DestinationCodecTest · NavigationBusTest · LifecycleBusTest
 ```
 
 ### 4.5 `:webgpu` — `com.cdodi.webgpu`

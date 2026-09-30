@@ -17,7 +17,6 @@ import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -37,20 +36,25 @@ import blog.composeapp.generated.resources.game_of_life_play_button
 import blog.composeapp.generated.resources.game_of_life_reset_button
 import blog.composeapp.generated.resources.game_of_life_population
 import blog.composeapp.generated.resources.game_of_life_evolution_speed
-import com.cdodi.buses.LocalTimeBus
+import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.data.gameoflife.CELL_SIZE_PX
 import com.cdodi.data.gameoflife.Cell
 import com.cdodi.data.gameoflife.GameOfLifeManager
+import com.cdodi.data.gameoflife.LifeRule
 import com.cdodi.data.gameoflife.Grid
 import com.cdodi.vw
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.round
 
 
+/** The simulation's own clock: pausing or slowing it touches nothing else. */
+private const val LIFE_CLOCK = "life"
+
 @Composable
-internal fun rememberLifeManager(): GameOfLifeManager {
-    val timeBus = LocalTimeBus.current
-    val manager = remember(timeBus) { GameOfLifeManager(timeBus) }
+internal fun rememberLifeManager(rule: LifeRule): GameOfLifeManager {
+    val clock = LocalHeartbeat.current.child(LIFE_CLOCK)
+    val manager = remember(clock, rule) { GameOfLifeManager(clock, rule) }
 
     DisposableEffect(manager) {
         onDispose { manager.close() }
@@ -60,9 +64,9 @@ internal fun rememberLifeManager(): GameOfLifeManager {
 }
 
 @Composable
-fun GameOfLifePage() {
-    val manager = rememberLifeManager()
-    val state by manager.state.collectAsState()
+fun GameOfLifePage(rule: LifeRule = LifeRule.Conway) {
+    val manager = rememberLifeManager(rule)
+    val state by manager.state.collectEachFrame()
     val population by remember { derivedStateOf { state.aliveCells.size } }
 
     Column(
