@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ComposeViewport
@@ -19,6 +20,7 @@ import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.LocalNavigationBus
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.compose.effects.UiEffectIds
+import com.cdodi.adapters.input.InputLayer
 import com.cdodi.components.*
 import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.NavState
@@ -32,9 +34,10 @@ import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
+import com.cdodi.shell.AppRoot
+import com.cdodi.shell.GpuStatus
 import com.cdodi.shell.bootstrap
 import com.cdodi.shell.menuOrder
-import kotlinx.browser.document
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -42,30 +45,31 @@ import org.jetbrains.skia.RuntimeShaderBuilder
 fun main() {
     val runtime = bootstrap()
 
-    ComposeViewport(document.body!!) {
+    ComposeViewport("compose") {
         HeartbeatDriver(runtime.heartbeat)
 
         CompositionLocalProvider(
             LocalHeartbeat provides runtime.heartbeat,
             LocalNavigationBus provides runtime.navigation,
         ) {
-            App()
+            AppRoot {
+                InputLayer(runtime.input, runtime.heartbeat)
+                App(runtime.gpu.collectAsState().value)
+            }
         }
     }
 }
 
 @Composable
-private fun App() {
-    val runtimeShader by rememberShader("bokeh")
-
+private fun App(gpu: GpuStatus) {
     MaterialTheme {
         LookaheadScope {
             Surface(
                 color = Color.Transparent,
                 modifier = Modifier
                     .fillMaxSize()
+                    .then(if (gpu is GpuStatus.Unavailable) Modifier.fallbackBackground() else Modifier)
                     .padding(24.dp)
-                    .backgroundShader(runtimeShader)
             ) {
                 if (LocalIsSmallWindow.current) {
                     SmallScreenPage()
@@ -73,7 +77,27 @@ private fun App() {
                     AppContent()
                 }
             }
+            if (gpu is GpuStatus.Unavailable) FallbackNotice()
         }
+    }
+}
+
+/** Without WebGPU, Compose draws the old Skia version of the background. */
+@Composable
+private fun Modifier.fallbackBackground(): Modifier {
+    val runtimeShader by rememberShader("bokeh")
+    return backgroundShader(runtimeShader)
+}
+
+@Composable
+private fun FallbackNotice() {
+    Box(Modifier.fillMaxSize().padding(bottom = 16.dp), contentAlignment = Alignment.BottomCenter) {
+        Text(
+            text = "The rain can't reach this browser: without WebGPU, this is a simpler copy of the scene.",
+            fontSize = 14.sp,
+            fontStyle = FontStyle.Italic,
+            color = Color(0xFF8C9499), // DESIGN.md: Fog
+        )
     }
 }
 
@@ -198,7 +222,8 @@ private fun PageLayers(navState: State<NavState>) {
 private fun NavState.pageLooks(): List<Pair<Destination, PageLook>> = when (this) {
     is NavState.Idle -> listOf(at to PageLook(alpha = 1f))
     is NavState.Transitioning -> {
-        val fade = effects.travelled(UiEffectIds.FADE) ?: 1f
+        // Until its fade starts, the page being entered waits unseen (under the fog, for instance).
+        val fade = effects.travelled(UiEffectIds.FADE) ?: 0f
         val melt = effects.travelled(UiEffectIds.PIXEL_MELT) ?: 0f
         // The page melts towards the left when the next one comes later in the menu.
         val direction = if (menuOrder.indexOf(to.route) > menuOrder.indexOf(from.route)) -1f else 1f
