@@ -4,6 +4,9 @@ import com.cdodi.core.navigation.NavResult.Reason
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.core.navigation.graph.Interrupt
 import com.cdodi.core.navigation.graph.NavGraph
+import com.cdodi.core.navigation.graph.sceneReady
+import com.cdodi.core.navigation.graph.targetSceneReady
+import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.navigation.signal.Signals
 import com.cdodi.core.navigation.transition.Transition
 import com.cdodi.core.navigation.transition.TransitionRunner
@@ -103,7 +106,13 @@ class Navigator(
             reducedMotion() -> graph.reducedMotion ?: edge.transition
             else -> edge.transition
         }
-        play(Leg(from, to, TransitionRunner(transition, signals), edge?.onInterrupt ?: Interrupt.Replace), seconds)
+        play(Leg(from, to, TransitionRunner(transition, signals.boundTo(to)), edge?.onInterrupt ?: Interrupt.Replace), seconds)
+    }
+
+    /** These signals, with [Signal.targetSceneReady] meaning [target]'s scene. */
+    private fun Signals.boundTo(target: Destination): Signals {
+        val targetReady = Signal.sceneReady(target.route)
+        return Signals { signal -> isRaised(if (signal == Signal.targetSceneReady) targetReady else signal) }
     }
 
     /** Makes [next] the running leg. Advancing it, even by zero, starts its first segment, so its effects show at once. */
