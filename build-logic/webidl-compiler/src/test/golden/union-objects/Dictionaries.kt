@@ -10,7 +10,7 @@ import kotlin.js.JsAny
 /**
  * See the [specification](https://gpuweb.github.io/gpuweb/#dictdef-gpubufferbinding).
  */
-public external interface GPUBufferBinding : JsAny {
+public external interface GPUBufferBinding : JsAny, GPUSamplerOrGPUTextureViewOrGPUBufferBinding {
   /**
    * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpubufferbinding-buffer).
    */

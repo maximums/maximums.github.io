@@ -204,21 +204,22 @@ com.cdodi.webgpu
 
 ```
 com.cdodi
-├── main.kt                  entry point: ComposeViewport("compose") { AppRoot() }
+├── main.kt                  entry point: ComposeViewport("compose") { AppRoot { InputLayer; App } }
 ├── shell/                   wiring — the only package that knows every feature
-│   AppRoot (transparent root, the Skiko white-clear workaround)
-│   Bootstrap (creates heartbeat, buses, navigator; requests the GPU context)
-│   AppGraph (the site's nav graph) · Transitions (the site's reusable transition values)
-│   FeatureRegistry · FallbackScreen · LoadingState
+│   AppRoot (transparent root, the Skiko white-clear workaround; retires the loading line)
+│   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
+│   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
+│   PageEffects (the page effects the site plays) · FeatureRegistry (later)
 ├── adapters/
-│   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · MotionScaleProvider
-│   │                        NavRenderer (SeekableTransitionState seeked to progress)
-│   │                        CompositionLocals (LocalHeartbeat, LocalNavigationBus, …)
-│   │   └── effects/         UiEffectRegistry · PixelMeltEffect (SkSL) · MenuMorphEffect · FadeEffect
-│   ├── gpu/                 SceneHost · Scene · GpuCanvas (sizing, DPR) · SceneSignals
-│   │   └── effects/         GpuEffectRegistry · DissolveEffect · CrossFadeEffect
-│   ├── input/               InputLayer (full-screen pointerInput Box) · InputState · PointerState
-│   └── browser/             BrowserHistoryAdapter · VisibilityLifecycleSource · ReducedMotionSource
+│   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
+│   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
+│   │                        LocalHeartbeat · LocalNavigationBus
+│   │   └── effects/         UiEffects (registry) · PageEffect · FadeEffect · PixelMeltEffect (SkSL)
+│   │                        Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
+│   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
+│   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
+│   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
+│   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, reduced motion)
 ├── ui/                      design system (tokens from DESIGN.md), Compose only, no app logic
 │   theme/ · components/ (UiCard, buttons, sliders) · modifiers/ (morphingShape,
 │   animatePlacement, QuadVertexProgress) · units (vw, vh)
@@ -236,6 +237,7 @@ com.cdodi
 composeResources/files/
 ├── shaders/common/          fullscreen.wgsl · noise.wgsl · scan.wgsl
 ├── shaders/background/      bokeh.wgsl
+├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/life/            step.wgsl · render.wgsl
 ├── shaders/boids/           grid.wgsl · step.wgsl · render.wgsl
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
@@ -287,7 +289,7 @@ Inside `:composeApp` these rules are conventions. Once a rule gets broken by acc
 | `vw` / `vh`, `LocalIsSmallWindow` in `Utils.kt` | `ui.units` |
 | `Shaders.kt` (`PIXEL_MELT_SHADER`), `MY_TRY`, `SANDBOX` | `sksl/pixel_melt.sksl`; the rest removed or ported to WGSL |
 | `bokeh.sksl` and the other `.sksl` files | `shaders/background/bokeh.wgsl` (ported) |
-| `main.kt` routing and transitions | `shell.AppGraph` + `shell.Transitions` + `adapters.compose.NavRenderer` |
+| `main.kt` routing and transitions | `shell.AppGraph` + `shell.Transitions` + `adapters.compose.NavPages` |
 | `cdodi/webgpu-test`: `plugins/…` | `build-logic/webidl-compiler` (restructured by package as above) |
 | `cdodi/webgpu-test`: `webGpuRuntime/…` | `:webgpu` `runtime` + `context` |
 

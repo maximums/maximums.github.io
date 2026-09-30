@@ -8,5 +8,10 @@
     <script type="application/javascript" src="composeApp.js"></script>
 </head>
 <body>
+    <!-- Two layers: WebGPU draws the scene underneath, Compose draws the UI on top of it. -->
+    <canvas id="gpu" aria-hidden="true"></canvas>
+    <div id="compose"></div>
+    <!-- Shown until Compose draws its first frame. -->
+    <div id="loading" role="status"><span>the rain is coming…</span></div>
 </body>
 </html>

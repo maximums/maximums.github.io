@@ -10,6 +10,7 @@ import com.cdodi.core.navigation.graph.Interrupt
 import com.cdodi.core.navigation.graph.NavGraphBuilder
 import com.cdodi.core.navigation.graph.navGraph
 import com.cdodi.core.navigation.graph.sceneReady
+import com.cdodi.core.navigation.graph.targetSceneReady
 import com.cdodi.core.navigation.signal.MutableSignals
 import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.navigation.transition.Transition
@@ -321,6 +322,24 @@ class NavigatorTest {
         reduced = false
         navigator.navigate(Home)
         assertEquals("melt", navigator.effect.effect.id)
+    }
+
+    @Test
+    fun oneEdgeCanWaitForWhicheverSceneItIsEntering() {
+        val graph = navGraph(start = Home) {
+            destination(Home); destination(About); destination(Boids)
+            edge(from = any, to = any, transition = transition(whenever(Signal.targetSceneReady)) { play(ShaderEffect("fog")) })
+        }
+        val navigator = Navigator(graph, signals)
+        navigator.navigate(About)
+
+        signals.raise(Signal.sceneReady(Boids))
+        navigator.advance(0.1)
+        assertIs<NavState.Transitioning>(navigator.state.value, "Boids being ready doesn't help About")
+
+        signals.raise(Signal.sceneReady(About))
+        navigator.advance(0.1)
+        navigator.assertIdleAt(About)
     }
 
     @Test

@@ -44,6 +44,7 @@ kotlin {
 
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
+            implementation(projects.webgpu)
         }
 
         wasmJsTest.dependencies {

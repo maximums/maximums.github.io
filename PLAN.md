@@ -276,26 +276,26 @@ val siteGraph = navGraph(start = Home) {
 ## Phase 3 — Two-layer host and framework adapters  _(M)_
 
 ### 3.1 Page and layers
-- [ ] `index.html`: `<canvas id="gpu">` and `<div id="compose">`, both `position:fixed; inset:0`. The GPU canvas gets `pointer-events:none; z-index:0`, the Compose div `z-index:1`. Body background dark. Add an inline loading indicator that disappears once Compose starts (REVIEW §6).
-- [ ] `ComposeViewport("compose")`, with the transparency workaround in one place: an `AppRoot` composable that applies the `BlendMode.Clear` `drawBehind`. Remove the default `Surface` background. Keep a note to track SKIKO-949.
-- [ ] Canvas sizing: CSS size × `devicePixelRatio`, updated on resize or DPR change. `context.configure(device, format, alphaMode = opaque)`.
+- [x] `index.html`: `<canvas id="gpu">` and `<div id="compose">`, both `position:fixed; inset:0`. The GPU canvas gets `pointer-events:none; z-index:0`, the Compose div `z-index:1`. Body background dark. Add an inline loading indicator that disappears once Compose starts (REVIEW §6).
+- [x] `ComposeViewport("compose")`, with the transparency workaround in one place: an `AppRoot` composable that applies the `BlendMode.Clear` `drawBehind`. Remove the default `Surface` background. Keep a note to track SKIKO-949.
+- [x] Canvas sizing: CSS size × `devicePixelRatio`, updated on resize or DPR change. `context.configure(device, format, alphaMode = opaque)`.
 
 ### 3.2 Heartbeat driver (Compose adapter)
-- [ ] One `LaunchedEffect` at the root: `withFrameNanos { heartbeat.tick(it) }`. Compose's frame clock is the *driver*; the heartbeat is the *source of truth* that every layer reads.
-- [ ] Bridge Compose's built-in animations to the heartbeat's time scale by giving the root a `MotionDurationScale`, so global slow motion also affects Compose `animate*` calls. (Compose can scale time this way but not pause it; animations that must pause read the heartbeat directly.)
+- [x] One `LaunchedEffect` at the root: `withFrameNanos { heartbeat.tick(it) }`. Compose's frame clock is the *driver*; the heartbeat is the *source of truth* that every layer reads.
+- [x] _(replaced; see the notes below)_ Bridge Compose's built-in animations to the heartbeat's time scale by giving the root a `MotionDurationScale`, so global slow motion also affects Compose `animate*` calls. (Compose can scale time this way but not pause it; animations that must pause read the heartbeat directly.)
 
 ### 3.3 Navigation adapters
-- [ ] **Compose navigation renderer**: observes `NavState` and renders the current destination, or both destinations during a transition. `AnimatedEffect`s on `Layer.Ui` are driven by **seeking a `SeekableTransitionState`** to the model's progress, so Compose transitions follow the model's timing exactly instead of running their own clocks.
-- [ ] **UI shader effects**: an effect registry that maps ids such as `"pixel-melt"` to SkSL `RenderEffect` implementations, with the progress fed as a uniform. This is where the existing melt shader goes.
-- [ ] **GPU effects**: `SceneHost` registers renderers for `ShaderEffect`s on `Layer.Gpu` (dissolve, cross-fade). They render both scenes to textures and blend them using the model's progress.
-- [ ] **Signals**: `SceneHost` publishes `sceneReady(destination)` once pipelines are compiled and buffers allocated; condition-based edges wait on it.
-- [ ] The morphing menu becomes an `AnimatedEffect` (`"menu-morph"`) instead of logic built into `main.kt`.
+- [x] _(differently; see the notes below)_ **Compose navigation renderer**: observes `NavState` and renders the current destination, or both destinations during a transition. `AnimatedEffect`s on `Layer.Ui` are driven by **seeking a `SeekableTransitionState`** to the model's progress, so Compose transitions follow the model's timing exactly instead of running their own clocks.
+- [x] **UI shader effects**: an effect registry that maps ids such as `"pixel-melt"` to SkSL `RenderEffect` implementations, with the progress fed as a uniform. This is where the existing melt shader goes.
+- [x] **GPU effects**: `SceneHost` registers renderers for `ShaderEffect`s on `Layer.Gpu` (dissolve, cross-fade). They render both scenes to textures and blend them using the model's progress.
+- [x] **Signals**: `SceneHost` publishes `sceneReady(destination)` once pipelines are compiled and buffers allocated; condition-based edges wait on it.
+- [x] The morphing menu becomes an `AnimatedEffect` (`"menu-morph"`) instead of logic built into `main.kt`.
 
 ### 3.4 Browser history
-- [ ] A `BrowserHistoryAdapter` keeps `NavState` in step with `window.history` and the URL (e.g. `#/boids`, `#/life?rule=B36/S23`). The browser back button plays the configured edge backwards, and every page, including parameters, can be shared as a link.
+- [x] A `BrowserHistoryAdapter` keeps `NavState` in step with `window.history` and the URL (e.g. `#/boids`, `#/life?rule=B36/S23`). The browser back button plays the configured edge backwards, and every page, including parameters, can be shared as a link.
 
 ### 3.5 Scenes, input and fallback
-- [ ] `Scene` contract and `SceneHost`:
+- [x] `Scene` contract and `SceneHost`:
   ```kotlin
   interface Scene : AutoCloseable {
       suspend fun prepare(ctx: GpuContext)            // compile pipelines, allocate buffers → then signal ready
@@ -304,17 +304,46 @@ val siteGraph = navGraph(start = Home) {
       fun encode(encoder: GPUCommandEncoder, target: GPUTextureView)   // Render phase
   }
   ```
-- [ ] **Input routing**: a full-screen background `Box(Modifier.pointerInput { … })` under the widgets turns pointer events into `InputState` (position in device pixels, buttons, wheel), applied in the heartbeat's Input phase.
-- [ ] **Fallback**: when `requestContext()` returns null, show a Compose message ("This site uses WebGPU…") and use the CPU `LifeEngine`. Also handle `device.lost`: recreate the device and scenes once, then fall back.
+- [x] **Input routing**: a full-screen background `Box(Modifier.pointerInput { … })` under the widgets turns pointer events into `InputState` (position in device pixels, buttons, wheel), applied in the heartbeat's Input phase.
+- [x] **Fallback**: when `requestContext()` returns null, show a Compose message ("This site uses WebGPU…") and use the CPU `LifeEngine`. Also handle `device.lost`: recreate the device and scenes once, then fall back.
 
 **Done when:** a WebGPU clear color or triangle shows through a working Compose menu, navigation plays configured transitions on both layers in sync, the back button works, clicks reach the right layer, resizing is correct at any DPR, and the fallback works with WebGPU disabled.
+
+> **Done**, and checked in headless Chrome with WebGPU (SwiftShader) and without it.
+> - **Rather than a clear colour**, the bokeh background is ported to WGSL, so the site doesn't lose its background between phases. It is loaded from compose resources with compile checking; these are the first two items of Phase 4, done early.
+> - **Both layers play the same transition.** The site's edges are a first cut of DESIGN.md's "Breath on the window": `(melt with fogRoll) + holdFog + (fade with clearing)`.
+>   - Fog rolls in on the GPU layer while the page melts, then holds until the target scene is ready: at least 600 ms, at most 3 s.
+>   - For that wait, the core gained `Signal.targetSceneReady`, which the navigator binds to each leg's destination.
+>   - The fog then parts over the new scene as the page fades in. Going back reverses all of it.
+> - **Checked, one by one:**
+>   - the back and forward buttons, and deep links
+>   - background clicks reach the scene, menu clicks don't
+>   - the canvas size at DPR 1, 2 and 1.25, including a DPR-only change
+>   - device loss: the GPU layer restarts once, and falls back on a second loss
+>   - no WebGPU: the Skia background with a notice
+>
+> Where it differs from the plan:
+> - **No `SeekableTransitionState`, no `MotionDurationScale` bridge.** Research against the 1.12.1 sources found two problems.
+>   - A seek driven from the heartbeat shows a frame late: it runs in a coroutine after the frame that computed it. Changing the target also starts catch-up animations.
+>   - The web host has no place to install a `MotionDurationScale`, so animations Compose launches itself can't be reached.
+>   - Instead, everything takes its time from the heartbeat. Page effects are read inside graphics layers (`NavPages`), and the menu's placement and shape modifiers follow a `Morph` read during layout, instead of their own 1500 ms animations. Nothing on the site animates on a clock of its own any more, so slow motion and pausing reach everything.
+> - **The layout switches sides when the menu morph starts**, not on the click. So going back to Home, the page fades out under the fog before the menu returns, and an interrupted morph goes on from where it visibly is.
+> - **Effects that finish hold their end state** (from Phase 2). During a transition the page being entered stays hidden until an effect reveals it.
+> - **Canvas sizing** trusts `device-pixel-content-box` only where it agrees with CSS size × DPR (DevTools' device mode reports it in CSS pixels), and re-measures when the DPR changes alone.
+> - **Input** needed two fixes, both found in the browser:
+>   - A Material `Surface` at the root blocked every event from the input layer, so the root is a `Box` with `propagateMinConstraints`.
+>   - Compose cancels a tap if anything consumes its events in the Final pass, so the input layer only watches: it counts presses a widget didn't consume.
+> - **Failures degrade.** The scene host catches its own failures (an exception in the Render phase would stop the heartbeat, and the whole page with it), and the GPU layer restarts once before falling back.
+> - **Browser history**: hash URLs, since GitHub Pages can't serve path deep links. The start page is the bare address. Each entry stores its back-stack index, and `HistorySync` is tested against a fake browser.
+> - **A compiler bug surfaced**: a dictionary in a union (`GPUBufferBinding` in `GPUBindingResource`) didn't extend the union's marker, and the golden had recorded it. Fixed in the Phase 1 compiler.
+> - **Not yet**: scenes don't react to input (none needs it before Life and Boids), and `FeatureRegistry` comes with the feature scenes in Phases 5 and 6.
 
 ---
 
 ## Phase 4 — Background shader on WebGPU  _(M)_
 
-- [ ] Port `bokeh.sksl` to WGSL: a full-screen triangle and a uniform buffer `{ resolution: vec2f, time: f32, pad }`. Mind WGSL alignment: `vec2f` aligns to 8, uniform struct sizes round up to 16. Time comes from the heartbeat (a per-shader folded `elapsed`).
-- [ ] Load `.wgsl` files from compose resources, with compile checking from 1.6.
+- [x] _(done in Phase 3)_ Port `bokeh.sksl` to WGSL: a full-screen triangle and a uniform buffer `{ resolution: vec2f, time: f32, pad }`. Mind WGSL alignment: `vec2f` aligns to 8, uniform struct sizes round up to 16. Time comes from the heartbeat (a per-shader folded `elapsed`).
+- [x] _(done in Phase 3)_ Load `.wgsl` files from compose resources, with compile checking from 1.6.
 - [ ] **Performance** (fixes REVIEW 2.1): render into an offscreen texture at half resolution, then upscale with a linear sampler. Add a quality setting (¼, ½, full); pausing and reduced motion already come from the heartbeat and lifecycle bus.
 - [ ] "GPU-backed widgets": Compose reports widget positions (`onGloballyPositioned`) to the scene as a small uniform or storage array, so WebGPU can draw effects *behind* specific UI elements (e.g. the sphere behind the "Welcome" card). This replaces the Skia `RenderEffect`s that were only decoration.
 - [ ] Remove `RuntimeShaderModifier`, `uniformData`, and the other Skia shaders that aren't applied to Compose content. Keep the pixel melt (it acts on Compose content, so it lives in the UI effect registry).

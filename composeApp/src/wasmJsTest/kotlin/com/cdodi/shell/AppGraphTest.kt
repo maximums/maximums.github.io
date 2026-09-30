@@ -1,6 +1,5 @@
 package com.cdodi.shell
 
-import com.cdodi.adapters.compose.effects.UiEffects
 import com.cdodi.core.navigation.DestinationCodec
 import com.cdodi.core.navigation.graph.requireRenderable
 import com.cdodi.core.navigation.transition.reversed
@@ -19,7 +18,7 @@ class AppGraphTest {
 
     @Test
     fun theSiteGraphIsValidAndEveryEffectIsRendered() {
-        graph.requireRenderable(UiEffects)
+        graph.requireRenderable(siteEffects)
     }
 
     @Test

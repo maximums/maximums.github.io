@@ -54,3 +54,11 @@ abstract class SingletonDestination(path: String) : Route<SingletonDestination>(
 
 /** Raised by the scene host once [route]'s scene is ready to show (pipelines compiled, buffers allocated). */
 fun Signal.Companion.sceneReady(route: Route<*>): Signal = Signal("scene-ready:${route.path}")
+
+/**
+ * Stands for [sceneReady] of whichever destination a leg is entering, so one edge (`any → any`) can wait for its own
+ * target's scene: `whenever(Signal.targetSceneReady, timeout = 3.seconds)`. The navigator binds it as each leg starts.
+ */
+val Signal.Companion.targetSceneReady: Signal get() = TARGET_SCENE_READY
+
+private val TARGET_SCENE_READY = Signal("scene-ready:<target>")
