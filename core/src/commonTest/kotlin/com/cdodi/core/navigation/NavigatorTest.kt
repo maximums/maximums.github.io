@@ -51,6 +51,8 @@ class NavigatorTest {
 
     private val Navigator.effect: EffectState get() = transitioning.effects.single()
 
+    private fun Navigator.effect(id: String): EffectState = transitioning.effects.single { it.effect.id == id }
+
     private fun Navigator.assertIdleAt(destination: Destination) = assertEquals(destination, assertIs<NavState.Idle>(state.value).at)
 
     @Test
@@ -203,9 +205,9 @@ class NavigatorTest {
 
         assertEquals("fog", navigator.effect.effect.id)
         navigator.advance(0.5) // the fog plays back over the time it waited
-        assertEquals(EffectState(AnimatedEffect("morph"), progress = 1f, elapsed = 0.0, reversed = true), navigator.effect)
+        assertEquals(EffectState(AnimatedEffect("morph"), progress = 1f, elapsed = 0.0, reversed = true), navigator.effect("morph"))
         navigator.advance(1.0)
-        assertEquals(0.5f, navigator.effect.progress!!, 1e-4f)
+        assertEquals(0.5f, navigator.effect("morph").progress!!, 1e-4f)
         navigator.advance(1.0)
         navigator.assertIdleAt(Home)
     }

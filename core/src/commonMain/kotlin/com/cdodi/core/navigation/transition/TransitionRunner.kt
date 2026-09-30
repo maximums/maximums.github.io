@@ -5,9 +5,13 @@ import com.cdodi.core.navigation.signal.Signals
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Plays a [Transition]: [advance] it with the seconds that passed on the transitions clock, then read
- * [activeEffects]. Each effect sees only *its own* segment's progress, whatever it was combined with, which is what
- * makes transitions reusable.
+ * Plays a [Transition]: [advance] it with the seconds that passed on the transitions clock, then read [effects].
+ * Each effect sees only *its own* segment's progress, whatever it was combined with, which is what makes transitions
+ * reusable.
+ *
+ * An effect whose segment has finished holds its end state until the whole transition completes (like
+ * `fill: forwards` in Web Animations): in `melt with fade`, the page stays melted while the slower fade finishes.
+ * Effects that a race cancelled are dropped, since they never finished.
  *
  * Time carries across segments: when a segment completes in the middle of a frame, the rest of that frame already
  * counts for the next one.
@@ -34,7 +38,8 @@ class TransitionRunner private constructor(private val root: Node, private val s
     /** Advances by [seconds] and returns the part of them not needed because the transition completed. */
     fun advance(seconds: Double): Double = root.advance(seconds.coerceAtLeast(0.0), signals)
 
-    fun activeEffects(): List<EffectState> = root.active()
+    /** What each effect that has started shows now: running ones their progress, finished ones their end state. */
+    fun effects(): List<EffectState> = root.effects()
 
     /**
      * A runner that plays back what already ran, backwards, starting from the current point: the segments that ran in
@@ -59,7 +64,7 @@ class TransitionRunner private constructor(private val root: Node, private val s
         /** Advances by [seconds] and returns the part of it not needed because this node completed. */
         abstract fun advance(seconds: Double, signals: Signals): Double
 
-        abstract fun active(): List<EffectState>
+        abstract fun effects(): List<EffectState>
 
         /** Seconds until this node completes, if only time decides it; else null. */
         abstract fun remaining(): Double?
@@ -69,7 +74,7 @@ class TransitionRunner private constructor(private val root: Node, private val s
         class NoneNode : Node() {
             override val isDone = true
             override fun advance(seconds: Double, signals: Signals) = seconds
-            override fun active() = emptyList<EffectState>()
+            override fun effects() = emptyList<EffectState>()
             override fun remaining() = 0.0
             override fun reversedFromHere(): Node = this
         }
@@ -94,9 +99,9 @@ class TransitionRunner private constructor(private val root: Node, private val s
                 }
             }
 
-            override fun active(): List<EffectState> {
-                if (!started || isDone) return emptyList()
-                val progress = basic.completion.progress(elapsed, isDone = false)?.let { if (basic.reversed) 1f - it else it }
+            override fun effects(): List<EffectState> {
+                if (!started) return emptyList()
+                val progress = basic.completion.progress(elapsed, isDone)?.let { if (basic.reversed) 1f - it else it }
                 return basic.effects.map { EffectState(it, progress, elapsed, basic.reversed) }
             }
 
@@ -130,7 +135,8 @@ class TransitionRunner private constructor(private val root: Node, private val s
                 return remaining
             }
 
-            override fun active() = parts.getOrNull(index)?.active().orEmpty()
+            // The parts that finished hold their end state, followed by the running one.
+            override fun effects() = parts.take(index + 1).flatMap { it.effects() }
 
             override fun remaining(): Double? = parts.drop(index).sumOfOrNull { it.remaining() }
 
@@ -146,7 +152,7 @@ class TransitionRunner private constructor(private val root: Node, private val s
             override fun advance(seconds: Double, signals: Signals): Double =
                 parts.minOf { it.advance(seconds, signals) }
 
-            override fun active() = parts.flatMap { it.active() }
+            override fun effects() = parts.flatMap { it.effects() }
 
             override fun remaining(): Double? = parts.map { it.remaining() ?: return null }.maxOrNull() ?: 0.0
 
@@ -166,7 +172,7 @@ class TransitionRunner private constructor(private val root: Node, private val s
                 return finished.maxOf { leftovers[it] }
             }
 
-            override fun active() = if (isDone) emptyList() else parts.flatMap { it.active() }
+            override fun effects() = (if (isDone) parts.filter { it.isDone } else parts).flatMap { it.effects() }
 
             // A condition can win before any timer, so only an all-timers race knows when it ends.
             override fun remaining(): Double? =
@@ -193,7 +199,7 @@ class TransitionRunner private constructor(private val root: Node, private val s
                 return remaining
             }
 
-            override fun active() = if (isDone) emptyList() else current.active()
+            override fun effects() = current.effects()
 
             override fun remaining(): Double? = if (isDone) 0.0 else null
 

@@ -34,7 +34,7 @@ sealed interface NavState {
      * Going from [from] to [to], in the direction of travel: after a reversal they swap, and the effects play
      * backwards (see [EffectState.travelled]).
      *
-     * @param effects what each effect of the running segments should show.
+     * @param effects what each effect that has started should show; finished ones hold their end state.
      * @param progress overall progress, while only time decides when the transition ends; else null.
      */
     data class Transitioning(

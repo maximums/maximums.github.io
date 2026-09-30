@@ -2,6 +2,8 @@ package com.cdodi.core.time
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotSame
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 private const val MS = 1_000_000L
@@ -39,6 +41,17 @@ class HeartbeatTest {
         heartbeat.tickAt(0, 5000)
 
         assertEquals(0.1, heartbeat.elapsed, 1e-6)
+    }
+
+    @Test
+    fun aChildClockIsLookedUpByName() {
+        val heartbeat = DefaultHeartbeat()
+
+        val life = heartbeat.child("life")
+
+        assertSame(life, heartbeat.child("life"))
+        assertNotSame(life, heartbeat.child("boids"))
+        assertNotSame(life, life.child("life"), "names are per parent")
     }
 
     @Test

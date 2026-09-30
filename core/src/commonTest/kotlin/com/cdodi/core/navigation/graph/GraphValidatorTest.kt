@@ -73,6 +73,24 @@ class GraphValidatorTest {
     }
 
     @Test
+    fun aSingletonNeverGoesToItselfSoItsSelfPairIsNeverAmbiguous() {
+        val graph = navGraph(start = Home) {
+            destination(Home); destination(About); destination(Life)
+            edge(from = any, to = any, transition = melt)
+            edge(from = Home, to = any, transition = fog).andBack() // Home → any and any → Home both match Home → Home
+        }
+
+        assertEquals(2, graph.candidates(Home, Home).size)
+        val problems = problemsOf {
+            navGraph(start = Life()) {
+                destination(Life)
+                edge(from = Life, to = any, transition = melt).andBack() // Life → Life(other rule) does happen
+            }
+        }
+        assertEquals(listOf(Life.Companion, Life.Companion), problems.map { (it as GraphProblem.Ambiguous).from to it.to }.single().toList())
+    }
+
+    @Test
     fun everyStructuralProblemIsReportedAtOnce() {
         lateinit var toNowhere: Edge
 

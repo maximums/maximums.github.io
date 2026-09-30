@@ -19,7 +19,9 @@ class TransitionTest {
     private val signals = MutableSignals()
     private val ready = Signal("ready")
 
-    private fun TransitionRunner.progressOf(id: String): Float? = activeEffects().single { it.effect.id == id }.progress
+    private fun TransitionRunner.progressOf(id: String): Float? = effects().single { it.effect.id == id }.progress
+
+    private fun TransitionRunner.shown() = effects().map { it.effect.id to it.progress }
 
     @Test
     fun timeBasedProgressFollowsTheEasing() {
@@ -39,8 +41,7 @@ class TransitionTest {
 
         runner.advance(0.15)
 
-        assertEquals(listOf("fog"), runner.activeEffects().map { it.effect.id })
-        assertEquals(0.5f, runner.progressOf("fog")!!, 1e-4f)
+        assertEquals(listOf("wipe" to 1f, "fog" to 0.5f), runner.shown())
     }
 
     @Test
@@ -59,7 +60,7 @@ class TransitionTest {
         val runner = TransitionRunner(transition(after(1.seconds)) { play(wipe) } with transition(after(2.seconds)) { play(fog) }, signals)
 
         runner.advance(1.5)
-        assertEquals(listOf("fog"), runner.activeEffects().map { it.effect.id })
+        assertEquals(listOf("wipe" to 1f, "fog" to 0.75f), runner.shown(), "the wipe holds its end while the fog finishes")
         assertFalse(runner.isDone)
 
         runner.advance(0.5)
@@ -67,13 +68,22 @@ class TransitionTest {
     }
 
     @Test
-    fun raceEndsWithItsFastestPartAndStopsTheOther() {
+    fun raceEndsWithItsFastestPartAndDropsTheOther() {
         val runner = TransitionRunner(transition(after(1.seconds)) { play(wipe) } or transition(after(2.seconds)) { play(fog) }, signals)
 
         runner.advance(1.0)
 
         assertTrue(runner.isDone)
-        assertTrue(runner.activeEffects().isEmpty())
+        assertEquals(listOf("wipe" to 1f), runner.shown())
+    }
+
+    @Test
+    fun aFinishedReversedEffectHoldsAtZero() {
+        val runner = TransitionRunner(transition(after(1.seconds)) { play(wipe) }.reversed() with transition(after(2.seconds)) { play(fog) }, signals)
+
+        runner.advance(1.5)
+
+        assertEquals(0f, runner.progressOf("wipe"))
     }
 
     @Test
@@ -82,7 +92,7 @@ class TransitionTest {
 
         runner.advance(5.0)
         assertNull(runner.progressOf("fog"))
-        assertEquals(5.0, runner.activeEffects().single().elapsed, 1e-9)
+        assertEquals(5.0, runner.effects().single().elapsed, 1e-9)
 
         signals.raise(ready)
         runner.advance(0.016)
@@ -127,7 +137,7 @@ class TransitionTest {
 
         runner.advance(0.25)
 
-        assertEquals(listOf("fog"), runner.activeEffects().map { it.effect.id })
+        assertEquals(listOf("fog"), runner.effects().map { it.effect.id })
         assertEquals(0.75f, runner.progressOf("fog")!!, 1e-4f)
     }
 

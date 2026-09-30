@@ -67,8 +67,9 @@ object GraphValidator {
         }
 
         // One problem per set of conflicting edges, with the first pair of routes where they conflict as the example.
+        // A singleton never navigates to itself, so its pair with itself can't be ambiguous in practice.
         val ambiguities = graph.routes.flatMap { from ->
-            graph.routes.mapNotNull { to ->
+            graph.routes.filterNot { to -> to == from && to is SingletonDestination }.mapNotNull { to ->
                 graph.candidates(from, to).takeIf { it.size > 1 }?.let { GraphProblem.Ambiguous(from, to, it) }
             }
         }

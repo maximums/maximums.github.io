@@ -28,6 +28,7 @@ interface Clock {
     /** Seconds this clock has advanced, excluding paused time and including its scale. Never wraps. */
     val elapsed: Double
 
+    /** The child clock called [name], created on first use; asking again returns the same clock. */
     fun child(name: String): Clock
 
     /** Called synchronously in [phase] of every frame, with this clock's view of the frame. */
@@ -118,7 +119,8 @@ class DefaultHeartbeat(private val maxDt: Float = 0.1f) : Heartbeat {
 
         fun frame(index: Long, timeNanos: Long) = Frame(index, timeNanos, lastDt.toFloat(), elapsed)
 
-        override fun child(name: String): Clock = ClockNode(name, parent = this).also { children += it }
+        override fun child(name: String): Clock =
+            children.firstOrNull { it.name == name } ?: ClockNode(name, parent = this).also { children += it }
 
         override fun subscribe(phase: FramePhase, listener: (Frame) -> Unit): Subscription {
             val registration = Registration(this, listener)

@@ -54,7 +54,7 @@ class TransitionLawsTest {
             raisedAt.forEach { (signal, at) -> if (time >= at) signals.raise(signal) }
             runner.advance(if (step == 0) 0.0 else 0.01)
             time += if (step == 0) 0.0 else 0.01
-            snapshots += Snapshot(runner.activeEffects().map { it.effect.id to it.progress?.let { p -> round(p * 1000) / 1000 } }.toSet())
+            snapshots += Snapshot(runner.effects().map { it.effect.id to it.progress?.let { p -> round(p * 1000) / 1000 } }.toSet())
             if (runner.isDone) return snapshots to step
         }
         return snapshots to null

@@ -124,7 +124,7 @@ class Navigator(
         mutableState.value = if (running == null) {
             NavState.Idle(at, history)
         } else {
-            NavState.Transitioning(running.from, running.to, running.runner.activeEffects(), running.runner.progress, history)
+            NavState.Transitioning(running.from, running.to, running.runner.effects(), running.runner.progress, history)
         }
     }
 }
