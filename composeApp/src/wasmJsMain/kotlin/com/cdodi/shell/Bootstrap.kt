@@ -1,5 +1,7 @@
 package com.cdodi.shell
 
+import com.cdodi.adapters.browser.HashUrls
+import com.cdodi.adapters.browser.followBrowserHistory
 import com.cdodi.adapters.browser.followReducedMotion
 import com.cdodi.adapters.browser.followVisibility
 import com.cdodi.adapters.compose.ambient
@@ -14,6 +16,7 @@ import com.cdodi.core.bus.DefaultNavigationBus
 import com.cdodi.core.bus.LifecycleBus
 import com.cdodi.core.bus.NavigationBus
 import com.cdodi.core.bus.pauseWhile
+import com.cdodi.core.navigation.DestinationCodec
 import com.cdodi.core.navigation.Navigator
 import com.cdodi.core.navigation.graph.NavGraph
 import com.cdodi.core.navigation.graph.requireRenderable
@@ -65,8 +68,10 @@ fun bootstrap(): AppRuntime {
 
     val graph = appGraph().apply { requireRenderable(siteEffects) }
     val signals = MutableSignals()
-    val navigator = Navigator(graph, signals, reducedMotion = { lifecycle.state.value.prefersReducedMotion })
+    val urls = HashUrls(DestinationCodec(graph), graph.start)
+    val navigator = Navigator(graph, signals, start = urls.current(), reducedMotion = { lifecycle.state.value.prefersReducedMotion })
     val navigation = DefaultNavigationBus(navigator, heartbeat.transitions)
+    followBrowserHistory(navigation, heartbeat, urls)
     val input = InputState()
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
