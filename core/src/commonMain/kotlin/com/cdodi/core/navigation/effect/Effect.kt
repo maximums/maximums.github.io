@@ -35,8 +35,18 @@ data class ShaderEffect(
  * @param progress this effect's own segment progress in `[0, 1]`, eased and already mirrored for reversed playback;
  * null while the segment waits for a condition (the effect should loop, e.g. breathing fog).
  * @param elapsed seconds since the segment started, for looping effects.
+ * @param reversed the effect plays backwards, so its progress runs from 1 to 0 and its 1 end is at the destination
+ * being left.
  */
-data class EffectState(val effect: Effect, val progress: Float?, val elapsed: Double)
+data class EffectState(val effect: Effect, val progress: Float?, val elapsed: Double, val reversed: Boolean = false) {
+
+    /**
+     * How far this effect has taken the screen from the destination being left to the one being entered, whichever
+     * way it plays. A cross-fade shows the arriving destination with this alpha; an effect with its own meaning for
+     * each end (the menu's centre and corner) reads [progress] instead.
+     */
+    val travelled: Float? get() = progress?.let { if (reversed) 1f - it else it }
+}
 
 /** Implemented by adapters; used by graph validation to check every effect can be drawn. */
 fun interface EffectRegistry {

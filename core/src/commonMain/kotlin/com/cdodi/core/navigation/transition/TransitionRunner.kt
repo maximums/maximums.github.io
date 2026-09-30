@@ -18,9 +18,21 @@ class TransitionRunner private constructor(private val root: Node, private val s
 
     val isDone: Boolean get() = root.isDone
 
-    fun advance(seconds: Double) {
-        root.advance(seconds.coerceAtLeast(0.0), signals)
-    }
+    private val total: Double? = root.remaining()
+
+    /**
+     * Overall progress in `[0, 1]`, exact while every part still to play is time-based (a sequence takes the sum of
+     * its parts, a parallel the longest); null once a condition decides when it ends.
+     */
+    val progress: Float?
+        get() {
+            val total = total ?: return null
+            val remaining = root.remaining() ?: return null
+            return if (total <= 0.0) 1f else (1.0 - remaining / total).coerceIn(0.0, 1.0).toFloat()
+        }
+
+    /** Advances by [seconds] and returns the part of them not needed because the transition completed. */
+    fun advance(seconds: Double): Double = root.advance(seconds.coerceAtLeast(0.0), signals)
 
     fun activeEffects(): List<EffectState> = root.active()
 
@@ -49,12 +61,16 @@ class TransitionRunner private constructor(private val root: Node, private val s
 
         abstract fun active(): List<EffectState>
 
+        /** Seconds until this node completes, if only time decides it; else null. */
+        abstract fun remaining(): Double?
+
         abstract fun reversedFromHere(): Node
 
         class NoneNode : Node() {
             override val isDone = true
             override fun advance(seconds: Double, signals: Signals) = seconds
             override fun active() = emptyList<EffectState>()
+            override fun remaining() = 0.0
             override fun reversedFromHere(): Node = this
         }
 
@@ -81,8 +97,11 @@ class TransitionRunner private constructor(private val root: Node, private val s
             override fun active(): List<EffectState> {
                 if (!started || isDone) return emptyList()
                 val progress = basic.completion.progress(elapsed, isDone = false)?.let { if (basic.reversed) 1f - it else it }
-                return basic.effects.map { EffectState(it, progress, elapsed) }
+                return basic.effects.map { EffectState(it, progress, elapsed, basic.reversed) }
             }
+
+            override fun remaining(): Double? =
+                if (isDone) 0.0 else basic.completion.fixedSeconds()?.let { (it - elapsed).coerceAtLeast(0.0) }
 
             override fun reversedFromHere(): Node {
                 if (!started) return NoneNode() // never played, so there is nothing to play back
@@ -113,6 +132,8 @@ class TransitionRunner private constructor(private val root: Node, private val s
 
             override fun active() = parts.getOrNull(index)?.active().orEmpty()
 
+            override fun remaining(): Double? = parts.drop(index).sumOfOrNull { it.remaining() }
+
             override fun reversedFromHere(): Node {
                 val ran = parts.subList(0, (index + 1).coerceAtMost(parts.size))
                 return SequenceNode(ran.asReversed().map { it.reversedFromHere() })
@@ -126,6 +147,8 @@ class TransitionRunner private constructor(private val root: Node, private val s
                 parts.minOf { it.advance(seconds, signals) }
 
             override fun active() = parts.flatMap { it.active() }
+
+            override fun remaining(): Double? = parts.map { it.remaining() ?: return null }.maxOrNull() ?: 0.0
 
             override fun reversedFromHere(): Node = ParallelNode(parts.map { it.reversedFromHere() })
         }
@@ -144,6 +167,10 @@ class TransitionRunner private constructor(private val root: Node, private val s
             }
 
             override fun active() = if (isDone) emptyList() else parts.flatMap { it.active() }
+
+            // A condition can win before any timer, so only an all-timers race knows when it ends.
+            override fun remaining(): Double? =
+                if (isDone) 0.0 else parts.map { it.remaining() ?: return null }.minOrNull() ?: 0.0
 
             override fun reversedFromHere(): Node = RaceNode(parts.map { it.reversedFromHere() })
         }
@@ -168,10 +195,14 @@ class TransitionRunner private constructor(private val root: Node, private val s
 
             override fun active() = if (isDone) emptyList() else current.active()
 
+            override fun remaining(): Double? = if (isDone) 0.0 else null
+
             override fun reversedFromHere(): Node = current.reversedFromHere()
         }
     }
 }
+
+private inline fun <T> List<T>.sumOfOrNull(selector: (T) -> Double?): Double? = sumOf { selector(it) ?: return null }
 
 /** Total seconds if the rule is purely time-based, else null. */
 private fun Completion.fixedSeconds(): Double? = when (this) {

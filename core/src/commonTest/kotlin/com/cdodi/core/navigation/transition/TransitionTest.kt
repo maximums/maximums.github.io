@@ -181,6 +181,30 @@ class TransitionTest {
     }
 
     @Test
+    fun advanceReturnsTheTimeItDidNotNeed() {
+        val runner = TransitionRunner(transition(after(1.seconds)) { play(wipe) }, signals)
+
+        assertEquals(0.0, runner.advance(0.4), 1e-9)
+        assertEquals(0.1, runner.advance(0.7), 1e-9)
+    }
+
+    @Test
+    fun overallProgressIsKnownWhileOnlyTimeDecides() {
+        // 1 s, then the longer of 1 s and 2 s: 3 s in all.
+        val timed = TransitionRunner(
+            transition(after(1.seconds)) { play(wipe) } + (transition(after(1.seconds)) { play(fog) } with transition(after(2.seconds)) { play(wipe) }),
+            signals,
+        )
+        val waiting = TransitionRunner(transition(after(1.seconds)) { play(wipe) } + transition(whenever(ready)) { play(fog) }, signals)
+
+        timed.advance(1.5)
+        waiting.advance(0.5)
+
+        assertEquals(0.5f, timed.progress!!, 1e-4f)
+        assertNull(waiting.progress)
+    }
+
+    @Test
     fun cubicBezierHitsItsEndsAndIsMonotonic() {
         val values = (0..100).map { Easing.Settle.transform(it / 100f) }
 

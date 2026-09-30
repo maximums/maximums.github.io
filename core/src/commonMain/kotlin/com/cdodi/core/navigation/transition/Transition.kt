@@ -88,5 +88,15 @@ fun Transition.reversed(): Transition = when (this) {
     is Transition.RepeatUntil -> copy(inner = inner.reversed())
 }
 
+/** Every effect this transition can play, in tree order; used to check each one has a renderer. */
+fun Transition.allEffects(): List<Effect> = when (this) {
+    Transition.None -> emptyList()
+    is Transition.Basic -> effects
+    is Transition.Sequence -> parts.flatMap { it.allEffects() }
+    is Transition.Parallel -> parts.flatMap { it.allEffects() }
+    is Transition.Race -> parts.flatMap { it.allEffects() }
+    is Transition.RepeatUntil -> inner.allEffects()
+}
+
 private inline fun <reified T : Transition> partsOf(transition: Transition, parts: (T) -> List<Transition>): List<Transition> =
     if (transition is T) parts(transition) else listOf(transition)

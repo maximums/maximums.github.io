@@ -1,7 +1,9 @@
 package com.cdodi.core.navigation.signal
 
 /** A named condition a transition can wait for, e.g. "the Boids scene is ready". */
-data class Signal(val name: String)
+data class Signal(val name: String) {
+    companion object
+}
 
 fun interface Signals {
     fun isRaised(signal: Signal): Boolean
