@@ -39,6 +39,11 @@ kotlin {
             implementation(libs.compose.ui)
             implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(projects.core)
+        }
+
+        wasmJsMain.dependencies {
+            implementation(libs.kotlinx.browser)
         }
 
         wasmJsTest.dependencies {

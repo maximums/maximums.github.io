@@ -11,7 +11,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MovableContent
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentWithReceiverOf
@@ -25,10 +24,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cdodi.buses.LocalTimeBus
+import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.ambient
+import com.cdodi.adapters.compose.shaderTime
 import com.cdodi.pages.MY_TRY
 import com.cdodi.vw
-import kotlinx.coroutines.flow.scan
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
@@ -69,11 +69,7 @@ fun movableCard(
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
     val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
-    val heartBeat = LocalTimeBus.current
-    val accumulatedTimeFlow = remember(effect, heartBeat) {
-        heartBeat.ticks.scan(initial = 0f) { acc, tick -> (acc + tick) % 10000f }
-    }
-    val time by accumulatedTimeFlow.collectAsState(initial = 0f)
+    val time by LocalHeartbeat.current.ambient.shaderTime()
 
     return remember(effect) {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->

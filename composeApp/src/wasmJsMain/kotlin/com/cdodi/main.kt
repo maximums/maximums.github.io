@@ -1,14 +1,5 @@
 package com.cdodi
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
@@ -22,70 +13,43 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.window.ComposeViewport
-import com.cdodi.buses.AppEventBusImpl
-import com.cdodi.buses.AppLifecycleBusImp
-import com.cdodi.buses.LocalAppEventBus
-import com.cdodi.buses.LocalLifeCycleBus
-import com.cdodi.buses.LocalTimeBus
-import com.cdodi.buses.TimeBusImpl
+import com.cdodi.adapters.compose.HeartbeatDriver
+import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.LocalNavigationBus
+import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.adapters.compose.effects.UiEffectIds
 import com.cdodi.components.*
+import com.cdodi.core.bus.NavIntent
+import com.cdodi.core.navigation.NavState
+import com.cdodi.core.navigation.effect.EffectState
+import com.cdodi.core.navigation.graph.Destination
+import com.cdodi.features.about.AboutDestination
+import com.cdodi.features.boids.BoidsDestination
+import com.cdodi.features.home.HomeDestination
+import com.cdodi.features.life.LifeDestination
 import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
+import com.cdodi.shell.bootstrap
+import com.cdodi.shell.menuOrder
 import kotlinx.browser.document
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.isActive
 import org.jetbrains.skia.ImageFilter
 import org.jetbrains.skia.RuntimeEffect
 import org.jetbrains.skia.RuntimeShaderBuilder
 
-enum class Page {
-    Home,
-    About,
-    Boids,
-    GameOfLife,
-}
-
-private const val ONE_SECOND_IN_NANO = 1_000_000_000f
-
 fun main() {
-    val appScope = CoroutineScope(Dispatchers.Default + SupervisorJob() + CoroutineName("Application Scope"))
-    val timeBus = TimeBusImpl(appScope)
-    val eventBus = AppEventBusImpl(appScope)
-    val lifeCycleBus = AppLifecycleBusImp(appScope)
+    val runtime = bootstrap()
 
     ComposeViewport(document.body!!) {
-        heartBeat(timeBus)
+        HeartbeatDriver(runtime.heartbeat)
 
         CompositionLocalProvider(
-            LocalTimeBus provides timeBus,
-            LocalAppEventBus provides eventBus,
-            LocalLifeCycleBus provides lifeCycleBus
+            LocalHeartbeat provides runtime.heartbeat,
+            LocalNavigationBus provides runtime.navigation,
         ) {
             App()
-        }
-    }
-}
-
-@Composable
-private fun heartBeat(timeBus: TimeBusImpl) {
-    LaunchedEffect(timeBus) {
-        var lastTime = 0L
-        while (isActive) {
-            withFrameNanos { currentTime ->
-                if (lastTime != 0L) {
-                    val deltaTime = (currentTime - lastTime) / ONE_SECOND_IN_NANO
-                    timeBus.onFrame(deltaTime.fastCoerceAtMost(0.1f))
-                }
-
-                lastTime = currentTime
-            }
         }
     }
 }
@@ -115,35 +79,34 @@ private fun App() {
 
 @Composable
 private fun LookaheadScope.AppContent() {
-    var currentPage by remember { mutableStateOf(Page.Home) }
+    val navigation = LocalNavigationBus.current
+    val navState = navigation.state.collectEachFrame()
+    // The layout follows where navigation is heading, so the menu starts morphing on the click.
+    val target by remember(navState) { derivedStateOf { navState.value.target } }
 
-    val pixelMeltEffect = remember { RuntimeEffect.makeForShader(PIXEL_MELT_SHADER) }
-    val transition: Transition<Page> = updateTransition(
-        targetState = currentPage,
-        label = "ScreenRouter"
-    )
+    fun open(destination: Destination): () -> Unit = { navigation.send(NavIntent.NavigateTo(destination)) }
 
     val cardModifier = Modifier.size(15.vw)
     val homeButton = movableCard(
         text = "Home",
-        onClick = { currentPage = Page.Home }
+        onClick = open(HomeDestination)
     )
     val aboutButton = movableCard(
         text = "About",
-        onClick = { currentPage = Page.About }
+        onClick = open(AboutDestination)
     )
     val boidsButton = movableCard(
         text = "Boids",
-        onClick = { currentPage = Page.Boids }
+        onClick = open(BoidsDestination)
     )
     val lifeButton = movableCard(
         text = "Game Of Life",
-        onClick = { currentPage = Page.GameOfLife }
+        onClick = open(LifeDestination())
     )
     val bodyCard = movableBodyCard()
 
     Box(contentAlignment = Alignment.Center) {
-        if (currentPage == Page.Home) {
+        if (target == HomeDestination) {
             MainMenu(
                 body = {
                     bodyCard(Modifier.size(20.vw).align(Alignment.Center), MorphingShape.Rhombus, false) {
@@ -173,28 +136,42 @@ private fun LookaheadScope.AppContent() {
                 MorphingShape.Rectangle,
                 true
             ) {
-                transition.AnimatedContent(
-                    transitionSpec = {
-                        fadeIn(tween(durationMillis = 2000)) togetherWith fadeOut(tween(durationMillis = 2000))
-                    },
-                    contentKey = { it }
-                ) { targetScreen ->
-                    val meltProgress by transition.animateFloat(
-                        transitionSpec = { tween(durationMillis = 1000, easing = LinearEasing) },
-                        label = "Melting progress"
-                    ) { state ->
-                        if (state == targetScreen) 0f else 1f
-                    }
+                PageLayers(navState)
+            }
+        }
+    }
+}
 
-                    Box(
-                        modifier = Modifier.fillMaxSize()
-                            .graphicsLayer {
-                                val isGoingForward = transition.targetState.ordinal > targetScreen.ordinal
-                                val dirX = if (isGoingForward) -1.0f else 1.0f
+private val NavState.target: Destination
+    get() = when (this) {
+        is NavState.Idle -> at
+        is NavState.Transitioning -> to
+    }
+
+/** How one page looks this frame: its opacity, and how far it has melted away (and in which direction). */
+private data class PageLook(val alpha: Float, val melt: Float = 0f, val meltDirection: Float = 0f)
+
+/**
+ * The page on screen, or both pages during a transition, as the transition's effects say: the page being entered
+ * fades in, the one being left fades out and melts. Each page is keyed by its destination, so it keeps its state
+ * (a running Game of Life) as it goes from being entered to being shown.
+ */
+@Composable
+private fun PageLayers(navState: State<NavState>) {
+    val pixelMeltEffect = remember { RuntimeEffect.makeForShader(PIXEL_MELT_SHADER) }
+
+    Box(Modifier.fillMaxSize()) {
+        for ((destination, look) in navState.value.pageLooks()) {
+            key(destination) {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                        .graphicsLayer {
+                            alpha = look.alpha
+                            if (look.melt > 0f) {
                                 val builder = RuntimeShaderBuilder(pixelMeltEffect).apply {
                                     uniform("resolution", size.width, size.height)
-                                    uniform("progress", meltProgress)
-                                    uniform("direction", dirX, 0.2f)
+                                    uniform("progress", look.melt)
+                                    uniform("direction", look.meltDirection, 0.2f)
                                 }
                                 val skiaImageFilter = ImageFilter.makeRuntimeShader(
                                     runtimeShaderBuilder = builder,
@@ -204,20 +181,35 @@ private fun LookaheadScope.AppContent() {
 
                                 renderEffect = skiaImageFilter.asComposeRenderEffect()
                             }
-                    ) {
-                        // Render your actual pages inside the shaded Box
-                        when(targetScreen) {
-                            Page.About -> AboutPage()
-                            Page.Boids -> BoidsPage()
-                            Page.GameOfLife -> GameOfLifePage()
-                            Page.Home -> Unit
                         }
+                ) {
+                    when (destination) {
+                        AboutDestination -> AboutPage()
+                        BoidsDestination -> BoidsPage()
+                        is LifeDestination -> GameOfLifePage(destination.rule)
+                        else -> Unit
                     }
                 }
             }
         }
     }
 }
+
+private fun NavState.pageLooks(): List<Pair<Destination, PageLook>> = when (this) {
+    is NavState.Idle -> listOf(at to PageLook(alpha = 1f))
+    is NavState.Transitioning -> {
+        val fade = effects.travelled(UiEffectIds.FADE) ?: 1f
+        val melt = effects.travelled(UiEffectIds.PIXEL_MELT) ?: 0f
+        // The page melts towards the left when the next one comes later in the menu.
+        val direction = if (menuOrder.indexOf(to.route) > menuOrder.indexOf(from.route)) -1f else 1f
+        listOf(
+            from to PageLook(alpha = 1f - fade, melt = melt, meltDirection = direction),
+            to to PageLook(alpha = fade),
+        )
+    }
+}
+
+private fun List<EffectState>.travelled(id: String): Float? = firstOrNull { it.effect.id == id }?.travelled
 
 @Composable
 private fun BoxScope.TopBarForm(content: @Composable () -> Unit) {

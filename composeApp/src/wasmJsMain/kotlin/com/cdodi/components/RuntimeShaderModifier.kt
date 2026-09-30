@@ -9,15 +9,13 @@ import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.util.fastRoundToInt
 import com.cdodi.uniformData
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.skiaCanvas
 import androidx.compose.ui.node.currentValueOf
-import com.cdodi.buses.LocalTimeBus
-import kotlinx.coroutines.flow.scan
+import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
+import com.cdodi.adapters.compose.ambient
+import com.cdodi.core.time.FramePhase
+import com.cdodi.core.time.Subscription
 import org.jetbrains.skia.Paint
 import org.jetbrains.skia.RuntimeEffect
 
@@ -30,7 +28,8 @@ class RuntimeShaderModifierNode(
 
     private lateinit var runtimeEffect: RuntimeEffect
     private val cachedPaint = Paint()
-    private var time by mutableStateOf(0f)
+    private var time = 0f
+    private var subscription: Subscription? = null
 
     fun updateShader(newShader: RuntimeShader) {
         if (shader == newShader) return
@@ -44,14 +43,19 @@ class RuntimeShaderModifierNode(
     override fun onAttach() {
         super.onAttach()
 
-        val timeBus = currentValueOf(LocalTimeBus)
-        val accumulatedTimeFlow = timeBus.ticks.scan(initial = 0f) { acc, tick -> (acc + tick) % 10000f }
-
         runtimeEffect = RuntimeEffect.makeForShader(shader.value)
 
-        coroutineScope.launch(CoroutineName("ShaderBackground")) {
-            accumulatedTimeFlow.collect { time = it }
+        val clock = currentValueOf(LocalHeartbeat).ambient
+        subscription = clock.subscribe(FramePhase.Ui) {
+            time = clock.elapsedFolded(SHADER_TIME_PERIOD)
+            invalidateDraw()
         }
+    }
+
+    override fun onDetach() {
+        subscription?.close()
+        subscription = null
+        super.onDetach()
     }
 
     override fun ContentDrawScope.draw() {

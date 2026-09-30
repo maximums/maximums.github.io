@@ -3,13 +3,8 @@ package com.cdodi.data.gameoflife
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import com.cdodi.buses.TimeBus
+import com.cdodi.core.time.Clock
 import com.cdodi.data.Manager
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,15 +15,12 @@ internal const val CELL_SIZE_PX = 20f
 private const val TICK_RATE_MS = 100L
 
 class GameOfLifeManager(
-    bus: TimeBus,
-    dispatcher: CoroutineDispatcher = Dispatchers.Main,
+    clock: Clock,
     private val rule: LifeRule = LifeRule.Conway,
-) : Manager(bus) {
+) : Manager(clock) {
     private val _state = MutableStateFlow(LifeState())
     val state: StateFlow<LifeState> = _state.asStateFlow()
     private var accumulator = 0f
-
-    override val managerScope: CoroutineScope = CoroutineScope(SupervisorJob() + dispatcher + CoroutineName("GameOfLifeManager"))
 
     override fun loop(timeStep: Float) {
         if (!state.value.isRunning) return
@@ -43,8 +35,6 @@ class GameOfLifeManager(
             accumulator -= TICK_RATE_MS
         }
     }
-
-    init { start() }
 
     fun playPause() {
         if (state.value.grid.isUnspecified) return

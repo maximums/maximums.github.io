@@ -1,37 +1,20 @@
 package com.cdodi.data
 
-import com.cdodi.buses.TimeBus
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import com.cdodi.core.time.Clock
+import com.cdodi.core.time.FixedStepper
+import com.cdodi.core.time.FramePhase
 
 private const val FIXED_STEP = 0.0166f
 
-abstract class Manager(private val bus: TimeBus) : AutoCloseable {
-    private var accumulator = 0f
-
-    protected abstract val managerScope: CoroutineScope
+/**
+ * A simulation stepped at a fixed rate on [clock], in the Simulation phase of every frame. Pausing or slowing the
+ * clock pauses or slows the simulation, and nothing else.
+ */
+abstract class Manager(clock: Clock) : AutoCloseable {
+    private val stepper = FixedStepper(FIXED_STEP)
+    private val subscription = clock.subscribe(FramePhase.Simulation) { frame -> stepper.advance(frame.dt, ::loop) }
 
     protected abstract fun loop(timeStep: Float)
 
-    fun start() {
-        managerScope.launch {
-            bus.ticks.collect { time -> onFrame(visualDeltaTime = time) }
-        }
-    }
-
-    override fun close() {
-        managerScope.cancel(message = "Cleaning '${managerScope.coroutineContext[CoroutineName]?.name ?: "Manager"}'")
-    }
-
-    private fun onFrame(visualDeltaTime: Float) {
-        accumulator += visualDeltaTime
-
-        while (accumulator >= FIXED_STEP && managerScope.isActive) {
-            loop(FIXED_STEP)
-            accumulator -= FIXED_STEP
-        }
-    }
+    override fun close() = subscription.close()
 }

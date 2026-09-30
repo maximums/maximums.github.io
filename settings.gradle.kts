@@ -32,3 +32,4 @@ dependencyResolutionManagement {
 
 include(":composeApp")
 include(":webgpu")
+include(":core")

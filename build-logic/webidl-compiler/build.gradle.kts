@@ -17,7 +17,7 @@ dependencies {
 }
 
 // TestKit loads the plugin under test in its own classloader, which must also see the Kotlin Gradle plugin it builds on.
-val testKitKotlinPlugin by configurations.creating
+val testKitKotlinPlugin: Configuration = configurations.create("testKitKotlinPlugin")
 dependencies { testKitKotlinPlugin(libs.kotlin.gradle.plugin) }
 tasks.pluginUnderTestMetadata {
     pluginClasspath.from(testKitKotlinPlugin)
