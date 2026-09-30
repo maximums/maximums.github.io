@@ -22,6 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class NavigatorTest {
@@ -298,6 +299,26 @@ class NavigatorTest {
         navigator.navigate(Life("B36/S23"))
 
         navigator.assertIdleAt(Life("B36/S23"))
+    }
+
+    @Test
+    fun reducedMotionPlaysTheGraphsPlainTransitionInstead() {
+        var reduced = true
+        val graph = navGraph(start = Home) {
+            destination(Home); destination(About)
+            edge(from = any, to = any, transition = melt)
+            reducedMotion = transition(after(400.milliseconds)) { play(AnimatedEffect("cross-fade")) }
+        }
+        val navigator = Navigator(graph, signals, reducedMotion = { reduced })
+
+        navigator.navigate(About)
+        assertEquals("cross-fade", navigator.effect.effect.id)
+        navigator.advance(0.4)
+        navigator.assertIdleAt(About)
+
+        reduced = false
+        navigator.navigate(Home)
+        assertEquals("melt", navigator.effect.effect.id)
     }
 
     @Test

@@ -14,6 +14,8 @@ class NavGraph internal constructor(
     val start: Destination,
     val routes: List<Route<*>>,
     val edges: List<Edge>,
+    /** Played instead of every edge's transition while the user prefers reduced motion; null keeps the edges' own. */
+    val reducedMotion: Transition?,
 ) {
     operator fun contains(route: Route<*>): Boolean = route in routes
 
@@ -56,6 +58,9 @@ class NavGraphBuilder internal constructor() {
 
     val any: EdgeMatcher get() = EdgeMatcher.AnyDestination
 
+    /** See [NavGraph.reducedMotion]; usually a short cross-fade. */
+    var reducedMotion: Transition? = null
+
     fun anyOf(vararg routes: Route<*>): EdgeMatcher = EdgeMatcher.AnyOf(routes.toSet())
 
     fun destination(route: Route<*>) {
@@ -73,5 +78,5 @@ class NavGraphBuilder internal constructor() {
     /** Adds the way back as well: the opposite edge, playing the transition reversed. The guard is not copied. */
     fun Edge.andBack(): Edge = edge(from = this.to, to = this.from, transition = transition.reversed(), onInterrupt = onInterrupt)
 
-    internal fun build(start: Destination) = NavGraph(start, routes.toList(), edges.toList())
+    internal fun build(start: Destination) = NavGraph(start, routes.toList(), edges.toList(), reducedMotion)
 }

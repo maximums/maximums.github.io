@@ -21,8 +21,16 @@ import kotlinx.coroutines.flow.asStateFlow
  * screen will be when its leg starts; a refused one leaves everything as it was.
  *
  * It knows no framework and no clock: [advance] it with the transitions clock's seconds in the Navigation phase.
+ *
+ * @param reducedMotion asked whenever a leg starts; while it says yes, the leg plays the graph's
+ * [NavGraph.reducedMotion] transition instead of the edge's.
  */
-class Navigator(private val graph: NavGraph, private val signals: Signals, start: Destination = graph.start) {
+class Navigator(
+    private val graph: NavGraph,
+    private val signals: Signals,
+    start: Destination = graph.start,
+    private val reducedMotion: () -> Boolean = { false },
+) {
 
     /** One transition between two destinations, in the direction of travel. */
     private class Leg(val from: Destination, val to: Destination, val runner: TransitionRunner, val onInterrupt: Interrupt) {
@@ -89,8 +97,13 @@ class Navigator(private val graph: NavGraph, private val signals: Signals, start
 
     private fun start(from: Destination, to: Destination, seconds: Double) {
         val edge = graph.edgeFor(from.route, to.route)
-        // No edge only happens when just the arguments change (`Life(B3/S23)` → `Life(B36/S23)`): switch at once.
-        play(Leg(from, to, TransitionRunner(edge?.transition ?: Transition.None, signals), edge?.onInterrupt ?: Interrupt.Replace), seconds)
+        val transition = when {
+            // Only happens when just the arguments change (`Life(B3/S23)` → `Life(B36/S23)`): switch at once.
+            edge == null -> Transition.None
+            reducedMotion() -> graph.reducedMotion ?: edge.transition
+            else -> edge.transition
+        }
+        play(Leg(from, to, TransitionRunner(transition, signals), edge?.onInterrupt ?: Interrupt.Replace), seconds)
     }
 
     /** Makes [next] the running leg. Advancing it, even by zero, starts its first segment, so its effects show at once. */

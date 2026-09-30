@@ -2,6 +2,7 @@ package com.cdodi.core.navigation.graph
 
 import com.cdodi.core.navigation.effect.Effect
 import com.cdodi.core.navigation.effect.EffectRegistry
+import com.cdodi.core.navigation.transition.Transition
 import com.cdodi.core.navigation.transition.allEffects
 
 /** Something wrong with a graph, found at startup rather than halfway through a transition. */
@@ -35,8 +36,10 @@ sealed interface GraphProblem {
             get() = "going from $from to $to could take any of ${edges.joinToString()}; add an edge that is more specific than all of them"
     }
 
-    data class NoRenderer(val effect: Effect, val edge: Edge) : GraphProblem {
-        override val message: String get() = "the edge $edge plays the ${effect.layer} effect \"${effect.id}\", which nothing renders"
+    /** @param edge null for the graph's reduced-motion transition. */
+    data class NoRenderer(val effect: Effect, val edge: Edge?) : GraphProblem {
+        override val message: String
+            get() = "${edge?.let { "the edge $it" } ?: "the reduced-motion transition"} plays the ${effect.layer} effect \"${effect.id}\", which nothing renders"
     }
 }
 
@@ -73,8 +76,10 @@ object GraphValidator {
     }
 
     /** Effects that no registered renderer can draw. */
-    fun effects(graph: NavGraph, registry: EffectRegistry): List<GraphProblem> = graph.edges.flatMap { edge ->
-        edge.transition.allEffects().distinct().filterNot(registry::canRender).map { GraphProblem.NoRenderer(it, edge) }
+    fun effects(graph: NavGraph, registry: EffectRegistry): List<GraphProblem> {
+        fun check(transition: Transition?, edge: Edge?) =
+            transition?.allEffects().orEmpty().distinct().filterNot(registry::canRender).map { GraphProblem.NoRenderer(it, edge) }
+        return graph.edges.flatMap { check(it.transition, it) } + check(graph.reducedMotion, edge = null)
     }
 
     private fun reachable(graph: NavGraph): Set<Route<*>> {

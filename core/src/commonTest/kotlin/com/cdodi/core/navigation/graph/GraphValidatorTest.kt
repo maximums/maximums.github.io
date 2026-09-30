@@ -124,12 +124,16 @@ class GraphValidatorTest {
             destination(Home); destination(Boids)
             edge(from = any, to = any, transition = melt)
             toBoids = edge(from = any, to = Boids, transition = melt + fog)
+            reducedMotion = transition(after(1.seconds)) { play(ShaderEffect("cross-fade")) }
         }
         val onlyUi = EffectRegistry { it is AnimatedEffect }
 
         val problems = assertFailsWith<InvalidNavGraphException> { graph.requireRenderable(onlyUi) }.problems
 
-        assertEquals(listOf(GraphProblem.NoRenderer(ShaderEffect("fog"), toBoids)), problems)
+        assertEquals(
+            listOf(GraphProblem.NoRenderer(ShaderEffect("fog"), toBoids), GraphProblem.NoRenderer(ShaderEffect("cross-fade"), edge = null)),
+            problems,
+        )
         graph.requireRenderable { true }
     }
 

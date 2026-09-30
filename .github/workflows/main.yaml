@@ -40,6 +40,10 @@ jobs:
       - name: Test the WebIDL compiler
         run: ./gradlew -p build-logic :webidl-compiler:test
 
+      # The same tests run in the browser below; the JVM run gives readable stack traces.
+      - name: Test the core on the JVM
+        run: ./gradlew :core:jvmTest
+
       - name: Test and build wasm application
         run: ./gradlew wasmJsBrowserTest wasmJsBrowserDistribution
 
