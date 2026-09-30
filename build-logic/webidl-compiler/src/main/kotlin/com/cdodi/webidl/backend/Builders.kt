@@ -90,6 +90,11 @@ fun Descriptor.InterfaceDescriptor.asDictionaryPoet(context: BindingContext, gen
         .addKdoc(docs.forDictionary(this))
         .addSuperinterface(ClassName("kotlin.js", "JsAny"))
 
+    // A dictionary that is a union member (GPUBufferBinding in GPUBindingResource) extends the union's marker, as
+    // interfaces and enums do. Its IDL parent is not a supertype: inherited members are already flattened into it.
+    superTypes.filter { context[BindingSlices.INTERFACE, it]?.unionOf?.isNotEmpty() == true }
+        .forEach { marker -> interfaceBuilder.addSuperinterface(ClassName(generatedPackageName, marker)) }
+
     members.filterIsInstance<InterfaceMember.VariableDescriptor>().forEach { variable ->
         val type = variable.type.toKotlin(context, generatedPackageName)
         val typeName = type.copy(nullable = type.isNullable || !variable.isRequired)
