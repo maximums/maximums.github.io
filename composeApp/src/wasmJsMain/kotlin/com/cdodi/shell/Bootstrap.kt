@@ -28,6 +28,7 @@ import com.cdodi.core.time.Heartbeat
 import com.cdodi.features.background.BackgroundScene
 import com.cdodi.webgpu.context.requestGpuContext
 import kotlinx.browser.document
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,30 +77,58 @@ fun bootstrap(): AppRuntime {
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
     val scope = MainScope()
-    scope.launch { gpu.value = startGpuLayer(heartbeat, navigation, signals, graph, input, scope) }
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, scope, gpu) }
 
     return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow())
 }
 
-private suspend fun startGpuLayer(
+/**
+ * Runs the WebGPU layer for as long as it can. When the device is lost (a driver reset, the GPU process crashing) or
+ * the layer fails, it starts again once with a new device and new scenes; after that, the site keeps going on the
+ * UI layer's fallback.
+ */
+private suspend fun runGpuLayer(
     heartbeat: Heartbeat,
     navigation: NavigationBus,
     signals: MutableSignals,
     graph: NavGraph,
     input: InputState,
     scope: CoroutineScope,
-): GpuStatus {
-    val gpu = try {
-        requestGpuContext()
-    } catch (e: Exception) {
-        return unavailable(signals, graph, "the device request failed: ${e.message}")
-    } ?: return unavailable(signals, graph, "this browser has no WebGPU")
+    status: MutableStateFlow<GpuStatus>,
+) {
+    var restartsLeft = 1
+    while (true) {
+        val gpu = try {
+            requestGpuContext()
+        } catch (e: Exception) {
+            status.value = unavailable(signals, graph, "the device request failed: ${e.message}")
+            return
+        } ?: run {
+            status.value = unavailable(signals, graph, "this browser has no WebGPU")
+            return
+        }
 
-    val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
-    val background = BackgroundScene(heartbeat.ambient)
-    val scenes = SceneRegistry(graph.routes.associateWith { background })
-    SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope)
-    return GpuStatus.Running
+        val stopped = CompletableDeferred<String>()
+        val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
+        val background = BackgroundScene(heartbeat.ambient)
+        val scenes = SceneRegistry(graph.routes.associateWith { background })
+        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope) { error ->
+            stopped.complete("the GPU layer failed: ${error.message}")
+        }
+        status.value = GpuStatus.Running
+        val watchLoss = scope.launch { gpu.awaitLoss().let { stopped.complete("the GPU device was lost (${it.reason}): ${it.message}") } }
+
+        val reason = stopped.await()
+        watchLoss.cancel()
+        host.close()
+        gpu.close()
+        if (restartsLeft-- == 0) {
+            status.value = unavailable(signals, graph, reason)
+            return
+        }
+        println("$reason; starting the GPU layer again")
+        status.value = GpuStatus.Starting
+    }
 }
 
 /** Without scenes there is nothing to wait for: every scene counts as ready. */
@@ -107,3 +136,4 @@ private fun unavailable(signals: MutableSignals, graph: NavGraph, reason: String
     graph.routes.forEach { signals.raise(Signal.sceneReady(it)) }
     return GpuStatus.Unavailable(reason)
 }
+

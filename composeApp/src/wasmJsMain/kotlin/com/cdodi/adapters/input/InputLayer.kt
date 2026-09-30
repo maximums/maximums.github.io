@@ -7,6 +7,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -14,11 +15,14 @@ import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
 
 /**
- * Catches the pointer where no widget does and hands it to the scenes. Place it under everything else: pointer events
- * can't pass through the Compose canvas to the WebGPU one, and Compose hit-tests siblings from the top down, stopping
- * at the first that takes the event, so any widget above wins and the scene gets the rest.
+ * Hands the pointer to the scenes. Place it under everything else: pointer events can't pass through the Compose
+ * canvas to the WebGPU one, so the scenes get them from here.
  *
- * Events are collected as they come and applied to [input] once per frame, in the Input phase.
+ * It reads each event in the Final pass, after the widgets above have had theirs: a press or scroll a widget consumed
+ * (a click on the menu) is not the scene's. The pointer's position is, wherever it is. It only watches and never
+ * consumes: Compose cancels a tap when anything consumes its events in the Final pass, so consuming here would break
+ * every button. (The page can't scroll anyway; `body` hides its overflow.) Events are collected as they come and
+ * applied to [input] once per frame, in the Input phase.
  */
 @Composable
 fun InputLayer(input: InputState, heartbeat: Heartbeat) {
@@ -32,10 +36,7 @@ fun InputLayer(input: InputState, heartbeat: Heartbeat) {
         Modifier.fillMaxSize().pointerInput(pending) {
             awaitPointerEventScope {
                 while (true) {
-                    val event = awaitPointerEvent()
-                    pending.record(event)
-                    // Consumed, so the wheel and touch don't also scroll the page.
-                    event.changes.forEach { it.consume() }
+                    pending.record(awaitPointerEvent(PointerEventPass.Final))
                 }
             }
         }
@@ -53,15 +54,16 @@ private class PendingInput {
 
     fun record(event: PointerEvent) {
         val change = event.changes.firstOrNull() ?: return
+        val isForScene = !change.isConsumed
         when (event.type) {
             PointerEventType.Exit -> hasPointer = false
-            PointerEventType.Scroll -> wheel += change.scrollDelta.y
+            PointerEventType.Scroll -> if (isForScene) wheel += change.scrollDelta.y
             else -> {
                 x = change.position.x
                 y = change.position.y
                 hasPointer = true
-                if (event.type == PointerEventType.Press) presses++
-                isPressed = event.buttons.isPrimaryPressed
+                if (event.type == PointerEventType.Press && isForScene) presses++
+                isPressed = event.buttons.isPrimaryPressed && (isForScene || isPressed)
             }
         }
     }

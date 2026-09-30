@@ -35,6 +35,9 @@ import kotlinx.coroutines.launch
  * Scenes are prepared the first time navigation heads for them; when one is ready the host raises `sceneReady` for its
  * routes, which condition-based edges wait on. A scene that isn't ready draws as Night. Visible scenes are stepped
  * on their own clocks in the Simulation phase; drawing happens in the Render phase.
+ *
+ * A failure while drawing closes the host and is reported to [onFailure] instead of propagating: an exception in the
+ * Render phase would otherwise stop the heartbeat, and with it everything on the page.
  */
 class SceneHost(
     private val gpu: GpuContext,
@@ -46,6 +49,7 @@ class SceneHost(
     private val effects: List<GpuEffectRenderer>,
     private val input: InputState,
     private val scope: CoroutineScope,
+    private val onFailure: (Throwable) -> Unit,
 ) : AutoCloseable {
 
     private val requested = mutableSetOf<Scene>()
@@ -54,7 +58,15 @@ class SceneHost(
     private val sceneSubscriptions = mutableListOf<Subscription>()
     private var offscreen: Offscreen? = null
 
-    private val renderSubscription = heartbeat.subscribe(FramePhase.Render, ::render)
+    private var isClosed = false
+    private val renderSubscription = heartbeat.subscribe(FramePhase.Render) { frame ->
+        try {
+            render(frame)
+        } catch (e: Throwable) {
+            close()
+            onFailure(e)
+        }
+    }
 
     init {
         for (effect in effects) {
@@ -147,6 +159,8 @@ class SceneHost(
     }
 
     override fun close() {
+        if (isClosed) return
+        isClosed = true
         renderSubscription.close()
         sceneSubscriptions.forEach { it.close() }
         offscreen?.close()

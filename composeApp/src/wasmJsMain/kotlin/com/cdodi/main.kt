@@ -2,7 +2,6 @@ package com.cdodi
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,12 +61,15 @@ fun main() {
 private fun App(gpu: GpuStatus) {
     MaterialTheme {
         LookaheadScope {
-            Surface(
-                color = Color.Transparent,
+            // A Box, not a Material Surface: a Surface blocks pointer events from reaching what's behind it, and behind
+            // it is the input layer that hands them to the scene. Like a Surface, it passes its size down as the
+            // minimum: the menu is placed across the whole screen, and clicks only reach it inside its parents' bounds.
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .then(if (gpu is GpuStatus.Unavailable) Modifier.fallbackBackground() else Modifier)
-                    .padding(24.dp)
+                    .padding(24.dp),
+                propagateMinConstraints = true,
             ) {
                 if (LocalIsSmallWindow.current) {
                     SmallScreenPage()
