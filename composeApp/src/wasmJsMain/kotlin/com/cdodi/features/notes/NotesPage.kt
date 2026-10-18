@@ -46,6 +46,9 @@ import com.cdodi.notes.Block
 import com.cdodi.notes.Inline
 import com.cdodi.notes.Note
 import com.cdodi.notes.formatDate
+import com.cdodi.notes.plainText
+import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.Autumn
 import com.cdodi.shell.LocalMenuLayout
 import kotlinx.browser.window
 
@@ -61,8 +64,9 @@ private val Hairline = Parchment.copy(alpha = 0.1f)
 /** Behind the text: the glass is fogged, but long reading over moving lights needs a steadier ground. */
 private val ReadingGround = Night.copy(alpha = 0.72f)
 
-private val Body = TextStyle(color = Mist, fontSize = 16.sp, lineHeight = 26.sp)
-private val Meta = TextStyle(color = Fog, fontSize = 13.sp, letterSpacing = 0.5.sp, fontFamily = FontFamily.Monospace)
+private val Body: TextStyle @Composable get() = Autumn.type.body.copy(color = Mist)
+private val Meta: TextStyle @Composable get() = Autumn.type.readout.copy(color = Fog)
+private val Mono: FontFamily @Composable get() = Autumn.type.readout.fontFamily!!
 
 /**
  * The write-ups: the list of notes, or the note named [slug], rendered from the same Markdown as the plain pages the
@@ -95,7 +99,7 @@ private fun Reading(scrollKey: Any?, content: @Composable () -> Unit) {
             Modifier
                 .widthIn(max = 760.dp)
                 .fillMaxWidth()
-                .background(ReadingGround)
+                .glass(fill = { ReadingGround })
                 .padding(horizontal = if (compact) 16.dp else 48.dp, vertical = if (compact) 20.dp else 40.dp)
         ) {
             content()
@@ -107,7 +111,7 @@ private fun Reading(scrollKey: Any?, content: @Composable () -> Unit) {
 private fun NoteList(notes: List<Note>, open: (NotesDestination) -> Unit) {
     val compact = LocalMenuLayout.current.compact
     Reading(scrollKey = null) {
-        Text("Notes", color = Parchment, fontSize = if (compact) 40.sp else 56.sp, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light)
+        Text("Notes", style = Autumn.type.display.copy(fontSize = if (compact) 48.sp else 72.sp, lineHeight = if (compact) 48.sp else 72.sp), color = Parchment)
         Text("How the site behind this glass is built.", style = Body.copy(color = Fog), modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
         for (note in notes) {
             Column(
@@ -117,7 +121,7 @@ private fun NoteList(notes: List<Note>, open: (NotesDestination) -> Unit) {
                     .padding(vertical = 18.dp)
             ) {
                 Text("${formatDate(note.date)} · ${note.readingMinutes} min read", style = Meta)
-                Text(note.title, color = Parchment, fontSize = if (compact) 24.sp else 30.sp, lineHeight = if (compact) 28.sp else 34.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(vertical = 6.dp))
+                Text(note.title, style = Autumn.type.title.copy(fontSize = if (compact) 26.sp else 32.sp, lineHeight = if (compact) 30.sp else 36.sp), color = Parchment, modifier = Modifier.padding(vertical = 6.dp))
                 Text(note.summary, style = Body)
             }
         }
@@ -130,9 +134,8 @@ private fun NoteView(note: Note, open: (NotesDestination) -> Unit) {
     Reading(scrollKey = note.slug) {
         Text(
             "ALL NOTES",
+            style = Autumn.type.label,
             color = Fog,
-            fontSize = 11.sp,
-            letterSpacing = 3.sp,
             modifier = Modifier.clickable { open(NotesDestination()) }.padding(vertical = 8.dp),
         )
         SelectionContainer {
@@ -140,11 +143,8 @@ private fun NoteView(note: Note, open: (NotesDestination) -> Unit) {
                 Text("${formatDate(note.date)} · ${note.readingMinutes} min read", style = Meta, modifier = Modifier.padding(top = 20.dp))
                 Text(
                     note.title,
+                    style = Autumn.type.display.copy(fontSize = if (compact) 38.sp else 56.sp, lineHeight = if (compact) 40.sp else 58.sp),
                     color = Parchment,
-                    fontSize = if (compact) 34.sp else 48.sp,
-                    lineHeight = if (compact) 38.sp else 52.sp,
-                    fontStyle = FontStyle.Italic,
-                    fontWeight = FontWeight.Light,
                     modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
                 )
                 for (block in note.blocks) NoteBlock(block)
@@ -166,13 +166,9 @@ private fun NoteView(note: Note, open: (NotesDestination) -> Unit) {
 private fun NoteBlock(block: Block) {
     when (block) {
         is Block.Heading -> Text(
-            text = annotated(block.content),
+            text = if (block.level <= 2) annotated(block.content) else AnnotatedString(plainText(block.content).uppercase()),
+            style = if (block.level <= 2) Autumn.type.title.copy(fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Normal) else Autumn.type.label.copy(fontSize = 12.sp),
             color = Parchment,
-            fontSize = if (block.level <= 2) 30.sp else 13.sp,
-            lineHeight = if (block.level <= 2) 36.sp else 20.sp,
-            fontStyle = if (block.level <= 2) FontStyle.Italic else FontStyle.Normal,
-            fontWeight = if (block.level <= 2) FontWeight.Normal else FontWeight.SemiBold,
-            letterSpacing = if (block.level <= 2) 0.sp else 3.sp,
             modifier = Modifier.padding(top = if (block.level <= 2) 40.dp else 28.dp, bottom = 8.dp),
         )
         is Block.Paragraph -> Text(annotated(block.content), style = Body, modifier = Modifier.padding(vertical = 8.dp))
@@ -185,7 +181,7 @@ private fun NoteBlock(block: Block) {
                 .horizontalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            Text(block.code, color = Mist, fontSize = 13.sp, lineHeight = 20.sp, fontFamily = FontFamily.Monospace, softWrap = false)
+            Text(block.code, style = Autumn.type.readout.copy(fontSize = 13.sp, lineHeight = 20.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Normal), color = Mist, softWrap = false)
         }
         is Block.ListBlock -> Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             block.items.forEachIndexed { index, item ->
@@ -231,16 +227,20 @@ private fun Quiet(text: String) {
     }
 }
 
-private fun annotated(inlines: List<Inline>): AnnotatedString = buildAnnotatedString { appendInlines(inlines) }
+@Composable
+private fun annotated(inlines: List<Inline>): AnnotatedString {
+    val mono = Mono
+    return buildAnnotatedString { appendInlines(inlines, mono) }
+}
 
-private fun AnnotatedString.Builder.appendInlines(inlines: List<Inline>) {
+private fun AnnotatedString.Builder.appendInlines(inlines: List<Inline>, mono: FontFamily) {
     for (inline in inlines) {
         when (inline) {
             is Inline.Text -> append(inline.text)
-            is Inline.Code -> withStyle(SpanStyle(fontFamily = FontFamily.Monospace, fontSize = 14.sp, background = Slate, color = Parchment)) { append(inline.code) }
-            is Inline.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInlines(inline.content) }
-            is Inline.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Parchment)) { appendInlines(inline.content) }
-            is Inline.Link -> withLink(linkTo(inline.href)) { appendInlines(inline.content) }
+            is Inline.Code -> withStyle(SpanStyle(fontFamily = mono, fontSize = 14.sp, background = Slate, color = Parchment)) { append(inline.code) }
+            is Inline.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { appendInlines(inline.content, mono) }
+            is Inline.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Parchment)) { appendInlines(inline.content, mono) }
+            is Inline.Link -> withLink(linkTo(inline.href)) { appendInlines(inline.content, mono) }
         }
     }
 }

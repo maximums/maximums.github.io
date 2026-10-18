@@ -1,18 +1,13 @@
 package com.cdodi.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,47 +15,36 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.cdodi.shell.LocalMenuLayout
-
-private val Fog = Color(0xFF8C9499)
-private val Hairline = Color(0xFFEDE6D6).copy(alpha = 0.12f)
-
-/** DESIGN.md's fog pane, a little thicker: controls over a moving scene on a small screen must stay readable. */
-private val PanelFill = Color(0xD80D1013)
+import com.cdodi.ui.components.QuietButton
+import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.AutumnColors
 
 /**
- * A scene page's controls. On a wide screen they're simply shown. On a phone they'd cover most of the scene, so they
- * fold behind a "Controls" button, and open over a fog fill.
+ * A scene page's controls on a fog pane (DESIGN.md §5), [width] wide. On a phone they'd cover most of the scene, so
+ * they fold behind a "Controls" button and open full width, scrolling when they're taller than the screen.
  */
 @Composable
-fun CompactPanel(modifier: Modifier = Modifier, spacing: Dp = 12.dp, content: @Composable ColumnScope.() -> Unit) {
+fun CompactPanel(width: Dp, modifier: Modifier = Modifier, spacing: Dp = 20.dp, content: @Composable ColumnScope.() -> Unit) {
     if (!LocalMenuLayout.current.compact) {
-        Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing), content = content)
+        Column(modifier.width(width).glass().padding(28.dp), verticalArrangement = Arrangement.spacedBy(spacing), content = content)
         return
     }
     var open by rememberSaveable { mutableStateOf(false) }
-    Column(
-        // Open, the controls can be taller than a phone: they scroll.
-        modifier = modifier.fillMaxWidth().then(if (open) Modifier.verticalScroll(rememberScrollState()).background(PanelFill).padding(8.dp) else Modifier),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Text(
-            text = if (open) "CLOSE" else "CONTROLS",
-            color = Fog,
-            fontSize = 11.sp,
-            letterSpacing = 3.sp,
-            modifier = Modifier
-                .align(Alignment.End)
-                .heightIn(min = 44.dp) // DESIGN.md: touch targets of at least 44 px
-                .wrapContentHeight(Alignment.CenterVertically)
-                .border(1.dp, Hairline)
-                .clickable { open = !open }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-        )
-        if (open) content()
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        QuietButton(if (open) "Close" else "Controls", { open = !open }, Modifier.align(Alignment.End))
+        if (open) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .glass(fill = { AutumnColors.Night.copy(alpha = 0.82f) })
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                content = content,
+            )
+        }
     }
 }

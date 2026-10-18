@@ -5,15 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -44,7 +40,12 @@ import com.cdodi.data.gameoflife.GameOfLifeManager
 import com.cdodi.data.gameoflife.LifeRule
 import com.cdodi.features.life.LifeController
 import com.cdodi.data.gameoflife.Grid
-import com.cdodi.vw
+import com.cdodi.ui.components.DripSlider
+import com.cdodi.ui.components.QuietButton
+import com.cdodi.ui.components.RoundButton
+import com.cdodi.ui.components.StrokeIcons
+import com.cdodi.ui.theme.Autumn
+import com.cdodi.ui.theme.AutumnColors
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.round
 
@@ -96,6 +97,7 @@ fun GameOfLifePage(rule: LifeRule = LifeRule.Conway) {
     }
 }
 
+/** The CPU page's controls, in the site's look: play, clear, speed, and the readouts. */
 @Composable
 private fun GridHeader(
     isPlaying: Boolean,
@@ -105,80 +107,28 @@ private fun GridHeader(
     onPlayPause: () -> Unit,
     onReset: () -> Unit,
 ) {
-    val playBtnTxtId = if (isPlaying) Res.string.game_of_life_pause_button else Res.string.game_of_life_play_button
-    val playBtnText = stringResource(playBtnTxtId)
-    val isPlayBtnEnabled = population > 0 || isPlaying
-    val resetBtnTxt = stringResource(Res.string.game_of_life_reset_button)
-    val isResetBtnEnabled = !isPlaying && population > 0
-    val populationTxt = stringResource(Res.string.game_of_life_population, population)
-    val speed = remember(evolutionSpeed) { evolutionSpeed.twoDecimals }
-    val evolutionSpeedTxt = stringResource(Res.string.game_of_life_evolution_speed, speed)
+    val playText = stringResource(if (isPlaying) Res.string.game_of_life_pause_button else Res.string.game_of_life_play_button)
+    val resetText = stringResource(Res.string.game_of_life_reset_button)
+    val populationText = stringResource(Res.string.game_of_life_population, population)
+    val speedText = stringResource(Res.string.game_of_life_evolution_speed, evolutionSpeed.twoDecimals)
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(24.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Button(
-            onClick = onPlayPause,
-            enabled = isPlayBtnEnabled,
-            modifier = Modifier.width(10.vw),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.LightGray.copy(alpha = 0.2f),
-                contentColor = Color.White,
-                disabledBackgroundColor = Color.LightGray.copy(alpha = 0.7f),
-                disabledContentColor = Color.White,
-            )
-        ) {
-            Text(playBtnText)
-        }
-
-        Button(
-            onClick = onReset,
-            enabled = isResetBtnEnabled,
-            modifier = Modifier.width(10.vw),
-            colors = ButtonDefaults.buttonColors(
-                backgroundColor = Color.LightGray.copy(alpha = 0.2f),
-                contentColor = Color.White,
-                disabledBackgroundColor = Color.LightGray.copy(alpha = 0.7f),
-                disabledContentColor = Color.White,
-            )
-        ) {
-            Text(resetBtnTxt)
-        }
-
-        Slider(
-            value = evolutionSpeed,
-            onValueChange = onSpeedChange,
-            steps = 9,
-            modifier = Modifier.width(25.vw),
-            colors = SliderDefaults.colors(
-                activeTrackColor = Color.LightGray.copy(alpha = 0.2f),
-                thumbColor = Color.LightGray.copy(alpha = 0.5f),
-                activeTickColor = Color.White
-            )
-        )
-
-        Spacer(Modifier.weight(1f))
-
-        Text(
-            text = evolutionSpeedTxt,
-            color = Color.White,
-            fontSize = 20.sp
-        )
-
-        Text(
-            text = populationTxt,
-            color = Color.White,
-            fontSize = 20.sp
-        )
+        RoundButton(if (isPlaying) StrokeIcons.Pause else StrokeIcons.Play, playText, onPlayPause)
+        QuietButton(resetText, onReset, icon = StrokeIcons.Clear, enabled = !isPlaying && population > 0)
+        DripSlider("Speed", speedText, evolutionSpeed, onSpeedChange, 0f..1f, Modifier.width(240.dp), steps = 10)
+        Text(populationText, style = Autumn.type.readout.copy(fontSize = 14.sp), color = AutumnColors.Mist)
     }
 }
 
 private fun DrawScope.drawGrid(grid: Grid) {
     for (i in 0..grid.columns) {
         drawLine(
-            color = Color.Green,
+            color = GridLine,
             start = Offset(x = i * CELL_SIZE_PX, y = 0f),
             end = Offset(x = i * CELL_SIZE_PX, y = grid.height.toFloat()),
             strokeWidth = 1.dp.toPx()
@@ -187,7 +137,7 @@ private fun DrawScope.drawGrid(grid: Grid) {
 
     for (j in 0..grid.rows) {
         drawLine(
-            color = Color.Green,
+            color = GridLine,
             start = Offset(x = 0f, y = j * CELL_SIZE_PX),
             end = Offset(x = grid.width.toFloat(), y = j * CELL_SIZE_PX),
             strokeWidth = 1.dp.toPx()
@@ -198,12 +148,15 @@ private fun DrawScope.drawGrid(grid: Grid) {
 private fun DrawScope.drawAliveCells(cells: Set<Cell>) {
     for (cell in cells) {
         drawRect(
-            color = Color.Red,
+            color = AutumnColors.Lamp.copy(alpha = 0.9f),
             topLeft = Offset(cell.x * CELL_SIZE_PX, cell.y * CELL_SIZE_PX),
             size = Size(CELL_SIZE_PX, CELL_SIZE_PX),
         )
     }
 }
+
+/** DESIGN.md §8: a faint Rain-coloured grid; the cells are embers. */
+private val GridLine = AutumnColors.Rain.copy(alpha = 0.12f)
 
 inline val Float.twoDecimals: String
     get() {

@@ -1,33 +1,41 @@
 package com.cdodi.features.life
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.components.CompactPanel
-import com.cdodi.shell.LocalMenuLayout
-import kotlinx.coroutines.flow.StateFlow
 import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.shell.CornerHint
+import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.ui.components.Choice
+import com.cdodi.ui.components.DripSlider
+import com.cdodi.ui.components.Label
+import com.cdodi.ui.components.QuietButton
+import com.cdodi.ui.components.RoundButton
+import com.cdodi.ui.components.StrokeIcons
+import com.cdodi.ui.components.ToggleRow
+import com.cdodi.ui.components.formatThousands
+import com.cdodi.ui.theme.Autumn
+import com.cdodi.ui.theme.AutumnColors
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 
 /** The rules on offer, by name. Any other B/S rule still works through the URL (`#/life?rule=B36/S23`). */
@@ -38,86 +46,68 @@ private val namedRules = listOf(
     "Day & Night" to LifeRule.DayAndNight,
 )
 
-private val Quiet = Color.White.copy(alpha = 0.72f)
-private val Faint = Color.White.copy(alpha = 0.45f)
-
 /**
- * The Life page over its GPU scene: the grid itself is the scene underneath, so this is only the controls and the
- * readouts. The rule comes from the destination, so it is in the URL; picking another one navigates.
+ * The Life page over its GPU scene (DESIGN.md §8, the Game of Life mockup): the grid is the scene underneath, so this
+ * is one fog pane at the bottom left (the rule, play, step, speed and readouts), the GPU readout at the top right and a
+ * hint in the corner. The rule comes from the destination, so it's in the URL; picking another one navigates.
  */
 @Composable
 fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFlow<List<PassTiming>?>, onRuleChange: (LifeRule) -> Unit) {
     LaunchedEffect(rule) { controller.setRule(rule) }
     val status by controller.status.collectEachFrame()
+    val layout = LocalMenuLayout.current
+    val cells = "${status.width} × ${status.height} cells"
+    val ruleName = namedRules.firstOrNull { it.second == rule }?.first
 
-    val compact = LocalMenuLayout.current.compact
-    val extra = listOf("cells" to "${status.width} × ${status.height}")
-
-    Box(Modifier.fillMaxSize().padding(if (compact) 8.dp else 16.dp)) {
-        if (!compact) ProfilingHud(gpuTimings, Modifier.align(Alignment.TopEnd).padding(top = 104.dp), extra = extra)
-        // Rows that wrap: on a phone the buttons, the speed and the rules take a few lines each.
-        CompactPanel {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                QuietButton(if (status.isPaused) "Play" else "Pause", onClick = controller::playPause)
-                QuietButton("Step", enabled = status.isPaused, onClick = controller::step)
-                QuietButton("Scatter", onClick = controller::scatter)
-                QuietButton("Clear", onClick = controller::clear)
-                QuietButton("Fit", onClick = controller::fitView)
-                Slider(
-                    value = status.generationsPerSecond,
-                    onValueChange = controller::setSpeed,
-                    valueRange = LifeController.MIN_SPEED..LifeController.MAX_SPEED,
-                    modifier = Modifier.width(220.dp),
-                    colors = SliderDefaults.colors(activeTrackColor = Color.LightGray.copy(alpha = 0.3f), thumbColor = Color.LightGray.copy(alpha = 0.7f)),
-                )
-                Text("${status.generationsPerSecond.roundToInt()} gen/s", color = Quiet, fontSize = 16.sp)
-                QuietButton(if (status.wrap) "Edges wrap" else "Edges are walls") { controller.setWrap(!status.wrap) }
+    Box(Modifier.fillMaxSize().padding(if (layout.compact) 12.dp else 48.dp)) {
+        if (!layout.compact) ProfilingHud(gpuTimings, cells, Modifier.align(Alignment.TopEnd))
+        CompactPanel(width = 392.dp, modifier = Modifier.align(if (layout.compact) Alignment.TopEnd else Alignment.BottomStart)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Label("Simulation")
+                Text("Game of Life", style = Autumn.type.title, color = AutumnColors.Parchment)
+                Text(listOfNotNull(rule.toString(), ruleName).joinToString(" · "), style = Autumn.type.readout, color = AutumnColors.Lamp)
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
-                for ((name, namedRule) in namedRules) {
-                    QuietButton(name, selected = namedRule == rule) { onRuleChange(namedRule) }
-                }
-                Text(rule.toString(), color = Quiet, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
+            Choice(namedRules, rule, onRuleChange, textSize = 17.sp)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                RoundButton(if (status.isPaused) StrokeIcons.Play else StrokeIcons.Pause, if (status.isPaused) "Play" else "Pause", controller::playPause)
+                QuietButton(null, controller::step, icon = StrokeIcons.Step, description = "Step one generation", enabled = status.isPaused)
+                QuietButton(null, controller::scatter, icon = StrokeIcons.Scatter, description = "Scatter random cells")
+                QuietButton("Clear", controller::clear, icon = StrokeIcons.Clear)
+                QuietButton(null, controller::fitView, icon = StrokeIcons.Fit, description = "Fit the grid to the screen")
             }
-            if (compact) ProfilingHud(gpuTimings, extra = extra)
-        }
-
-        FlowRow(
-            Modifier.fillMaxWidth().align(Alignment.BottomStart),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = when {
-                    compact -> if (status.isPaused) "drag to draw" else "drag to pan"
-                    status.isPaused -> "drag to draw · shift-drag to erase · scroll to zoom · right-drag to pan"
-                    else -> "scroll to zoom · drag to pan"
-                },
-                color = Faint,
-                fontSize = 13.sp,
+            DripSlider(
+                label = "Speed",
+                valueText = "${status.generationsPerSecond.roundToInt()} gen/s",
+                value = status.generationsPerSecond,
+                onChange = controller::setSpeed,
+                range = LifeController.MIN_SPEED..LifeController.MAX_SPEED,
+                steps = (LifeController.MAX_SPEED - LifeController.MIN_SPEED).roundToInt(),
             )
-            Text(
-                text = "generation ${status.generation} · ${status.population} alive · ${status.width} × ${status.height}",
-                color = Quiet,
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Monospace,
-            )
+            ToggleRow("Edges wrap around", status.wrap, controller::setWrap)
+            Box(Modifier.fillMaxWidth().height(1.dp).background(AutumnColors.Parchment.copy(alpha = 0.08f)))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Figure("Generation", formatThousands(status.generation.toInt()), Modifier.weight(1.15f))
+                Figure("Alive", formatThousands(status.population), Modifier.weight(0.9f))
+                Figure("Grid", "${status.width} × ${status.height}", Modifier.weight(1.45f))
+            }
+            if (layout.compact) ProfilingHud(gpuTimings, cells, Modifier.fillMaxWidth())
         }
+        CornerHint(
+            when {
+                layout.compact -> if (status.isPaused) "Drag to draw" else "Drag to pan"
+                status.isPaused -> "Draw with the pointer · shift erases · scroll zooms"
+                else -> "Scroll zooms · drag pans · pause to draw"
+            },
+            Modifier.align(Alignment.BottomEnd),
+        )
     }
 }
 
+/** A readout under a label: the generation, the cells alive, the grid. */
 @Composable
-private fun QuietButton(text: String, enabled: Boolean = true, selected: Boolean = false, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = Color.LightGray.copy(alpha = if (selected) 0.45f else 0.18f),
-            contentColor = Color.White,
-            disabledBackgroundColor = Color.LightGray.copy(alpha = 0.08f),
-            disabledContentColor = Color.White.copy(alpha = 0.4f),
-        ),
-    ) {
-        Text(text)
+private fun Figure(label: String, value: String, modifier: Modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Label(label)
+        Text(value, style = Autumn.type.readout.copy(fontSize = 15.sp, letterSpacing = 0.sp), color = AutumnColors.Parchment, maxLines = 1)
     }
 }

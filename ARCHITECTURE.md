@@ -196,7 +196,7 @@ com.cdodi.webgpu
 │                 awaitLoss · onUncapturedError · errorScope { }
 ├── resource/     ResourceScope (creates and destroys raw GPUBuffer/GPUTexture objects)
 ├── shader/       compileShader() (compile diagnostics with line/column) · loading .wgsl comes with the scenes
-└── layout/       (later) UniformWriter · WGSL alignment helpers, see PLAN Phase 8
+└── layout/       (later) UniformWriter · WGSL alignment helpers, see PLAN Phase 9
 ```
 
 `composeApp` should only need `context`, `resource`, `shader`, `layout` and, inside scenes, `bindings`. `runtime` is an implementation detail of the generated code.
@@ -211,7 +211,8 @@ com.cdodi
 │   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
 │   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
 │   PageEffects (the page effects the site plays) · FeatureRegistry (later)
-│   Layout (MenuLayout: the menu's sizes from the viewport; compact below 600 dp, the phone layout)
+│   Layout (MenuLayout: the frame's sizes from the viewport; compact below 600 dp, the phone layout)
+│   Menu (MenuItem · the menu words that fly between Home and the top bar · HomeWindow · TopBar · hints)
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
@@ -225,10 +226,12 @@ com.cdodi
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, reduced motion)
-├── ui/                      design system (tokens from DESIGN.md), Compose only, no app logic
-│   theme/ · components/ (UiCard, buttons, sliders) · modifiers/ (morphingShape,
-│   animatePlacement, QuadVertexProgress) · units (vw, vh)
-│   (today in components/: MainMenu, the morph modifiers, CompactPanel: scene controls that fold on a phone)
+├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
+│   theme/       AutumnColors · AutumnType + bundled fonts · AutumnTheme · Motion (Settle, settling() on the heartbeat)
+│   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label
+│                glass (the fog pane) · glow · focusRing · drawThread
+├── components/              the menu's morph machinery: movableBodyCard (rhombus ⇄ page) · morphingShape ·
+│                            animatePlacement · morphScale · ProgressTween · CompactPanel
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutFeature · AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
@@ -252,6 +255,7 @@ composeResources/files/
 ├── notes/                   index.txt (the order) · <slug>.md (front matter + Markdown)
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
+composeResources/font/       Cormorant Garamond · Manrope · JetBrains Mono (OFL; licences in files/licenses)
 wasmJsMain/resources/        index.html (two layers + loading state; a plain-HTML summary for screen readers, search
                              engines and browsers without WasmGC; Open Graph tags) · styles.css · og.png · favicon.svg
 build/generated/notesSite/   generateNotesSite: notes/<slug>.html · notes/index.html · sitemap.xml · robots.txt

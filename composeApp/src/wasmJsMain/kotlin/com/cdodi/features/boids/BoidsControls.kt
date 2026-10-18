@@ -5,12 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,61 +15,66 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.components.CompactPanel
+import com.cdodi.shell.CornerHint
 import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.ui.components.DripSlider
+import com.cdodi.ui.components.Label
+import com.cdodi.ui.components.QuietButton
+import com.cdodi.ui.components.RoundButton
+import com.cdodi.ui.components.StrokeIcons
+import com.cdodi.ui.components.formatDecimal
+import com.cdodi.ui.components.formatThousands
+import com.cdodi.ui.theme.Autumn
+import com.cdodi.ui.theme.AutumnColors
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-private val Quiet = Color.White.copy(alpha = 0.72f)
-private val Faint = Color.White.copy(alpha = 0.45f)
-
 /**
- * The Boids page over its GPU scene: the flock is the scene underneath, so this is a panel of rules on the right
- * (DESIGN.md §8) and a line of hints. Changes reach the scene in its next frame.
+ * The Boids page over its GPU scene (DESIGN.md §8, the Boids mockup): the flock is the scene underneath, so this is a
+ * fog pane of rules on the right, the GPU readout at the bottom left and a hint in the corner. Changes reach the scene
+ * in its next frame.
  */
 @Composable
 fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTiming>?>) {
     val status by controller.status.collectEachFrame()
     val params = status.params
+    val layout = LocalMenuLayout.current
+    val title = "${formatThousands(status.count)} boids"
 
-    val compact = LocalMenuLayout.current.compact
-    val extra = listOf("boids" to formatThousands(status.count), "grid" to "${status.grid.first} × ${status.grid.second}")
-
-    Box(Modifier.fillMaxSize().padding(if (compact) 8.dp else 16.dp)) {
-        if (!compact) ProfilingHud(gpuTimings, Modifier.align(Alignment.TopStart), extra = extra)
-        CompactPanel(
-            modifier = Modifier.align(Alignment.TopEnd).then(if (compact) Modifier else Modifier.width(300.dp)),
-            spacing = 4.dp,
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuietButton(if (status.isPaused) "Play" else "Pause", controller::playPause)
-                QuietButton("Scatter", controller::scatter)
+    Box(Modifier.fillMaxSize().padding(if (layout.compact) 12.dp else 48.dp)) {
+        if (!layout.compact) ProfilingHud(gpuTimings, title, Modifier.align(Alignment.BottomStart))
+        CompactPanel(width = 340.dp, modifier = Modifier.align(Alignment.TopEnd), spacing = 16.dp) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Label("Simulation")
+                Text("Boids", style = Autumn.type.title, color = AutumnColors.Parchment)
+                Text("a murmuration under the rain", style = Autumn.type.verse.copy(fontSize = Autumn.type.verse.fontSize * 0.95f), color = AutumnColors.Fog)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundButton(if (status.isPaused) StrokeIcons.Play else StrokeIcons.Pause, if (status.isPaused) "Play" else "Pause", controller::playPause)
+                QuietButton("Scatter", controller::scatter, icon = StrokeIcons.Scatter)
             }
             FlockSize(status.count, controller::setCount)
-            Labelled("separation", params.separationWeight, 0f..4f, "%.1f") { v -> controller.setParams { it.copy(separationWeight = v) } }
-            Labelled("alignment", params.alignmentWeight, 0f..4f, "%.1f") { v -> controller.setParams { it.copy(alignmentWeight = v) } }
-            Labelled("cohesion", params.cohesionWeight, 0f..4f, "%.1f") { v -> controller.setParams { it.copy(cohesionWeight = v) } }
-            Labelled("perception", params.perception, 12f..64f, "%.0f px") { v ->
+            DripSlider("Separation", formatDecimal(params.separationWeight.toDouble(), 1), params.separationWeight, { v -> controller.setParams { it.copy(separationWeight = v) } }, 0f..4f, steps = 40)
+            DripSlider("Alignment", formatDecimal(params.alignmentWeight.toDouble(), 1), params.alignmentWeight, { v -> controller.setParams { it.copy(alignmentWeight = v) } }, 0f..4f, steps = 40)
+            DripSlider("Cohesion", formatDecimal(params.cohesionWeight.toDouble(), 1), params.cohesionWeight, { v -> controller.setParams { it.copy(cohesionWeight = v) } }, 0f..4f, steps = 40)
+            DripSlider("Perception", "${params.perception.roundToInt()} px", params.perception, { v ->
                 controller.setParams { it.copy(perception = v, separationDistance = v * 0.4f) }
-            }
-            Labelled("max speed", params.maxSpeed, 60f..400f, "%.0f px/s") { v -> controller.setParams { it.copy(maxSpeed = v, minSpeed = v / 2f) } }
-            if (compact) ProfilingHud(gpuTimings, Modifier.padding(top = 8.dp), extra = extra)
+            }, 12f..64f, steps = 52)
+            DripSlider("Max speed", "${params.maxSpeed.roundToInt()} px/s", params.maxSpeed, { v ->
+                controller.setParams { it.copy(maxSpeed = v, minSpeed = v / 2f) }
+            }, 60f..400f, steps = 34)
+            if (layout.compact) ProfilingHud(gpuTimings, title, Modifier.fillMaxWidth())
         }
-
-        Text(
-            text = if (compact) "drag to draw the flock in" else "left-drag draws the flock in · right-drag scatters it · scroll sets how far",
-            color = Faint,
-            fontSize = 13.sp,
-            modifier = Modifier.align(Alignment.BottomStart),
+        CornerHint(
+            if (layout.compact) "Drag to gather the flock" else "Left button gathers · right button scatters · scroll sets how far",
+            Modifier.align(Alignment.BottomEnd),
         )
     }
 }
@@ -83,39 +84,13 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
 private fun FlockSize(count: Int, onChange: (Int) -> Unit) {
     var exponent by remember(count) { mutableFloatStateOf(log2(count.toFloat())) }
     val shown = 2f.pow(exponent).roundToInt()
-    Column {
-        Text("flock  ${formatThousands(shown)} boids", color = Quiet, fontSize = 14.sp)
-        Slider(
-            value = exponent,
-            onValueChange = { exponent = it },
-            onValueChangeFinished = { onChange(shown) },
-            valueRange = 10f..20f,
-            colors = sliderColors(),
-        )
-    }
+    DripSlider(
+        label = "Flock size",
+        valueText = formatThousands(shown),
+        value = exponent,
+        onChange = { exponent = it },
+        range = 10f..20f,
+        steps = 10,
+        onChangeFinished = { onChange(shown) },
+    )
 }
-
-@Composable
-private fun Labelled(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onChange: (Float) -> Unit) {
-    Column {
-        Text("$label  ${format.replace("%.1f", value.oneDecimal()).replace("%.0f", value.roundToInt().toString())}", color = Quiet, fontSize = 14.sp)
-        Slider(value = value, onValueChange = onChange, valueRange = range, colors = sliderColors())
-    }
-}
-
-@Composable
-private fun sliderColors() = SliderDefaults.colors(activeTrackColor = Color.LightGray.copy(alpha = 0.3f), thumbColor = Color.LightGray.copy(alpha = 0.75f))
-
-@Composable
-private fun QuietButton(text: String, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(backgroundColor = Color.LightGray.copy(alpha = 0.18f), contentColor = Color.White),
-    ) {
-        Text(text)
-    }
-}
-
-private fun Float.oneDecimal(): String = ((this * 10).roundToInt() / 10f).toString()
-
-private fun formatThousands(value: Int): String = value.toString().reversed().chunked(3).joinToString(",").reversed()

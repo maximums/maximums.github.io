@@ -1,6 +1,5 @@
 package com.cdodi.pages
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,9 +24,6 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
@@ -37,6 +33,8 @@ import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.features.about.AboutContent
 import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.Autumn
 
 // DESIGN.md tokens.
 private val Night = Color(0xFF0D1013)
@@ -78,7 +76,7 @@ private fun Words(modifier: Modifier, compact: Boolean) {
             Column(
                 Modifier
                     .widthIn(max = 560.dp)
-                    .background(Night.copy(alpha = 0.72f))
+                    .glass(fill = { Night.copy(alpha = 0.72f) })
                     .verticalScroll(rememberScrollState())
                     .padding(if (compact) 20.dp else 40.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -91,10 +89,11 @@ private fun Words(modifier: Modifier, compact: Boolean) {
 
 @Composable
 private fun ColumnScope.Content(compact: Boolean) {
-    Text(AboutContent.NAME, color = Parchment, fontSize = if (compact) 34.sp else 44.sp, lineHeight = if (compact) 38.sp else 48.sp, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light)
-    Text(AboutContent.ROLE.uppercase(), color = Fog, fontSize = 11.sp, letterSpacing = 3.sp)
+    val type = Autumn.type
+    Text(AboutContent.NAME, style = if (compact) type.title else type.display.copy(fontSize = 56.sp, lineHeight = 56.sp), color = Parchment)
+    Text(AboutContent.ROLE.uppercase(), style = type.label, color = Fog)
     for (paragraph in AboutContent.paragraphs) {
-        Text(paragraph, color = Mist, fontSize = 16.sp, lineHeight = 26.sp)
+        Text(paragraph, style = type.body, color = Mist)
     }
     Label("Work")
     for (role in AboutContent.work) {
@@ -104,15 +103,15 @@ private fun ColumnScope.Content(compact: Boolean) {
                     append(role.title)
                     withStyle(SpanStyle(color = Fog)) { append(" · ${role.employer}") }
                 },
+                style = type.body.copy(fontSize = 15.sp),
                 color = Mist,
-                fontSize = 15.sp,
                 modifier = Modifier.weight(1f),
             )
-            Text(role.years, color = Fog, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+            Text(role.years, style = type.readout, color = Fog)
         }
     }
     Label("Tools")
-    Text(AboutContent.skills.joinToString("  ·  "), color = Fog, fontSize = 13.sp, lineHeight = 22.sp)
+    Text(AboutContent.skills.joinToString("  ·  "), style = type.small.copy(lineHeight = 22.sp), color = Fog)
     Label("Elsewhere")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (link in AboutContent.links) {
@@ -122,15 +121,15 @@ private fun ColumnScope.Content(compact: Boolean) {
                         append(link.label)
                     }
                 },
-                fontSize = 15.sp,
+                style = type.body.copy(fontSize = 15.sp),
             )
         }
     }
-    Text("Write-ups on how this site is built are under Notes.", color = Fog, fontSize = 14.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(top = 10.dp))
+    Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = Fog, modifier = Modifier.padding(top = 10.dp))
 }
 
-/** A small spaced-out heading over a group (DESIGN.md's Label). */
+/** A label over a group (DESIGN.md's Label), in Parchment to head a section. */
 @Composable
 private fun Label(text: String) {
-    Text(text.uppercase(), color = Parchment, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 3.sp, modifier = Modifier.padding(top = 14.dp))
+    com.cdodi.ui.components.Label(text, Modifier.padding(top = 14.dp), color = Parchment)
 }
