@@ -213,10 +213,11 @@ com.cdodi
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
-│   │                        LocalHeartbeat · LocalNavigationBus
+│   │                        ProfilingHud (GPU time per pass, frame rate) · LocalHeartbeat · LocalNavigationBus
 │   │   └── effects/         UiEffects (registry) · PageEffect · FadeEffect · PixelMeltEffect (SkSL)
 │   │                        Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
 │   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
+│   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, reduced motion)
@@ -230,17 +231,17 @@ com.cdodi
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
     │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls · LifeFeature (later)
     │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks (still in data/gameoflife)
-    └── boids/               BoidsFeature · BoidsDestination · BoidsScene · BoidsParams
-        ├── passes/          ClearPass · CountPass · ScanPass · ScatterPass · StepPass · RenderPass
-        ├── ui/              BoidsControls · ProfilingHud
-        └── reference/       small-N CPU step (the old Rule/Vec2 code)
+    └── boids/               BoidsDestination · BoidsParams (one set for CPU and GPU) · BoidsController · BoidsControls
+        │                    BoidsSimulation (naive step; grid: count → scan → scatter → 3×3 neighbours)
+        │                    BoidsScene (fog bank + instanced birds, 4× MSAA, pointer) · BoidsFeature (later)
+        └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
 
 composeResources/files/
 ├── shaders/common/          fullscreen.wgsl · noise.wgsl · scan.wgsl
 ├── shaders/background/      bokeh.wgsl
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/life/            step.wgsl · render.wgsl
-├── shaders/boids/           grid.wgsl · step.wgsl · render.wgsl
+├── shaders/boids/           step.wgsl (naive and grid kernels) · render.wgsl
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
 wasmJsMain/resources/        index.html (two layers + loading state) · styles.css
