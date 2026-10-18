@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -13,6 +14,7 @@ kotlin {
             commonWebpackConfig {
                 outputFileName = "composeApp.js"
             }
+            // Chrome flags and the test timeout live in karma.config.d/webgpu.js, so GPU tests get an adapter.
             testTask {
                 useKarma {
                     useChromeHeadless()
@@ -49,8 +51,12 @@ kotlin {
 
         wasmJsTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }
 
-
+tasks.withType<KotlinJsTest>().configureEach {
+    // Chrome flags live there; editing them must rerun the tests.
+    inputs.dir("karma.config.d").withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("karmaConfig")
+}

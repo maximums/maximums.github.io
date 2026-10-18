@@ -30,6 +30,9 @@ interface Scene : AutoCloseable {
 
     /** Records drawing into [target]: the canvas, or an offscreen texture of the same format and size. */
     fun encode(encoder: GPUCommandEncoder, target: GPUTextureView)
+
+    /** The frame that [encode] recorded into was submitted: the moment to start mapping buffers for readback. */
+    fun afterSubmit() {}
 }
 
 /** Which scene each route shows. Routes may share one scene (every page shows the background, for now). */

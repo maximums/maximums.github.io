@@ -18,6 +18,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
@@ -66,6 +68,13 @@ fun movableCard(
     }
 }
 
+/** DESIGN.md glass fills: fogged by default, cleared where the page's content is the scene behind it (Life's grid). */
+val FoggedPane = Color(0xA0_00_00_00)
+val ClearedPane = Color(0x29_10_14_18)
+
+/** The body card's fill, read while drawing so it can follow a transition frame by frame. */
+val LocalPaneFill = staticCompositionLocalOf<() -> Color> { { FoggedPane } }
+
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
     val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
@@ -73,12 +82,13 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
 
     return remember(effect) {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->
+            val paneFill = LocalPaneFill.current
             Box(
                 contentAlignment = targetShape.contentAlignment,
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape)
-                    .background(color = Color(0xA0_00_00_00))
+                    .drawBehind { drawRect(paneFill()) }
                     .then(if (isExpanded) Modifier else Modifier.graphicsLayer {
                         val builder = RuntimeShaderBuilder(effect).apply {
                             uniform("resolution", size.width, size.height)

@@ -55,6 +55,7 @@ class SceneHost(
     private val requested = mutableSetOf<Scene>()
     private val ready = mutableSetOf<Scene>()
     private val readyEffects = mutableSetOf<GpuEffectRenderer>()
+    private val encodedThisFrame = mutableSetOf<Scene>()
     private val sceneSubscriptions = mutableListOf<Subscription>()
     private var offscreen: Offscreen? = null
 
@@ -91,6 +92,8 @@ class SceneHost(
             is NavState.Transitioning -> drawTransition(nav, encoder, target, frame)
         }
         gpu.queue.submit(listOf(encoder.finish()).toJsArray())
+        encodedThisFrame.forEach { it.afterSubmit() }
+        encodedThisFrame.clear()
     }
 
     private fun drawTransition(nav: NavState.Transitioning, encoder: GPUCommandEncoder, target: GPUTextureView, frame: Frame) {
@@ -113,7 +116,12 @@ class SceneHost(
     }
 
     private fun draw(scene: Scene?, encoder: GPUCommandEncoder, target: GPUTextureView) {
-        if (scene != null && scene in ready) scene.encode(encoder, target) else FullscreenPass.clear(encoder, target)
+        if (scene != null && scene in ready) {
+            scene.encode(encoder, target)
+            encodedThisFrame += scene
+        } else {
+            FullscreenPass.clear(encoder, target)
+        }
     }
 
     private fun sceneOf(destination: Destination): Scene? = scenes.sceneFor(destination.route)
