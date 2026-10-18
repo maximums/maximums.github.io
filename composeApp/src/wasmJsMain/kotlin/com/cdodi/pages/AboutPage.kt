@@ -25,10 +25,12 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
@@ -90,10 +92,29 @@ private fun Words(modifier: Modifier, compact: Boolean) {
 @Composable
 private fun ColumnScope.Content(compact: Boolean) {
     Text(AboutContent.NAME, color = Parchment, fontSize = if (compact) 34.sp else 44.sp, lineHeight = if (compact) 38.sp else 48.sp, fontStyle = FontStyle.Italic, fontWeight = FontWeight.Light)
+    Text(AboutContent.ROLE.uppercase(), color = Fog, fontSize = 11.sp, letterSpacing = 3.sp)
     for (paragraph in AboutContent.paragraphs) {
         Text(paragraph, color = Mist, fontSize = 16.sp, lineHeight = 26.sp)
     }
-    FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Label("Work")
+    for (role in AboutContent.work) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+            Text(
+                buildAnnotatedString {
+                    append(role.title)
+                    withStyle(SpanStyle(color = Fog)) { append(" · ${role.employer}") }
+                },
+                color = Mist,
+                fontSize = 15.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Text(role.years, color = Fog, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+        }
+    }
+    Label("Tools")
+    Text(AboutContent.skills.joinToString("  ·  "), color = Fog, fontSize = 13.sp, lineHeight = 22.sp)
+    Label("Elsewhere")
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (link in AboutContent.links) {
             Text(
                 buildAnnotatedString {
@@ -105,5 +126,11 @@ private fun ColumnScope.Content(compact: Boolean) {
             )
         }
     }
-    Text("Write-ups on how this site is built are under Notes.", color = Fog, fontSize = 14.sp, fontStyle = FontStyle.Italic)
+    Text("Write-ups on how this site is built are under Notes.", color = Fog, fontSize = 14.sp, fontStyle = FontStyle.Italic, modifier = Modifier.padding(top = 10.dp))
+}
+
+/** A small spaced-out heading over a group (DESIGN.md's Label). */
+@Composable
+private fun Label(text: String) {
+    Text(text.uppercase(), color = Parchment, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 3.sp, modifier = Modifier.padding(top = 14.dp))
 }
