@@ -7,6 +7,7 @@ import com.cdodi.adapters.browser.followVisibility
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.transitions
 import com.cdodi.adapters.gpu.GpuCanvas
+import com.cdodi.adapters.gpu.GlassCompositor
 import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.adapters.gpu.PassTiming
@@ -153,7 +154,9 @@ private suspend fun runGpuLayer(
                 }
             }
         )
-        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope, profiler) { error ->
+        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope, profiler, GlassCompositor(widgets)) { error ->
+            // The stack goes to the console: a failure mid-frame is otherwise hard to place.
+            println(error.stackTraceToString())
             stopped.complete("the GPU layer failed: ${error.message}")
         }
         status.value = GpuStatus.Running

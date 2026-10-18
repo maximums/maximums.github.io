@@ -1,5 +1,6 @@
 package com.cdodi.components
 
+import com.cdodi.ui.components.GlassOutline
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -18,10 +19,28 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.cdodi.adapters.compose.effects.LocalMorph
 
 /**
- * Clips a layout to a quad that morphs towards [target] by the running morph ([LocalMorph]), from whatever shape it
- * has when the target changes.
+ * Where a morphing quad is this frame, for whoever else needs its outline: the GPU, which blurs the street behind the
+ * pane ([outline]).
  */
-class MorphingShapeModifierNode(var target: QuadVertexProgress) :
+class MorphingQuad {
+    var vertices = MorphingShape.Rectangle.toVertexesProgress()
+        internal set
+
+    /** The quad's corners in a [width] × [height] layout, as [QuadShape] draws them. */
+    val outline = GlassOutline { width, height, out ->
+        val v = vertices
+        out[0] = v.topStart * width; out[1] = 0f
+        out[2] = width; out[3] = height - v.topEnd * height
+        out[4] = v.bottomEnd * width; out[5] = height
+        out[6] = 0f; out[7] = height - v.bottomStart * height
+    }
+}
+
+/**
+ * Clips a layout to a quad that morphs towards [target] by the running morph ([LocalMorph]), from whatever shape it
+ * has when the target changes. [quad] hears where it is each frame.
+ */
+class MorphingShapeModifierNode(var target: QuadVertexProgress, var quad: MorphingQuad?) :
     LayoutModifierNode, CompositionLocalConsumerModifierNode, Modifier.Node() {
 
     private val vertices = ProgressTween<QuadVertexProgress>(::lerp)
@@ -29,6 +48,7 @@ class MorphingShapeModifierNode(var target: QuadVertexProgress) :
     override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
         val placeable = measurable.measure(constraints)
         val current = vertices.update(target, currentValueOf(LocalMorph).current())
+        quad?.vertices = current
 
         return layout(placeable.width, placeable.height) {
             placeable.placeWithLayer(0, 0) {
@@ -55,12 +75,14 @@ private data class QuadShape(private val vertices: QuadVertexProgress) : Shape {
     }
 }
 
-data class MorphingShapeModifierNodeElement(val targetShape: MorphingShape) : ModifierNodeElement<MorphingShapeModifierNode>() {
-    override fun create() = MorphingShapeModifierNode(targetShape.toVertexesProgress())
+data class MorphingShapeModifierNodeElement(val targetShape: MorphingShape, val quad: MorphingQuad?) : ModifierNodeElement<MorphingShapeModifierNode>() {
+    override fun create() = MorphingShapeModifierNode(targetShape.toVertexesProgress(), quad)
 
     override fun update(node: MorphingShapeModifierNode) {
         node.target = targetShape.toVertexesProgress()
+        node.quad = quad
     }
 }
 
-fun Modifier.morphingShape(targetShape: MorphingShape): Modifier = this then MorphingShapeModifierNodeElement(targetShape)
+fun Modifier.morphingShape(targetShape: MorphingShape, quad: MorphingQuad? = null): Modifier =
+    this then MorphingShapeModifierNodeElement(targetShape, quad)

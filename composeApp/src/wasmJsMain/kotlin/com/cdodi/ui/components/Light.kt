@@ -21,6 +21,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.InputMode
+import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.cdodi.ui.theme.AutumnColors
@@ -69,15 +71,16 @@ fun DrawScope.drawSoft(shape: Shape, offset: Offset, size: Size, color: Color, r
 }
 
 /**
- * DESIGN.md §6: focus is always visible, as a 1 px Lamp ring 3 px outside the element. Drawn only for keyboard focus
- * (a click doesn't leave a ring behind).
+ * DESIGN.md §6: focus is always visible, as a 1 px Lamp ring 3 px outside the element. Drawn only while the keyboard
+ * is in use: a click focuses an element too, and shouldn't leave a ring behind.
  */
 @Composable
 fun Modifier.focusRing(interaction: InteractionSource, shape: Shape): Modifier {
     val focused by interaction.collectIsFocusedAsState()
+    val inputMode = LocalInputModeManager.current
     return drawWithContent {
         drawContent()
-        if (focused) {
+        if (focused && inputMode.inputMode == InputMode.Keyboard) {
             val offset = 3.dp.toPx()
             val outline = shape.createOutline(Size(size.width + offset * 2, size.height + offset * 2), layoutDirection, this)
             val path = Path().apply { addOutline(outline); translate(Offset(-offset, -offset)) }

@@ -30,4 +30,34 @@ class GpuWidgets {
     fun remove(owner: Any) {
         widgets.remove(owner)
     }
+
+    /**
+     * A pane of glass (DESIGN.md §5) at [left], [top] × [width], [height] in device pixels of the window. [corners]
+     * writes its outline into 8 floats as a convex quad in its own pixels (a triangle repeats a corner); it's asked
+     * every frame, so a pane can change shape while it morphs. [blur] (0 cleared, 1 fogged), [wipe] (a band of
+     * clearness sweeping across, 0 to 1) and [visibility] are read every frame too.
+     */
+    class Pane(
+        val left: Float,
+        val top: Float,
+        val width: Float,
+        val height: Float,
+        val corners: (width: Float, height: Float, out: FloatArray) -> Unit,
+        val blur: () -> Float,
+        val wipe: () -> Float,
+        val visibility: () -> Float,
+    )
+
+    private val panes = LinkedHashMap<Any, Pane>()
+
+    /** The panes of glass, back to front: the scene host blurs what's behind them. */
+    val glass: Collection<Pane> get() = panes.values
+
+    fun reportPane(owner: Any, pane: Pane) {
+        panes[owner] = pane
+    }
+
+    fun removePane(owner: Any) {
+        panes.remove(owner)
+    }
 }

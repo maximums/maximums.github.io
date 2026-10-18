@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -29,6 +30,7 @@ import com.cdodi.adapters.compose.effects.LocalMorph
 import com.cdodi.adapters.compose.effects.MorphSource
 import com.cdodi.adapters.compose.effects.UiEffectIds
 import com.cdodi.adapters.compose.effects.morph
+import com.cdodi.adapters.compose.effects.progressOf
 import com.cdodi.adapters.input.InputLayer
 import com.cdodi.components.LocalPaneFill
 import com.cdodi.components.MorphingShape
@@ -53,13 +55,16 @@ import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.shell.AppRoot
 import com.cdodi.shell.AppRuntime
+import com.cdodi.shell.Caption
 import com.cdodi.shell.Colophon
 import com.cdodi.shell.CornerHint
 import com.cdodi.shell.GpuStatus
 import com.cdodi.shell.HomeWindow
 import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.shell.LocalPaneEffects
 import com.cdodi.shell.MenuItem
 import com.cdodi.shell.MenuLayout
+import com.cdodi.shell.PaneEffects
 import com.cdodi.shell.TopBar
 import com.cdodi.shell.WelcomeWords
 import com.cdodi.shell.bootstrap
@@ -115,6 +120,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
     val pageFog = if (gpu is GpuStatus.Running) AutumnColors.ClearedPane else AutumnColors.FogPane
     val paneFill = remember(homeness, pageFog) { { lerp(pageFog, WelcomeFog, homeness()) } }
     val pageEffects = rememberPageEffects()
+    val paneEffects = remember(navState) { navState.paneEffects() }
 
     fun open(destination: Destination) = navigation.send(NavIntent.NavigateTo(destination))
 
@@ -123,7 +129,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
     val labels = MenuItem.entries.associateWith { item -> rememberMenuLabel(item, interactions.getValue(item)) { open(item.destination()) } }
     val bodyCard = movableBodyCard()
 
-    CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill) {
+    CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill, LocalPaneEffects provides paneEffects) {
         Box(Modifier.fillMaxSize()) {
             if (atHome && gpu is GpuStatus.Unavailable) {
                 // DESIGN.md §8, No WebGPU: one pane over the still scene instead of the window.
@@ -171,15 +177,63 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                         }
                     }
                 }
-                TopBar(layout, AboutContent.NAME, onHome = { open(HomeDestination) }, solid = { 1f - homeness() }) {
+                TopBar(layout, AboutContent.NAME, onHome = { open(HomeDestination) }, solid = { navState.value.barSolidity() }) {
                     for (item in MenuItem.entries) labels.getValue(item)(Modifier, false, item.isAt(target))
                 }
+            }
+
+            val caption = captionFor(navState.value)
+            if (caption != null) {
+                // It fades in while the fog holds, and out as the page arrives.
+                Caption(caption, alpha = { navState.value.captionAlpha() }, modifier = Modifier.align(Alignment.Center))
             }
 
             if (gpu is GpuStatus.Running && atHome) {
                 QualityToggle(runtime.background, runtime.gpuTimings, Modifier.align(Alignment.BottomEnd).padding(end = layout.margin, bottom = if (layout.compact) 12.dp else 36.dp))
             }
         }
+    }
+}
+
+/**
+ * What "Breath on the window" does to Home's panes now: the pane for the scene being opened (or returned from) is
+ * wiped, the others thicken, its word glows. Each follows its effect's progress, so going back fogs them over again.
+ */
+private fun State<NavState>.paneEffects(): PaneEffects {
+    fun chosen(item: MenuItem): Boolean {
+        val nav = value as? NavState.Transitioning ?: return false
+        return (nav.from == HomeDestination && item.isAt(nav.to)) || (nav.to == HomeDestination && item.isAt(nav.from))
+    }
+    return PaneEffects(
+        wipe = { item -> if (chosen(item)) value.progressOf(UiEffectIds.FOG_WIPE) ?: 0f else 0f },
+        thicken = { item -> if (chosen(item)) 0f else value.progressOf(UiEffectIds.FOG_THICKEN) ?: 0f },
+        glow = { item -> if (chosen(item)) value.progressOf(UiEffectIds.LABEL_GLOW) ?: 0f else 0f },
+    )
+}
+
+/**
+ * How condensed the top bar is: following `condense` when the transition plays it; before it has started, still
+ * dissolved if the transition left Home; solid otherwise (one page to another).
+ */
+private fun NavState.barSolidity(): Float = when (this) {
+    is NavState.Idle -> 1f
+    is NavState.Transitioning -> progressOf(UiEffectIds.CONDENSE) ?: if (from == HomeDestination) 0f else 1f
+}
+
+private fun NavState.captionAlpha(): Float {
+    val shown = progressOf(UiEffectIds.CAPTION) ?: return 0f
+    val arrived = (this as? NavState.Transitioning)?.effects?.firstOrNull { it.effect.id == UiEffectIds.FADE }?.travelled ?: 0f
+    return shown * (1f - arrived)
+}
+
+/** The line of verse while the fog holds on the way to a scene (DESIGN.md §10: placeholder copy). */
+private fun captionFor(nav: NavState): String? {
+    if (nav !is NavState.Transitioning) return null
+    val scene = if (nav.from == HomeDestination) nav.to else if (nav.to == HomeDestination) nav.from else return null
+    return when {
+        scene == BoidsDestination -> "the flock is gathering"
+        scene is LifeDestination -> "the embers are catching"
+        else -> null
     }
 }
 
