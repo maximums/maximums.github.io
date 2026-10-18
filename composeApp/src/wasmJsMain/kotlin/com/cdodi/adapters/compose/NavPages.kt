@@ -3,6 +3,7 @@ package com.cdodi.adapters.compose
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -13,6 +14,7 @@ import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.graphicsLayer
 import com.cdodi.adapters.compose.effects.PageEffect
 import com.cdodi.adapters.compose.effects.PageRole
+import com.cdodi.adapters.compose.effects.visibilityOf
 import com.cdodi.core.navigation.NavState
 import com.cdodi.core.navigation.graph.Destination
 
@@ -38,8 +40,11 @@ fun NavPages(
     Box(modifier) {
         for ((destination, role) in layers) {
             key(destination) {
-                Box(Modifier.fillMaxSize().graphicsLayer { style(navState.value, role, effects) }) {
-                    page(destination)
+                val visibility = remember(role, effects) { { navState.value.visibilityOf(role, effects) } }
+                CompositionLocalProvider(LocalPageVisibility provides visibility) {
+                    Box(Modifier.fillMaxSize().graphicsLayer { style(navState.value, role, effects) }) {
+                        page(destination)
+                    }
                 }
             }
         }
@@ -53,7 +58,7 @@ private fun NavState.layers(): List<Pair<Destination, PageRole?>> = when (this) 
 
 private fun GraphicsLayerScope.style(nav: NavState, role: PageRole?, effects: List<PageEffect>) {
     if (role == null || nav !is NavState.Transitioning) return
-    alpha = if (role == PageRole.Entering) 0f else 1f
+    alpha = nav.visibilityOf(role, effects)
     for (state in nav.effects) {
         val effect = effects.firstOrNull { it.id == state.effect.id } ?: continue
         with(effect) { apply(state, role, nav) }

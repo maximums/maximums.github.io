@@ -7,29 +7,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import org.jetbrains.skia.Data
-
-// Packs Int and Float uniforms into a Skia-compatible byte array.
-// Uses little-endian byte order, matching Skia's RuntimeEffect expectations on all Wasm/x86/ARM targets.
-fun uniformData(vararg data: Number): Data {
-    return ByteArray(size = data.sumOf { Int.SIZE_BYTES }).run {
-        data.forEachIndexed { index, number -> number.populate(array = this, offset = index * Int.SIZE_BYTES ) }
-        Data.makeFromBytes(bytes = this)
-    }
-}
-
-private fun Number.populate(array: ByteArray, offset: Int) {
-    val number = when (this) {
-        is Int -> this
-        is Float -> toBits()
-        else -> throw IllegalArgumentException("uniformData only supports Int and Float, got ${this::class}")
-    }
-
-    // Little-endian: least significant byte first
-    repeat(Int.SIZE_BYTES) { byteIdx ->
-        array[byteIdx + offset] = (number shr (byteIdx * Byte.SIZE_BITS)).toByte()
-    }
-}
 
 @Immutable
 data class ViewportSize(val width: Dp, val height: Dp)

@@ -8,6 +8,7 @@ import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.transitions
 import com.cdodi.adapters.gpu.GpuCanvas
 import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.adapters.gpu.SceneHost
 import com.cdodi.adapters.gpu.SceneRegistry
@@ -28,6 +29,7 @@ import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Heartbeat
 import com.cdodi.features.background.BackgroundScene
+import com.cdodi.features.background.BackgroundSettings
 import com.cdodi.features.boids.BoidsController
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.boids.BoidsScene
@@ -68,6 +70,9 @@ class AppRuntime(
     val boids: BoidsController,
     /** GPU time per pass, or null when the browser can't time GPU passes. */
     val gpuTimings: StateFlow<List<PassTiming>?>,
+    /** UI elements the background draws behind. */
+    val widgets: GpuWidgets,
+    val background: BackgroundSettings,
 )
 
 fun bootstrap(): AppRuntime {
@@ -91,10 +96,12 @@ fun bootstrap(): AppRuntime {
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
     val gpuTimings = MutableStateFlow<List<PassTiming>?>(null)
+    val widgets = GpuWidgets()
+    val background = BackgroundSettings()
     val scope = MainScope()
-    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, scope, gpu) }
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, scope, gpu) }
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow())
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background)
 }
 
 /**
@@ -111,6 +118,8 @@ private suspend fun runGpuLayer(
     life: LifeController,
     boids: BoidsController,
     gpuTimings: MutableStateFlow<List<PassTiming>?>,
+    widgets: GpuWidgets,
+    backgroundSettings: BackgroundSettings,
     scope: CoroutineScope,
     status: MutableStateFlow<GpuStatus>,
 ) {
@@ -129,7 +138,7 @@ private suspend fun runGpuLayer(
         val profiler = if (gpu.hasFeature(GpuProfiler.FEATURE)) GpuProfiler(gpu, scope, gpuTimings) else null.also { gpuTimings.value = null }
         val stopped = CompletableDeferred<String>()
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
-        val background = BackgroundScene(heartbeat.ambient)
+        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, profiler)
         val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, profiler)
         val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, profiler)
         val scenes = SceneRegistry(

@@ -36,8 +36,12 @@ import kotlinx.coroutines.launch
  * routes, which condition-based edges wait on. A scene that isn't ready draws as Night. Visible scenes are stepped
  * on their own clocks in the Simulation phase; drawing happens in the Render phase.
  *
- * A failure while drawing closes the host and is reported to [onFailure] instead of propagating: an exception in the
- * Render phase would otherwise stop the heartbeat, and with it everything on the page.
+ * The drawing itself waits for a microtask queued in the Render phase. In a Compose frame the heartbeat ticks first and
+ * Compose lays out after, so drawing during the tick would put what the scene draws behind UI elements (see
+ * [GpuWidgets]) where they were a frame ago, visibly trailing a card that's moving. The microtask runs once Compose has
+ * laid out and drawn the same frame, and both canvases still show in the same browser frame.
+ *
+ * A failure while drawing closes the host and is reported to [onFailure] instead of propagating.
  */
 class SceneHost(
     private val gpu: GpuContext,
@@ -62,11 +66,14 @@ class SceneHost(
 
     private var isClosed = false
     private val renderSubscription = heartbeat.subscribe(FramePhase.Render) { frame ->
-        try {
-            render(frame)
-        } catch (e: Throwable) {
-            close()
-            onFailure(e)
+        queueMicrotask {
+            if (isClosed) return@queueMicrotask
+            try {
+                render(frame)
+            } catch (e: Throwable) {
+                close()
+                onFailure(e)
+            }
         }
     }
 
@@ -204,3 +211,6 @@ class SceneHost(
         }
     }
 }
+
+/** Runs [callback] once the current task (here, Compose's frame) has finished, before the browser shows the frame. */
+private fun queueMicrotask(callback: () -> Unit): Unit = js("queueMicrotask(callback)")
