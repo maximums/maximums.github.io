@@ -19,9 +19,9 @@ data class BoidsStatus(
  * Between the Boids page and its GPU scene: the page sets the rule weights, the perception radius, the speed and the
  * flock size; the scene applies them in its next frame. Play and pause are the boids clock's pause.
  */
-class BoidsController(private val clock: Clock) {
+class BoidsController(private val clock: Clock, initialCount: Int = DEFAULT_COUNT) {
 
-    private val mutableStatus = MutableStateFlow(BoidsStatus(isPaused = clock.isPaused))
+    private val mutableStatus = MutableStateFlow(BoidsStatus(isPaused = clock.isPaused, count = initialCount))
     val status: StateFlow<BoidsStatus> = mutableStatus.asStateFlow()
 
     internal var scatterRequested = false
@@ -52,6 +52,9 @@ class BoidsController(private val clock: Clock) {
         const val CLOCK = "boids"
 
         const val DEFAULT_COUNT = 32_768
+
+        /** A phone's first flock: its GPU and its screen are both smaller. */
+        const val SMALL_SCREEN_COUNT = 8_192
         const val MIN_COUNT = 1_024
         const val MAX_COUNT = 1_048_576
     }

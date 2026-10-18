@@ -117,7 +117,8 @@ class NotesSite(private val siteUrl: String, private val author: String) {
             header.site,main{max-width:46rem;margin:0 auto;padding:0 20px}
             header.site{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:baseline;justify-content:space-between;padding-top:28px}
             header.site .name{font:italic 300 24px/1 "Cormorant Garamond",Georgia,serif;color:var(--parchment);text-decoration:none}
-            header.site nav a{margin-left:20px;font:600 11px/1 Manrope,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--fog);text-decoration:none}
+            header.site nav{display:flex;gap:20px}
+            header.site nav a{font:600 11px/1 Manrope,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:var(--fog);text-decoration:none}
             header.site nav a:hover{color:var(--parchment)}
             main{padding-top:48px;padding-bottom:96px}
             h1{font:italic 300 clamp(40px,8vw,64px)/1 "Cormorant Garamond",Georgia,serif;color:var(--parchment);margin:8px 0 32px}

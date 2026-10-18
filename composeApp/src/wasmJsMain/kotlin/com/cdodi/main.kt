@@ -9,7 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ComposeViewport
@@ -20,6 +23,7 @@ import com.cdodi.adapters.compose.LocalNavigationBus
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.compose.NavPages
 import com.cdodi.adapters.compose.effects.LocalMorph
+import com.cdodi.adapters.compose.effects.Morph
 import com.cdodi.adapters.compose.effects.MorphSource
 import com.cdodi.adapters.compose.effects.UiEffectIds
 import com.cdodi.adapters.compose.effects.morph
@@ -38,13 +42,16 @@ import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.LifeControls
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
+import com.cdodi.features.notes.NotesDestination
+import com.cdodi.features.notes.NotesPage
 import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
-import com.cdodi.pages.SmallScreenPage
 import com.cdodi.shell.AppRoot
 import com.cdodi.shell.AppRuntime
 import com.cdodi.shell.GpuStatus
+import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.shell.MenuLayout
 import com.cdodi.shell.bootstrap
 import com.cdodi.shell.rememberPageEffects
 
@@ -71,6 +78,7 @@ fun main() {
 @Composable
 private fun App(runtime: AppRuntime) {
     val gpu = runtime.gpu.collectAsState().value
+    val layout = LocalMenuLayout.current
     MaterialTheme {
         LookaheadScope {
             // A Box, not a Material Surface: a Surface blocks pointer events from reaching what's behind it, and behind
@@ -80,14 +88,10 @@ private fun App(runtime: AppRuntime) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(layout.margin),
                 propagateMinConstraints = true,
             ) {
-                if (LocalIsSmallWindow.current) {
-                    SmallScreenPage()
-                } else {
-                    AppContent(runtime, gpu)
-                }
+                AppContent(runtime, gpu, layout)
             }
             if (gpu is GpuStatus.Unavailable) FallbackNotice()
         }
@@ -96,18 +100,19 @@ private fun App(runtime: AppRuntime) {
 
 @Composable
 private fun FallbackNotice() {
-    Box(Modifier.fillMaxSize().padding(bottom = 16.dp), contentAlignment = Alignment.BottomCenter) {
+    Box(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 16.dp), contentAlignment = Alignment.BottomCenter) {
         Text(
             text = "The rain can't reach this browser: without WebGPU, this is a simpler copy of the scene.",
             fontSize = 14.sp,
             fontStyle = FontStyle.Italic,
+            textAlign = TextAlign.Center,
             color = Color(0xFF8C9499), // DESIGN.md: Fog
         )
     }
 }
 
 @Composable
-private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
+private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layout: MenuLayout) {
     val navigation = LocalNavigationBus.current
     val navState = navigation.state.collectEachFrame()
     // The layout switches sides when the menu morph starts: at the click going to a page, but only after the page has
@@ -119,23 +124,13 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
 
     fun open(destination: Destination): () -> Unit = { navigation.send(NavIntent.NavigateTo(destination)) }
 
-    val cardModifier = Modifier.size(15.vw)
-    val homeButton = movableCard(
-        text = "Home",
-        onClick = open(HomeDestination)
-    )
-    val aboutButton = movableCard(
-        text = "About",
-        onClick = open(AboutDestination)
-    )
-    val boidsButton = movableCard(
-        text = "Boids",
-        onClick = open(BoidsDestination)
-    )
-    val lifeButton = movableCard(
-        text = "Game Of Life",
-        onClick = open(LifeDestination())
-    )
+    val atHome = layoutAt == HomeDestination
+    val homeButton = movableCard("Home", layout.label, open(HomeDestination))
+    val aboutButton = movableCard("About", layout.label, open(AboutDestination))
+    val notesButton = movableCard("Notes", layout.label, open(NotesDestination()))
+    val boidsButton = movableCard("Boids", layout.label, open(BoidsDestination))
+    // A phone's top row has no room for the full name.
+    val lifeButton = movableCard(if (layout.compact && !atHome) "Life" else "Game Of Life", layout.label, open(LifeDestination()))
     val bodyCard = movableBodyCard()
 
     CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill) {
@@ -147,39 +142,45 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
                 Modifier.align(Alignment.BottomEnd).offset(y = 20.dp),
             )
         }
-        if (layoutAt == HomeDestination) {
+        if (atHome) {
+            val pane = Modifier.size(layout.pane)
             MainMenu(
+                size = layout.window,
                 body = {
-                    bodyCard(Modifier.size(20.vw).align(Alignment.Center), MorphingShape.Rhombus, false) {
+                    bodyCard(Modifier.size(layout.rhombus).align(Alignment.Center), MorphingShape.Rhombus, false) {
                         Text(
                             text = "Welcome",
-                            fontSize = 30.sp, color = Color(0xa0_5a_d6_ff),
+                            fontSize = layout.welcome, color = Color(0xa0_5a_d6_ff),
                         )
                     }
                 },
                 menuContent = {
-                    homeButton(cardModifier.align(Alignment.TopStart), MorphingShape.TriangleTopStart)
-                    aboutButton(cardModifier.align(Alignment.TopEnd), MorphingShape.TriangleTopEnd)
-                    boidsButton(cardModifier.align(Alignment.BottomStart), MorphingShape.TriangleBottomStart)
-                    lifeButton(cardModifier.align(Alignment.BottomEnd), MorphingShape.TriangleBottomEnd)
+                    aboutButton(pane.align(Alignment.TopStart), MorphingShape.TriangleTopStart)
+                    notesButton(pane.align(Alignment.TopEnd), MorphingShape.TriangleTopEnd)
+                    boidsButton(pane.align(Alignment.BottomStart), MorphingShape.TriangleBottomStart)
+                    lifeButton(pane.align(Alignment.BottomEnd), MorphingShape.TriangleBottomEnd)
                 },
             )
         } else {
-            TopBarForm {
-                homeButton(topBarModifier, MorphingShape.Rectangle)
-                aboutButton(topBarModifier, MorphingShape.Rectangle)
-                boidsButton(topBarModifier, MorphingShape.Rectangle)
-                lifeButton(topBarModifier, MorphingShape.Rectangle)
+            val pane = Modifier.size(layout.bar)
+            TopBarForm(layout.barGap) {
+                // Home has no pane on Home, so it has nothing to morph from: it fades in with the morph instead.
+                homeButton(pane.graphicsLayer { alpha = (morph.current() as? Morph.Moving)?.fraction ?: 1f }, MorphingShape.Rectangle)
+                aboutButton(pane, MorphingShape.Rectangle)
+                notesButton(pane, MorphingShape.Rectangle)
+                boidsButton(pane, MorphingShape.Rectangle)
+                lifeButton(pane, MorphingShape.Rectangle)
             }
 
             bodyCard(
-                Modifier.fillMaxWidth().height(80f.vh).align(Alignment.BottomCenter),
+                Modifier.fillMaxSize().padding(top = layout.pageTop),
                 MorphingShape.Rectangle,
                 true
             ) {
                 NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
                     when (destination) {
                         AboutDestination -> AboutPage()
+                        is NotesDestination -> NotesPage(destination.slug) { navigation.send(NavIntent.NavigateTo(it)) }
                         BoidsDestination -> if (gpu is GpuStatus.Running) BoidsControls(runtime.boids, runtime.gpuTimings) else BoidsPage()
                         // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.
                         is LifeDestination -> if (gpu is GpuStatus.Running) {
@@ -216,11 +217,11 @@ private fun NavState.layoutAt(): Destination = when (this) {
 }
 
 @Composable
-private fun BoxScope.TopBarForm(content: @Composable () -> Unit) {
+private fun BoxScope.TopBarForm(gap: Dp, content: @Composable () -> Unit) {
     Row(
         modifier = Modifier.align(Alignment.TopCenter),
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(gap)
     ) {
         content()
     }

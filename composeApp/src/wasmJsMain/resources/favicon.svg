@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- A lamp-lit raindrop on Night (DESIGN.md). -->
+  <rect width="32" height="32" rx="6" fill="#0D1013"/>
+  <path d="M16 5c4.6 6.4 7 10.6 7 13.6a7 7 0 0 1-14 0C9 15.6 11.4 11.4 16 5z" fill="#D8A15A"/>
+</svg>

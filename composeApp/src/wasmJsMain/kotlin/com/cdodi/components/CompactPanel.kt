@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.shell.LocalMenuLayout
@@ -34,14 +37,15 @@ private val PanelFill = Color(0xD80D1013)
  * fold behind a "Controls" button, and open over a fog fill.
  */
 @Composable
-fun CompactPanel(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun CompactPanel(modifier: Modifier = Modifier, spacing: Dp = 12.dp, content: @Composable ColumnScope.() -> Unit) {
     if (!LocalMenuLayout.current.compact) {
-        Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing), content = content)
         return
     }
     var open by rememberSaveable { mutableStateOf(false) }
     Column(
-        modifier = modifier.fillMaxWidth().then(if (open) Modifier.background(PanelFill).padding(8.dp) else Modifier),
+        // Open, the controls can be taller than a phone: they scroll.
+        modifier = modifier.fillMaxWidth().then(if (open) Modifier.verticalScroll(rememberScrollState()).background(PanelFill).padding(8.dp) else Modifier),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(

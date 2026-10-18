@@ -10,9 +10,10 @@ import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.LifeDestination
+import com.cdodi.features.notes.NotesDestination
 
 /** The order of the menu, which also decides which way a page melts. */
-val menuOrder = listOf(HomeDestination, AboutDestination, BoidsDestination, LifeDestination)
+val menuOrder = listOf(HomeDestination, AboutDestination, NotesDestination, BoidsDestination, LifeDestination)
 
 /**
  * Every effect the site can draw, on either layer. GPU effects count whether or not WebGPU turns out to be available,

@@ -2,9 +2,7 @@ package com.cdodi.features.life
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
+import com.cdodi.components.CompactPanel
+import com.cdodi.shell.LocalMenuLayout
 import kotlinx.coroutines.flow.StateFlow
 import com.cdodi.data.gameoflife.LifeRule
 import kotlin.math.roundToInt
@@ -50,16 +50,19 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
     LaunchedEffect(rule) { controller.setRule(rule) }
     val status by controller.status.collectEachFrame()
 
-    Box(Modifier.fillMaxSize().padding(16.dp)) {
-        ProfilingHud(gpuTimings, Modifier.align(Alignment.TopEnd).padding(top = 104.dp), extra = listOf("cells" to "${status.width} × ${status.height}"))
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    val compact = LocalMenuLayout.current.compact
+    val extra = listOf("cells" to "${status.width} × ${status.height}")
+
+    Box(Modifier.fillMaxSize().padding(if (compact) 8.dp else 16.dp)) {
+        if (!compact) ProfilingHud(gpuTimings, Modifier.align(Alignment.TopEnd).padding(top = 104.dp), extra = extra)
+        // Rows that wrap: on a phone the buttons, the speed and the rules take a few lines each.
+        CompactPanel {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 QuietButton(if (status.isPaused) "Play" else "Pause", onClick = controller::playPause)
                 QuietButton("Step", enabled = status.isPaused, onClick = controller::step)
                 QuietButton("Scatter", onClick = controller::scatter)
                 QuietButton("Clear", onClick = controller::clear)
                 QuietButton("Fit", onClick = controller::fitView)
-                Spacer(Modifier.width(12.dp))
                 Slider(
                     value = status.generationsPerSecond,
                     onValueChange = controller::setSpeed,
@@ -68,24 +71,31 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
                     colors = SliderDefaults.colors(activeTrackColor = Color.LightGray.copy(alpha = 0.3f), thumbColor = Color.LightGray.copy(alpha = 0.7f)),
                 )
                 Text("${status.generationsPerSecond.roundToInt()} gen/s", color = Quiet, fontSize = 16.sp)
-                Spacer(Modifier.width(12.dp))
                 QuietButton(if (status.wrap) "Edges wrap" else "Edges are walls") { controller.setWrap(!status.wrap) }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 for ((name, namedRule) in namedRules) {
                     QuietButton(name, selected = namedRule == rule) { onRuleChange(namedRule) }
                 }
                 Text(rule.toString(), color = Quiet, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
             }
+            if (compact) ProfilingHud(gpuTimings, extra = extra)
         }
 
-        Row(Modifier.fillMaxWidth().align(Alignment.BottomStart), verticalAlignment = Alignment.Bottom) {
+        FlowRow(
+            Modifier.fillMaxWidth().align(Alignment.BottomStart),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
             Text(
-                text = if (status.isPaused) "drag to draw · shift-drag to erase · scroll to zoom · right-drag to pan" else "scroll to zoom · drag to pan",
+                text = when {
+                    compact -> if (status.isPaused) "drag to draw" else "drag to pan"
+                    status.isPaused -> "drag to draw · shift-drag to erase · scroll to zoom · right-drag to pan"
+                    else -> "scroll to zoom · drag to pan"
+                },
                 color = Faint,
                 fontSize = 13.sp,
             )
-            Spacer(Modifier.weight(1f))
             Text(
                 text = "generation ${status.generation} · ${status.population} alive · ${status.width} × ${status.height}",
                 color = Quiet,

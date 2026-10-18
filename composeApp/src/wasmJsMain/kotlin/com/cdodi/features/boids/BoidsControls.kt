@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
+import com.cdodi.components.CompactPanel
+import com.cdodi.shell.LocalMenuLayout
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.log2
 import kotlin.math.pow
@@ -43,15 +45,14 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
     val status by controller.status.collectEachFrame()
     val params = status.params
 
-    Box(Modifier.fillMaxSize().padding(16.dp)) {
-        ProfilingHud(
-            gpuTimings,
-            Modifier.align(Alignment.TopStart),
-            extra = listOf("boids" to formatThousands(status.count), "grid" to "${status.grid.first} × ${status.grid.second}"),
-        )
-        Column(
-            modifier = Modifier.align(Alignment.TopEnd).width(300.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    val compact = LocalMenuLayout.current.compact
+    val extra = listOf("boids" to formatThousands(status.count), "grid" to "${status.grid.first} × ${status.grid.second}")
+
+    Box(Modifier.fillMaxSize().padding(if (compact) 8.dp else 16.dp)) {
+        if (!compact) ProfilingHud(gpuTimings, Modifier.align(Alignment.TopStart), extra = extra)
+        CompactPanel(
+            modifier = Modifier.align(Alignment.TopEnd).then(if (compact) Modifier else Modifier.width(300.dp)),
+            spacing = 4.dp,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 QuietButton(if (status.isPaused) "Play" else "Pause", controller::playPause)
@@ -65,10 +66,11 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
                 controller.setParams { it.copy(perception = v, separationDistance = v * 0.4f) }
             }
             Labelled("max speed", params.maxSpeed, 60f..400f, "%.0f px/s") { v -> controller.setParams { it.copy(maxSpeed = v, minSpeed = v / 2f) } }
+            if (compact) ProfilingHud(gpuTimings, Modifier.padding(top = 8.dp), extra = extra)
         }
 
         Text(
-            text = "left-drag draws the flock in · right-drag scatters it · scroll sets how far",
+            text = if (compact) "drag to draw the flock in" else "left-drag draws the flock in · right-drag scatters it · scroll sets how far",
             color = Faint,
             fontSize = 13.sp,
             modifier = Modifier.align(Alignment.BottomStart),

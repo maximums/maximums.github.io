@@ -2,7 +2,6 @@ package com.cdodi.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
@@ -23,21 +22,23 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
-import com.cdodi.vw
 
-val topBarModifier = Modifier.size(300.dp, 100.dp)
-
+/** A pane of the menu: a triangle around the Welcome rhombus on Home, a rectangle in the top row elsewhere. */
 @Composable
 fun movableCard(
     text: String,
+    fontSize: TextUnit,
     onClick: () -> Unit,
 ): @Composable LookaheadScope.(Modifier, MorphingShape) -> Unit {
 
-    val interactionSource = remember { MutableInteractionSource() }
+    val currentText by rememberUpdatedState(text)
+    val currentFontSize by rememberUpdatedState(fontSize)
     val currentOnClick by rememberUpdatedState(onClick)
 
     return remember {
@@ -53,8 +54,8 @@ fun movableCard(
             ) {
                 Text(
                     modifier = Modifier.animatePlacement(this@movableContentWithReceiverOf),
-                    text = text,
-                    fontSize = 24.sp,
+                    text = currentText,
+                    fontSize = currentFontSize,
                     color = Color(0xa0_5a_d6_ff),
                 )
             }
@@ -112,12 +113,13 @@ fun <R, P1, P2, P3, P4> movableContentWithReceiverOf(
 
 @Composable
 fun MainMenu(
+    size: Dp,
     body: @Composable BoxScope.() -> Unit,
     menuContent: @Composable BoxScope.() -> Unit,
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(30.vw)
+        modifier = Modifier.size(size)
     ) {
         menuContent()
         body()
