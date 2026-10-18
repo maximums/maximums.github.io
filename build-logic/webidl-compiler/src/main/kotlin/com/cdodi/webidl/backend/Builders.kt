@@ -61,17 +61,17 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
     }
 
     members.filterIsInstance<InterfaceMember.FunctionDescriptor>().forEach { function ->
-        function.overloads(context, generatedPackageName).forEach { parameterTypes ->
+        function.callableShapes(context, generatedPackageName).forEach { parameterTypes ->
             val funBuilder = if (function.name == "constructor") {
                 FunSpec.constructorBuilder()
             } else {
                 FunSpec.builder(function.name).returns(function.returnType.toKotlin(context, generatedPackageName))
             }
 
-            funBuilder.addKdoc(docs.forMember(function))
+            funBuilder.addKdoc(docs.forMember(function, parameterTypes.size))
             function.parameters.zip(parameterTypes).forEach { (param, type) ->
                 val paramSpec = ParameterSpec.builder(param.name, type)
-                    .also { if (param.isOptional) it.defaultValue("definedExternally") }
+                    .also { if (param.isOptional && !param.isTrailingOptional(function)) it.defaultValue("definedExternally") }
                     .also { if (param.isVariadic) it.addModifiers(KModifier.VARARG) }
                     .build()
                 funBuilder.addParameter(paramSpec)
@@ -306,6 +306,35 @@ fun Descriptor.InterfaceDescriptor.extensionMembersOn(
 }
 
 private const val MAX_OVERLOADS = 8
+
+/**
+ * Whether [this] optional parameter is one of [function]'s trailing optional parameters, which get a declaration per
+ * prefix ([callableShapes]) instead of a default value. (WebIDL puts optional arguments last, so in practice that's
+ * every optional one; a variadic parameter is left as it is.)
+ */
+private fun InterfaceMember.VariableDescriptor.isTrailingOptional(function: InterfaceMember.FunctionDescriptor): Boolean {
+    val index = function.parameters.indexOf(this)
+    return isOptional && !isVariadic && function.parameters.drop(index).all { it.isOptional || it.isVariadic }
+}
+
+/**
+ * Parameter types for every declaration of an operation: each [overloads] entry, once with all of its trailing
+ * optional parameters and once for each shorter prefix of them, down to the required ones.
+ *
+ * Kotlin/Wasm passes `undefined` for a parameter left at `definedExternally`; it can't leave an argument out. WebIDL
+ * says `undefined` for an optional argument means "not given", but browsers don't always agree: Chrome's optimised
+ * path for `setBindGroup(index, group, undefined)` throws "cannot be converted to a sequence" once the call site is
+ * hot, after some thousands of calls. A declaration per prefix makes the JavaScript call carry exactly the arguments
+ * the Kotlin call has, so nothing relies on that rule.
+ */
+private fun InterfaceMember.FunctionDescriptor.callableShapes(context: BindingContext, pkg: String): List<List<TypeName>> {
+    val firstTrailingOptional = parameters.indexOfFirst { it.isTrailingOptional(this) }.takeIf { it >= 0 } ?: parameters.size
+    val shapes = LinkedHashSet<List<TypeName>>()
+    for (types in overloads(context, pkg)) {
+        for (length in parameters.size downTo firstTrailingOptional) shapes += types.take(length)
+    }
+    return shapes.toList()
+}
 
 /**
  * Parameter types for each overload of an operation. A parameter whose type is a union without a marker interface

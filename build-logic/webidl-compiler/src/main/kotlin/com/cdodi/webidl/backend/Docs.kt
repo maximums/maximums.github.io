@@ -30,7 +30,8 @@ class Docs(private val specUrl: String?) {
     fun forNamespace(descriptor: Descriptor.InterfaceDescriptor): CodeBlock =
         build(link("namespacedef-" + descriptor.name.lowercase()), definitionNotes(descriptor.extendedAttributes))
 
-    fun forMember(member: InterfaceMember): CodeBlock {
+    /** [parameterCount]: how many of an operation's parameters this declaration has (fewer for a shorter overload). */
+    fun forMember(member: InterfaceMember, parameterCount: Int = Int.MAX_VALUE): CodeBlock {
         val synthesized = (member as? InterfaceMember.VariableDescriptor)?.isSynthesized == true ||
             (member as? InterfaceMember.FunctionDescriptor)?.isSynthesized == true
         val owner = member.declaredIn
@@ -40,7 +41,7 @@ class Docs(private val specUrl: String?) {
             is InterfaceMember.VariableDescriptor -> typeNotes(member.type.extendedAttributes)
             else -> emptyList()
         }
-        val parameters = (member as? InterfaceMember.FunctionDescriptor)?.parameters.orEmpty()
+        val parameters = (member as? InterfaceMember.FunctionDescriptor)?.parameters.orEmpty().take(parameterCount)
             .mapNotNull { param -> typeNotes(param.type.extendedAttributes).takeIf { it.isNotEmpty() }?.let { "@param ${param.name} ${it.joinToString(" ")}" } }
 
         return build(anchor?.let(::link), notes, parameters)
