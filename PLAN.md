@@ -549,6 +549,22 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 > - **A browser bug the compiler now prevents.** Kotlin/Wasm passes `undefined` for a defaulted external parameter. Around the 17,000th call, Chrome's optimised `setBindGroup` throws on `setBindGroup(index, group, undefined)`, though the same call made again at once goes through. The glass passes reached that count in seconds; the site would have reached it in a minute or two of transitions. The WebIDL compiler now emits a declaration per prefix of trailing optional arguments, so JavaScript calls carry only the arguments given.
 > - **Locally on Windows**, `wasm-opt` (Binaryen 130) sometimes crashes optimising the production build (0xC0000005). It runs cleanly with `--debug`, which serialises its passes, so it's a timing-dependent Binaryen bug rather than our module. CI's Linux build is the reference.
 
+### 8c — The street behind the glass
+
+- [x] The background follows the design canvas's background study instead of the old port of `bokeh.sksl`:
+  - a dark sky warming towards the ground, and lamplight on it;
+  - out-of-focus lights in the theme's colours, breathing slowly (7 s): amber street lamps on both sides, ember tail lights and pale head lights with faint reflections in the wet road, cold distant windows;
+  - fog banks drifting over 84 s;
+  - two layers of slanting rain, and a vignette.
+- [x] The lights come from the study's own seeded generator (`StreetLights`), so the street is the one on the canvas. The no-WebGPU still scene draws the same lights.
+
+> **Notes.**
+> - **The split.** The street (`street.wgsl`) is soft, so it's drawn at the viewer's quality. The rain is 1 px streaks, which would smear at a quarter of the pixels, so it's drawn at full resolution in the upscale pass (`rain.wgsl`), along with the vignette and a trace of dither. The streaks catch the light where they cross a lamp.
+> - **Cost on SwiftShader.** About 0.10 ms at ½ and 0.23 ms at full, against 0.24 ms and 0.86 ms for the old shader: no moving traffic, no raymarched lights.
+> - **Tall windows.** On a phone the street is drawn narrower (positions move in, sizes don't), so the lamps show around the Home window instead of off-screen.
+> - **Short windows.** Home's type now scales with its window. Below the mockup's 558 dp, down to 70 %, the words keep their room.
+> - The link-preview image (`og.png`) shows the new street.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.

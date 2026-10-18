@@ -61,10 +61,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 /**
- * The rainy street behind the pages, on the ambient clock (it freezes on a still frame when the user prefers reduced
- * motion). The bokeh is soft, so it's computed at the viewer's [quality] (a quarter, half or all of the pixels) into an
- * offscreen texture and scaled up with linear filtering. The [widgets] that UI elements report are drawn on top at full
- * resolution: the sphere behind the Welcome card and on the About page.
+ * The rainy street behind the pages (the design canvas's background study), on the ambient clock: it freezes on a
+ * still frame when the user prefers reduced motion.
+ *
+ * - The street itself (sky, lights and their reflections, fog: `street.wgsl`) is soft, so it's drawn at the viewer's
+ *   [quality] (a quarter, half or all of the pixels) into an offscreen texture.
+ * - One full-resolution pass scales it up and adds what must stay sharp: the rain, the vignette, the dither
+ *   (`rain.wgsl`).
+ * - Then the [widgets] that UI elements report, also at full resolution: the sphere on the About page.
  */
 class BackgroundScene(
     override val clock: Clock,
@@ -76,10 +80,10 @@ class BackgroundScene(
     private lateinit var gpu: GpuContext
     private lateinit var format: GPUTextureFormat
     private lateinit var resources: ResourceScope
-    private lateinit var bokeh: FullscreenPass
-    private lateinit var bokehUniforms: GPUBuffer
-    private lateinit var bokehGroup: GPUBindGroup
-    private lateinit var upscale: GPURenderPipeline
+    private lateinit var street: FullscreenPass
+    private lateinit var streetUniforms: GPUBuffer
+    private lateinit var streetGroup: GPUBindGroup
+    private lateinit var rain: GPURenderPipeline
     private lateinit var widgetPipeline: GPURenderPipeline
     private lateinit var widgetFrame: GPUBuffer
     private lateinit var widgetBuffer: GPUBuffer
@@ -88,7 +92,7 @@ class BackgroundScene(
 
     private var offscreen: GPUTexture? = null
     private var offscreenView: GPUTextureView? = null
-    private var upscaleGroup: GPUBindGroup? = null
+    private var rainGroup: GPUBindGroup? = null
     private var offscreenWidth = 0
     private var offscreenHeight = 0
 
@@ -96,7 +100,8 @@ class BackgroundScene(
     private var height = 0
     private var time = 0f
 
-    // struct Uniforms { resolution: vec2f, time: f32, _pad: f32 } in bokeh.wgsl, struct Frame the same in widgets.wgsl
+    // struct Uniforms { resolution: vec2f, time: f32, _pad: f32 } in street.wgsl, struct Frame the same in rain.wgsl and
+    // widgets.wgsl
     private val frameValues = FloatArray(4)
     private val frameStaging = Float32Staging(frameValues.size)
     // struct Widget { rect: vec4f, style: vec4f }
@@ -107,14 +112,21 @@ class BackgroundScene(
         this.gpu = gpu
         this.format = format
         resources = gpu.resourceScope()
-        bokeh = FullscreenPass.create(gpu, Res.readBytes("files/shaders/background/bokeh.wgsl").decodeToString(), format, label = "background")
-        bokehUniforms = uniform("background uniforms")
-        bokehGroup = gpu.device.createBindGroup(
-            GPUBindGroupDescriptor(layout = bokeh.bindGroupLayout, entries = listOf(GPUBindGroupEntry(0, GPUBufferBinding(bokehUniforms))))
+        street = FullscreenPass.create(gpu, Res.readBytes("files/shaders/background/street.wgsl").decodeToString(), format, label = "street")
+        streetUniforms = uniform("street uniforms")
+        val lights = resources.buffer(
+            GPUBufferDescriptor(size = StreetLights.values.size * 4.0, usage = GPUBufferUsage.STORAGE or GPUBufferUsage.COPY_DST, label = "street lights")
+        )
+        gpu.queue.writeBuffer(lights, 0.0, Float32Staging(StreetLights.values.size).fill(StreetLights.values))
+        streetGroup = gpu.device.createBindGroup(
+            GPUBindGroupDescriptor(
+                layout = street.bindGroupLayout,
+                entries = listOf(GPUBindGroupEntry(0, GPUBufferBinding(streetUniforms)), GPUBindGroupEntry(1, GPUBufferBinding(lights))),
+            )
         )
 
-        val upscaleModule = gpu.compileShader(Res.readBytes("files/shaders/common/upscale.wgsl").decodeToString(), label = "upscale")
-        upscale = pipeline(upscaleModule, "upscale", blended = false)
+        val rainModule = gpu.compileShader(Res.readBytes("files/shaders/background/rain.wgsl").decodeToString(), label = "rain")
+        rain = pipeline(rainModule, "rain", blended = false)
         val widgetModule = gpu.compileShader(Res.readBytes("files/shaders/background/widgets.wgsl").decodeToString(), label = "widgets")
         widgetPipeline = pipeline(widgetModule, "widgets", blended = true)
 
@@ -154,8 +166,8 @@ class BackgroundScene(
         frameValues[0] = offscreenWidth.toFloat()
         frameValues[1] = offscreenHeight.toFloat()
         frameValues[2] = time
-        gpu.queue.writeBuffer(bokehUniforms, 0.0, frameStaging.fill(frameValues))
-        bokeh.encode(encoder, source, bokehGroup, span?.render(first = true, last = false))
+        gpu.queue.writeBuffer(streetUniforms, 0.0, frameStaging.fill(frameValues))
+        street.encode(encoder, source, streetGroup, span?.render(first = true, last = false))
 
         // Where the elements are now: this runs after Compose has laid the frame out.
         val count = collectWidgets()
@@ -170,11 +182,11 @@ class BackgroundScene(
                     GPURenderPassColorAttachment(view = target, clearValue = GPUColorDict(0.0, 0.0, 0.0, 1.0), loadOp = GPULoadOp.clear, storeOp = GPUStoreOp.store)
                 ),
                 timestampWrites = span?.render(first = false, last = true),
-                label = "background upscale and widgets",
+                label = "background rain and widgets",
             )
         ).apply {
-            setPipeline(upscale)
-            setBindGroup(0, upscaleGroup)
+            setPipeline(rain)
+            setBindGroup(0, rainGroup)
             draw(3)
             if (count > 0) {
                 setPipeline(widgetPipeline)
@@ -208,7 +220,7 @@ class BackgroundScene(
         return count
     }
 
-    /** The texture the bokeh renders into at [scale], made again when the scale or the target size changed. */
+    /** The texture the street renders into at [scale], made again when the scale or the target size changed. */
     private fun offscreenFor(scale: Float): GPUTextureView {
         val w = max(1, ceil(width * scale).toInt())
         val h = max(1, ceil(height * scale).toInt())
@@ -227,8 +239,11 @@ class BackgroundScene(
         offscreenView = view
         offscreenWidth = w
         offscreenHeight = h
-        upscaleGroup = gpu.device.createBindGroup(
-            GPUBindGroupDescriptor(layout = upscale.getBindGroupLayout(0), entries = listOf(GPUBindGroupEntry(0, view), GPUBindGroupEntry(1, sampler)))
+        rainGroup = gpu.device.createBindGroup(
+            GPUBindGroupDescriptor(
+                layout = rain.getBindGroupLayout(0),
+                entries = listOf(GPUBindGroupEntry(0, view), GPUBindGroupEntry(1, sampler), GPUBindGroupEntry(2, GPUBufferBinding(widgetFrame))),
+            )
         )
         return view
     }

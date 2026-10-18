@@ -238,8 +238,9 @@ com.cdodi
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutFeature · AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
     ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
-    ├── background/          BackgroundScene (bokeh at ¼/½/full, upscaled; widgets drawn on top) · BackgroundSettings
-    │                        QualityToggle · StillScene (the static, dimmed scene without WebGPU)
+    ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top)
+    │                        StreetLights (the design study's lights, by its own seeded generator) · BackgroundSettings
+    │                        QualityToggle · StillScene (the same street, still and dimmed, without WebGPU)
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
     │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls · LifeFeature (later)
     │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks (still in data/gameoflife)
@@ -249,8 +250,9 @@ com.cdodi
         └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
 
 composeResources/files/
-├── shaders/common/          scan.wgsl · upscale.wgsl
-├── shaders/background/      bokeh.wgsl · widgets.wgsl (effects behind UI elements: the sphere)
+├── shaders/common/          scan.wgsl
+├── shaders/background/      street.wgsl (sky, lights, wet-road reflections, fog) · rain.wgsl (upscale + rain, vignette,
+│                            dither) · widgets.wgsl (effects behind UI elements: the sphere)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/glass/           blur.wgsl (dual Kawase down/up) · panes.wgsl (copy + panes from the blurred frame)
 ├── shaders/life/            step.wgsl · render.wgsl
