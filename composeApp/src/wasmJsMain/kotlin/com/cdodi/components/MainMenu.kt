@@ -29,12 +29,13 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
     return remember {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->
             val paneFill = LocalPaneFill.current
+            val quad = remember { MorphingQuad() }
             Box(
                 contentAlignment = targetShape.contentAlignment,
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
-                    .morphingShape(targetShape)
-                    .glass(shape = RectangleShape, hairline = false, shadow = false, fill = paneFill)
+                    .morphingShape(targetShape, quad)
+                    .glass(shape = RectangleShape, hairline = false, shadow = false, fill = paneFill, outline = quad.outline)
                     .padding(if (isExpanded) 0.dp else 8.dp)
             ) {
                 content()

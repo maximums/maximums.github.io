@@ -20,6 +20,7 @@ import com.cdodi.webgpu.bindings.GPUTextureDescriptor
 import com.cdodi.webgpu.bindings.GPUTextureUsage
 import com.cdodi.webgpu.bindings.GPUTextureView
 import com.cdodi.webgpu.context.GpuContext
+import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -41,6 +42,9 @@ import kotlinx.coroutines.launch
  * [GpuWidgets]) where they were a frame ago, visibly trailing a card that's moving. The microtask runs once Compose has
  * laid out and drawn the same frame, and both canvases still show in the same browser frame.
  *
+ * Glass panes that Compose reports need the scene behind them blurred: while any is showing, the frame goes through the
+ * [glass] compositor on its way to the canvas.
+ *
  * A failure while drawing closes the host and is reported to [onFailure] instead of propagating.
  */
 class SceneHost(
@@ -54,6 +58,7 @@ class SceneHost(
     private val input: InputState,
     private val scope: CoroutineScope,
     private val profiler: GpuProfiler?,
+    private val glass: GlassCompositor,
     private val onFailure: (Throwable) -> Unit,
 ) : AutoCloseable {
 
@@ -78,6 +83,10 @@ class SceneHost(
     }
 
     init {
+        scope.launch {
+            glass.prepare(gpu, canvas.format)
+            glass.resize(canvas.width, canvas.height, blurLevels())
+        }
         for (effect in effects) {
             scope.launch {
                 effect.prepare(gpu, canvas.format)
@@ -95,11 +104,14 @@ class SceneHost(
 
         val encoder = gpu.device.createCommandEncoder()
         profiler?.beginFrame()
-        val target = canvas.currentView()
+        val canvasView = canvas.currentView()
+        val panes = glass.collect()
+        val target = if (panes > 0) glass.frameView else canvasView
         when (nav) {
             is NavState.Idle -> draw(sceneOf(nav.at), encoder, target)
             is NavState.Transitioning -> drawTransition(nav, encoder, target, frame)
         }
+        if (panes > 0) glass.encode(encoder, canvasView, panes, profiler)
         profiler?.resolve(encoder)
         gpu.queue.submit(listOf(encoder.finish()).toJsArray())
         profiler?.afterSubmit()
@@ -175,7 +187,11 @@ class SceneHost(
         offscreen = null
         ready.forEach { it.resize(canvas.width, canvas.height) }
         readyEffects.forEach { it.resize(canvas.width, canvas.height) }
+        glass.resize(canvas.width, canvas.height, blurLevels())
     }
+
+    /** Half-size steps for the glass blur: one more on a dense screen, so it's about as wide in CSS pixels. */
+    private fun blurLevels(): Int = if (window.devicePixelRatio >= 1.5) 5 else 4
 
     override fun close() {
         if (isClosed) return
@@ -183,6 +199,7 @@ class SceneHost(
         renderSubscription.close()
         sceneSubscriptions.forEach { it.close() }
         offscreen?.close()
+        glass.close()
         scenes.all.forEach { it.close() }
         effects.forEach { it.close() }
         profiler?.close()

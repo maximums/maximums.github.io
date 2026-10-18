@@ -126,7 +126,7 @@ edge(from = Home, to = anyOf(Life, Boids), transition = breathOnTheWindow, onInt
 
 - **Going back** reverses it: the page evaporates off the glass, fog returns, the window re-forms, the pane fogs over.
 - **Waiting is part of the mood:** a quick scene still gets the 600 ms of fog, a slow one gets breathing fog, and after 3 s the fog clears regardless.
-- The effect ids in the table are the ones the UI and GPU effect registries register (`ARCHITECTURE.md` §4.6).
+- The effect ids in the table are the ones the UI and GPU effect registries register (`ARCHITECTURE.md` §4.6). As built (PLAN Phase 8b): `fog-wipe` and `fog-thicken` are UI effects on the panes' fog, and the GPU's part follows through the glass, whose blur tracks each pane's fog; `menu-dissolve` is the menu morph (`menu-morph`).
 - The timings are a first guess, to be tuned in the prototype on the canvas.
 
 ## 10. Open items

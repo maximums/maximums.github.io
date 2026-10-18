@@ -1,7 +1,10 @@
 package com.cdodi.adapters.compose.effects
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.GraphicsLayerScope
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.unit.dp
 import com.cdodi.core.navigation.NavState
 import com.cdodi.core.navigation.effect.Effect
 import com.cdodi.core.navigation.effect.EffectRegistry
@@ -11,7 +14,27 @@ import com.cdodi.core.navigation.effect.Layer
 object UiEffectIds {
     const val PIXEL_MELT = "pixel-melt"
     const val FADE = "fade"
+
+    /** The menu leaves Home: its words fly to the top bar, its panes dissolve (DESIGN.md §9's `menu-dissolve`). */
     const val MENU_MORPH = "menu-morph"
+
+    // "Breath on the window" (DESIGN.md §9). The GPU's part of the first two (the street behind the pane sharpening or
+    // dimming) follows from the glass: its blur tracks how fogged each pane is.
+
+    /** A band of clarity wipes across the chosen pane. */
+    const val FOG_WIPE = "fog-wipe"
+
+    /** The other panes fog over. */
+    const val FOG_THICKEN = "fog-thicken"
+
+    /** The chosen pane's word catches the lamp. */
+    const val LABEL_GLOW = "label-glow"
+
+    /** A line of verse while the fog holds. */
+    const val CAPTION = "caption"
+
+    /** The top bar condenses onto the glass, blur to sharp. */
+    const val CONDENSE = "condense"
 }
 
 /**
@@ -19,7 +42,10 @@ object UiEffectIds {
  * renderer; `menu-morph` drives the menu's placement and shape through [LocalMorph].
  */
 object UiEffects : EffectRegistry {
-    private val ids = setOf(UiEffectIds.PIXEL_MELT, UiEffectIds.FADE, UiEffectIds.MENU_MORPH)
+    private val ids = setOf(
+        UiEffectIds.PIXEL_MELT, UiEffectIds.FADE, UiEffectIds.MENU_MORPH,
+        UiEffectIds.FOG_WIPE, UiEffectIds.FOG_THICKEN, UiEffectIds.LABEL_GLOW, UiEffectIds.CAPTION, UiEffectIds.CONDENSE,
+    )
 
     override fun canRender(effect: Effect): Boolean = effect.layer == Layer.Ui && effect.id in ids
 }
@@ -71,7 +97,10 @@ interface PageEffect {
     fun GraphicsLayerScope.apply(state: EffectState, role: PageRole, transition: NavState.Transitioning) {}
 }
 
-/** The page being entered fades in over the one being left, which fades out. */
+/**
+ * The page being entered fades in over the one being left, which fades out. The entering page also condenses: it
+ * starts blurred and sharpens as it arrives, like breath fading from a cold window (DESIGN.md §9, `condense`).
+ */
 object FadeEffect : PageEffect {
     override val id = UiEffectIds.FADE
 
@@ -79,7 +108,17 @@ object FadeEffect : PageEffect {
         val travelled = state.travelled ?: return visibility
         return if (role == PageRole.Entering) travelled else 1f - travelled
     }
+
+    override fun GraphicsLayerScope.apply(state: EffectState, role: PageRole, transition: NavState.Transitioning) {
+        if (role != PageRole.Entering) return
+        val blur = (1f - (state.travelled ?: 1f)) * 12.dp.toPx()
+        renderEffect = if (blur > 0.5f) BlurEffect(blur, blur, TileMode.Decal) else null
+    }
 }
+
+/** How far effect [id] has played, by its own progress (1 at the destination's end, whichever way it plays); null if it hasn't started. */
+fun NavState.progressOf(id: String): Float? =
+    (this as? NavState.Transitioning)?.effects?.firstOrNull { it.effect.id == id }?.progress
 
 /** How visible a page in [role] is now, after every page effect has had its say; 1 outside a transition. */
 fun NavState.visibilityOf(role: PageRole?, pageEffects: List<PageEffect>): Float {

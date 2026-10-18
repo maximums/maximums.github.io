@@ -30,6 +30,8 @@ fun appGraph(): NavGraph = navGraph(start = HomeDestination) {
 
     edge(from = any, to = any, transition = Transitions.pageToPage, onInterrupt = Interrupt.Replace)
     edge(from = HomeDestination, to = any, transition = Transitions.openPage, onInterrupt = Interrupt.Replace).andBack()
+    // DESIGN.md §9: the signature transition, into the scenes. Interrupted, it plays back from where it is.
+    edge(from = HomeDestination, to = anyOf(LifeDestination, BoidsDestination), transition = Transitions.breathOnTheWindow, onInterrupt = Interrupt.Reverse).andBack()
 
     reducedMotion = Transitions.reducedMotion
 }

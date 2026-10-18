@@ -523,17 +523,31 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 
 ### 8b — GPU glass and "Breath on the window"
 
-- [ ] **Scenes render offscreen.** A glass compositor in `SceneHost` blurs the frame (dual Kawase: down and back up a few mips) and draws each glass pane Compose reports (a new `GpuWidgets` kind with its shape: rectangle, triangle, rhombus). Each pane shows the blurred scene, desaturated, under its fog, condensation and drops. Clearing on hover lowers the blur (DESIGN.md §5: blur 18 → 2).
-- [ ] **The full transition** (§9), with per-pane parts:
+- [x] **Scenes render offscreen.** A glass compositor in `SceneHost` blurs the frame (dual Kawase: down and back up a few mips) and draws each glass pane Compose reports (a new `GpuWidgets` kind with its shape: rectangle, triangle, rhombus). Each pane shows the blurred scene, desaturated, under its fog, condensation and drops. Clearing on hover lowers the blur (DESIGN.md §5: blur 18 → 2).
+- [x] **The full transition** (§9), with per-pane parts:
   - `wipe`: `fog-wipe` on the chosen pane, `fog-thicken` on the others, `label-glow` in the UI;
   - `fogRoll`: `menu-dissolve` in the UI;
   - `holdFog`: a caption line fades in;
   - `clearing`: `condense` in the UI, starting 500 ms in.
 
   Effects learn which pane they play on from the transition's target.
-- [ ] Home → Life and Boids plays `breathOnTheWindow` with `Interrupt.Reverse`. Going back evaporates the page, fogs the window back over and re-forms it.
+- [x] Home → Life and Boids plays `breathOnTheWindow` with `Interrupt.Reverse`. Going back evaporates the page, fogs the window back over and re-forms it.
 
 **Done when:** a pane over the street looks like wet glass (blurred, fogged, clearing under the pointer), and clicking Boids on Home plays the storyboard.
+
+> **Done.** Checked in headless Chrome at 1440 × 900, on an emulated phone, forwards and back.
+>
+> - **Glass.** Every fog pane reports its outline: Home's triangles, the Welcome rhombus as it morphs (its live quad), the scene panels and the reading columns.
+>   - While any pane needs the street blurred, scenes draw into a frame texture. `GlassCompositor` runs a dual Kawase blur over it (4 half-size steps, 5 on dense screens) and draws each pane from the blurred frame, desaturated.
+>   - The blur follows how fogged the pane is, so hover (which now thins a Home pane's fog to 30 %) and the wipe sharpen the street behind it. The GPU's `fog-wipe` and `fog-thicken` are exactly this.
+>   - It costs about 0.06 ms on SwiftShader.
+> - **The transition.**
+>   - `wipe`: the chosen pane clears in a sweeping band, the others thicken, and its word glows.
+>   - `dissolve`: the words fly to the bar as the fog rolls in.
+>   - `holdFog`: a caption ("the flock is gathering", "the embers are catching": placeholder copy) fades in, and fades out as the page arrives.
+>   - `clearing`: the page condenses from blur to sharp, and the bar 500 ms in. Opening About and Notes condenses the bar the same way.
+> - **A browser bug the compiler now prevents.** Kotlin/Wasm passes `undefined` for a defaulted external parameter. Around the 17,000th call, Chrome's optimised `setBindGroup` throws on `setBindGroup(index, group, undefined)`, though the same call made again at once goes through. The glass passes reached that count in seconds; the site would have reached it in a minute or two of transitions. The WebIDL compiler now emits a declaration per prefix of trailing optional arguments, so JavaScript calls carry only the arguments given.
+> - **Locally on Windows**, `wasm-opt` (Binaryen 130) sometimes crashes optimising the production build (0xC0000005). It runs cleanly with `--debug`, which serialises its passes, so it's a timing-dependent Binaryen bug rather than our module. CI's Linux build is the reference.
 
 ## Phase 9 — Stretch goals (pick any)
 

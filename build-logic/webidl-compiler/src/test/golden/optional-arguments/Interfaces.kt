@@ -17,5 +17,16 @@ public external interface GPUBuffer : JsAny {
    * @param offset Throws a TypeError if the value is not finite or out of range (`[EnforceRange]`).
    * @param size Throws a TypeError if the value is not finite or out of range (`[EnforceRange]`).
    */
-  public fun getMappedRange(offset: Double = definedExternally, size: Double = definedExternally): ArrayBuffer
+  public fun getMappedRange(offset: Double, size: Double): ArrayBuffer
+
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange).
+   * @param offset Throws a TypeError if the value is not finite or out of range (`[EnforceRange]`).
+   */
+  public fun getMappedRange(offset: Double): ArrayBuffer
+
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpubuffer-getmappedrange).
+   */
+  public fun getMappedRange(): ArrayBuffer
 }

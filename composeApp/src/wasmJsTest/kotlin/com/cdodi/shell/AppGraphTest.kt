@@ -1,6 +1,7 @@
 package com.cdodi.shell
 
 import com.cdodi.core.navigation.DestinationCodec
+import com.cdodi.core.navigation.graph.Interrupt
 import com.cdodi.core.navigation.graph.requireRenderable
 import com.cdodi.core.navigation.transition.reversed
 import com.cdodi.data.gameoflife.LifeRule
@@ -24,8 +25,18 @@ class AppGraphTest {
     @Test
     fun theMenuOpensPagesAndPagesChangeWithTheMelt() {
         assertEquals(Transitions.openPage, graph.edgeFor(HomeDestination, AboutDestination)?.transition)
-        assertEquals(Transitions.openPage.reversed(), graph.edgeFor(LifeDestination, HomeDestination)?.transition)
+        assertEquals(Transitions.openPage.reversed(), graph.edgeFor(AboutDestination, HomeDestination)?.transition)
         assertEquals(Transitions.pageToPage, graph.edgeFor(AboutDestination, BoidsDestination)?.transition)
+    }
+
+    @Test
+    fun theScenesOpenWithBreathOnTheWindowAndPlayItBackWhenInterrupted() {
+        for (scene in listOf(LifeDestination, BoidsDestination)) {
+            val there = graph.edgeFor(HomeDestination, scene)
+            assertEquals(Transitions.breathOnTheWindow, there?.transition)
+            assertEquals(Interrupt.Reverse, there?.onInterrupt)
+            assertEquals(Transitions.breathOnTheWindow.reversed(), graph.edgeFor(scene, HomeDestination)?.transition)
+        }
     }
 
     @Test

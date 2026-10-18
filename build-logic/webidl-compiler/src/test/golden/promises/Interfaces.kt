@@ -19,7 +19,12 @@ public external interface GPU : JsAny {
   /**
    * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter).
    */
-  public fun requestAdapter(options: GPURequestAdapterOptions = definedExternally): Promise<GPUAdapter?>
+  public fun requestAdapter(options: GPURequestAdapterOptions): Promise<GPUAdapter?>
+
+  /**
+   * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter).
+   */
+  public fun requestAdapter(): Promise<GPUAdapter?>
 
   /**
    * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpu-onsubmittedworkdone).

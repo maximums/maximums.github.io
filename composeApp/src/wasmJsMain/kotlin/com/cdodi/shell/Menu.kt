@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -50,6 +51,7 @@ import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.shaderTime
 import com.cdodi.components.animatePlacement
 import com.cdodi.components.morphScale
+import com.cdodi.ui.components.GlassOutline
 import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.drawThread
 import com.cdodi.ui.components.focusRing
@@ -62,6 +64,21 @@ import com.cdodi.ui.theme.settling
 
 /** Home's panes are a little thinner than a fog pane (the Home mockup). */
 private val PaneFog = Color(18, 22, 26).copy(alpha = 0.52f)
+
+/** How thick the other panes fog over while the chosen one is wiped. */
+private val ThickFog = Color(18, 22, 26).copy(alpha = 0.8f)
+
+/**
+ * What a transition is doing to Home's panes right now (DESIGN.md §9, `wipe`): the chosen pane is wiped clear, the
+ * others fog over, the chosen word catches the lamp. Each is 0..1, read while drawing.
+ */
+class PaneEffects(val wipe: (MenuItem) -> Float, val thicken: (MenuItem) -> Float, val glow: (MenuItem) -> Float) {
+    companion object {
+        val None = PaneEffects({ 0f }, { 0f }, { 0f })
+    }
+}
+
+val LocalPaneEffects = staticCompositionLocalOf { PaneEffects.None }
 
 /** A corner of Home's window, where a pane sits, and where its label grows from. */
 enum class Corner(val alignment: Alignment, val origin: TransformOrigin, val top: Boolean, val start: Boolean) {
@@ -93,7 +110,8 @@ fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onC
     return remember(item, interaction) {
         movableContentWithReceiverOf { modifier, atHome, active ->
             val layout = LocalMenuLayout.current
-            val warm by warmth(interaction)
+            val hover by warmth(interaction)
+            val warm = maxOf(hover, LocalPaneEffects.current.glow(item))
             val current by settling(active && !atHome, Motion.SHORT_SECONDS)
             val homeScale = layout.homeLabel.value / layout.navLabel.value
             val colour = when {
@@ -194,6 +212,19 @@ private fun triangle(corner: Corner, gap: Float) = GenericShape { size, _ ->
     close()
 }
 
+/** The pane's triangle as a quad for the GPU's blur: its third corner repeated. */
+private fun triangleOutline(corner: Corner, gap: Float) = GlassOutline { w, h, out ->
+    val points = when (corner) {
+        Corner.TopStart -> floatArrayOf(0f, 0f, w - gap, 0f, 0f, h - gap)
+        Corner.TopEnd -> floatArrayOf(gap, 0f, w, 0f, w, h - gap)
+        Corner.BottomStart -> floatArrayOf(0f, gap, 0f, h, w - gap, h)
+        Corner.BottomEnd -> floatArrayOf(w, gap, w, h, gap, h)
+    }
+    points.copyInto(out)
+    out[6] = points[4]
+    out[7] = points[5]
+}
+
 /** Whether [point] is inside the pane's triangle in a quadrant of [side]. */
 private fun inTriangle(point: Offset, side: Float, corner: Corner): Boolean {
     val x = if (corner.start) point.x else side - point.x
@@ -212,14 +243,26 @@ private fun Pane(
     onOpen: () -> Unit,
 ) {
     val warm by warmth(interaction)
+    val effects = LocalPaneEffects.current
     val density = LocalDensity.current
     val gap = with(density) { 10.dp.toPx() }
     val shape = remember(item, gap) { triangle(item.corner, gap) }
+    val outline = remember(item, gap) { triangleOutline(item.corner, gap) }
     val currentOnOpen by rememberUpdatedState(onOpen)
     Box(
         modifier
             .size(layout.pane)
-            .glass(shape = shape, fill = { PaneFog }, hairline = false, shadow = false, clear = { warm }, alpha = alpha)
+            .glass(
+                shape = shape,
+                fill = { lerp(PaneFog, ThickFog, effects.thicken(item)) },
+                hairline = false,
+                shadow = false,
+                // Hover thins the fog most of the way (the storyboard); the wipe takes the rest.
+                clear = { 0.7f * warm },
+                alpha = alpha,
+                outline = outline,
+                wipe = { effects.wipe(item) },
+            )
             // A pane only answers inside its triangle: the quadrants' other halves belong to the rhombus. While it
             // dissolves (no words on it), it doesn't answer at all.
             .then(if (labels == null) Modifier else Modifier.pointerInput(item) {
@@ -250,7 +293,7 @@ private fun Pane(
                 }
             }),
     ) {
-        PaneWords(item, layout, warm, labels, alpha, Modifier.align(item.corner.alignment))
+        PaneWords(item, layout, maxOf(warm, effects.glow(item)), labels, alpha, Modifier.align(item.corner.alignment))
     }
 }
 
@@ -404,6 +447,22 @@ private fun Brand(layout: MenuLayout, name: String, onHome: () -> Unit, modifier
 @Composable
 fun CornerHint(text: String, modifier: Modifier = Modifier) {
     Text(text.uppercase(), style = Autumn.type.hint, color = AutumnColors.Fog, modifier = modifier)
+}
+
+/**
+ * A line of verse over the fog while the next scene gathers itself (DESIGN.md §9, `holdFog`), with a thread of light
+ * under it. [alpha] is read while drawing.
+ */
+@Composable
+fun Caption(text: String, alpha: () -> Float, modifier: Modifier = Modifier) {
+    Column(
+        modifier.graphicsLayer { this.alpha = alpha() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(text, style = Autumn.type.verse.copy(fontSize = 24.sp), color = AutumnColors.Parchment)
+        Box(Modifier.width(56.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
+    }
 }
 
 /** The colophon on Home. */
