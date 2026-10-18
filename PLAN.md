@@ -354,16 +354,45 @@ val siteGraph = navGraph(start = Home) {
 
 ## Phase 5 — Game of Life on the GPU  _(M)_
 
-- [ ] State: two `u32` buffers (or `r32uint` textures) swapped every generation ("ping-pong"). Grid size comes from a uniform; offer a bounded and a wrap-around mode.
-- [ ] Compute pass: `@workgroup_size(8, 8)`, one thread per cell, reading 8 neighbours. **Rules as uniforms**: a birth bitmask and a survive bitmask, so every Life-like rule works (B3/S23, HighLife B36/S23, Seeds B2/S…), selectable from a Compose dropdown and kept in the URL through the destination's arguments.
-- [ ] Render pass: a fragment shader reads the state buffer directly (no per-cell draw calls) and draws grid lines, cell age and colour fading.
-- [ ] Editing: while paused, a pointer drag draws cells through `queue.writeBuffer` of a small region (no full upload).
-- [ ] Population: `atomicAdd` into a counter buffer in the compute pass, read back through **two rotating `MAP_READ` buffers** a few frames behind (rotated on `Frame.index`), so the GPU never stalls.
-- [ ] Speed: generations per second on the `life` clock with `fixedSteps`; play/pause is just that clock's `paused`.
-- [ ] **Tests against the reference**: a browser test runs N generations on the GPU for known patterns (glider, R-pentomino, gun), reads the result back, and compares it with `LifeEngine`.
-- [ ] Scale goal: 2048×2048 at 60 fps, with zoom and pan.
+- [x] State: two `u32` buffers (or `r32uint` textures) swapped every generation ("ping-pong"). Grid size comes from a uniform; offer a bounded and a wrap-around mode.
+- [x] Compute pass: `@workgroup_size(8, 8)`, one thread per cell, reading 8 neighbours. **Rules as uniforms**: a birth bitmask and a survive bitmask, so every Life-like rule works (B3/S23, HighLife B36/S23, Seeds B2/S…), selectable from a Compose dropdown and kept in the URL through the destination's arguments.
+- [x] Render pass: a fragment shader reads the state buffer directly (no per-cell draw calls) and draws grid lines, cell age and colour fading.
+- [x] Editing: while paused, a pointer drag draws cells through `queue.writeBuffer` of a small region (no full upload).
+- [x] Population: `atomicAdd` into a counter buffer in the compute pass, read back through **two rotating `MAP_READ` buffers** a few frames behind (rotated on `Frame.index`), so the GPU never stalls.
+- [x] Speed: generations per second on the `life` clock with `fixedSteps`; play/pause is just that clock's `paused`.
+- [x] **Tests against the reference**: a browser test runs N generations on the GPU for known patterns (glider, R-pentomino, gun), reads the result back, and compares it with `LifeEngine`.
+- [x] _(60 fps not yet measured; see the notes)_ Scale goal: 2048×2048 at 60 fps, with zoom and pan.
 
 **What you learn:** compute passes, ping-pong buffers, atomics, reading data back without stalls, testing GPU code against a CPU reference.
+
+> **Done**, checked in headless Chrome with WebGPU (SwiftShader) and without it.
+> - **Seen working in the browser:**
+>   - the fog carries the page from the street into the Life scene
+>   - a 2048×2048 soup runs at the page's speed
+>   - pause, clear, draw a glider cell by cell, step four generations: the glider has moved one cell and left a ghost
+>   - zoom out to the whole world, and pan while running
+>   - picking HighLife puts `#/life?rule=B36/S23` in the URL
+>   - without WebGPU, the CPU page takes over
+> - **The simulation is tested against the reference.** `LifeSimulationTest` runs these on the GPU and compares the readback with `LifeEngine`:
+>   - glider, R-pentomino, Gosper gun
+>   - a HighLife replicator
+>   - a glider all the way around a torus
+>   - ages and ghosts
+>   - the population readback
+>
+>   Counting one neighbour twice in the shader fails all seven tests. To run them, composeApp's Karma now gets WebGPU and serves compose resources, so the tests load the real shaders.
+>
+> Where it differs from the plan, or adds to it:
+> - **A cell is one `u32`**: its age while alive, then a 12-generation ghost countdown in the high bits. That's what lets the render pass draw DESIGN.md's embers: lamp amber when fresh, cooling to rust, with faint ghosts, a gentle flicker, and light spilling onto neighbours.
+> - **Population is counted per workgroup** in shared memory, then added with one `atomicAdd` per workgroup. A second entry point (`count`) recounts after drawing or clearing. Both share an explicit bind group layout.
+> - **Rules are buttons, not a dropdown**: Conway, HighLife, Seeds, Day & Night. Any other B/S rule still works through the URL. Picking one navigates, so the back button undoes a rule change.
+> - **Input:**
+>   - The wheel zooms around the pointer.
+>   - Dragging draws while paused (Shift erases) and pans while running; the secondary or middle button pans any time.
+>   - Strokes are Bresenham lines with one 4-byte write per cell.
+>   - Two bugs found in the browser: a click that presses and releases within one frame now still counts, and a wheel event now sets the pointer position.
+> - **The glass clears** (DESIGN.md's cleared pane) on the Life page, in step with the page fade, since the page's content is the scene behind it.
+> - **60 fps at 2048×2048 isn't measured.** Headless SwiftShader says nothing about real GPUs. Each generation is one 4M-thread dispatch, and the render pass reads 9 cells per pixel, so it should be comfortable. Phase 6's profiling HUD (GPU timestamps) is where it gets measured.
 
 ---
 

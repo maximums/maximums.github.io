@@ -227,8 +227,9 @@ com.cdodi
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutFeature · AboutDestination · content UI
     ├── background/          BackgroundScene · BackgroundUniforms · quality setting
-    ├── life/                LifeFeature · LifeDestination(rule) · LifeScene · LifeControls
-    │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks
+    ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
+    │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls · LifeFeature (later)
+    │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks (still in data/gameoflife)
     └── boids/               BoidsFeature · BoidsDestination · BoidsScene · BoidsParams
         ├── passes/          ClearPass · CountPass · ScanPass · ScatterPass · StepPass · RenderPass
         ├── ui/              BoidsControls · ProfilingHud
