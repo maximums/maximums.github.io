@@ -222,14 +222,16 @@ com.cdodi
 │   │                        Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
 │   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
 │   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
-│   │                        GpuWidgets (elements the scene draws behind) · draws in a microtask, after Compose's layout
+│   │                        GpuWidgets (elements the scene draws behind, and the glass panes) · draws in a microtask,
+│   │                        after Compose's layout · GlassCompositor (frame texture → dual Kawase blur → panes)
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, reduced motion)
 ├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
 │   theme/       AutumnColors · AutumnType + bundled fonts · AutumnTheme · Motion (Settle, settling() on the heartbeat)
 │   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label
-│                glass (the fog pane) · glow · focusRing · drawThread
+│                glass (the fog pane: Compose's fog + the pane's outline reported to the GPU's blur) · glow ·
+│                focusRing · drawThread
 ├── components/              the menu's morph machinery: movableBodyCard (rhombus ⇄ page) · morphingShape ·
 │                            animatePlacement · morphScale · ProgressTween · CompactPanel
 └── features/                one package per page; features never import each other or shell
@@ -250,6 +252,7 @@ composeResources/files/
 ├── shaders/common/          scan.wgsl · upscale.wgsl
 ├── shaders/background/      bokeh.wgsl · widgets.wgsl (effects behind UI elements: the sphere)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
+├── shaders/glass/           blur.wgsl (dual Kawase down/up) · panes.wgsl (copy + panes from the blurred frame)
 ├── shaders/life/            step.wgsl · render.wgsl
 ├── shaders/boids/           step.wgsl (naive and grid kernels) · render.wgsl
 ├── notes/                   index.txt (the order) · <slug>.md (front matter + Markdown)

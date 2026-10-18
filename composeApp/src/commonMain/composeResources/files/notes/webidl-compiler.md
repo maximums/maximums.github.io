@@ -67,6 +67,8 @@ At runtime that's a string constant. At compile time it's a distinct type that o
 
 **Platform types get extensions.** The IDL says `Navigator includes NavigatorGPU`. `Navigator` belongs to kotlinx-browser, so the compiler can't add members to it. Instead, `gpu` becomes an extension property, and it's nullable: a browser without WebGPU simply doesn't have it.
 
+**Leaving arguments out means leaving them out.** Kotlin/Wasm can't omit an argument from a JavaScript call: a parameter left at its `definedExternally` default arrives as `undefined`. WebIDL says `undefined` for an optional argument means "not given", and usually browsers agree. But this site's glass panes call `setBindGroup` a few hundred times a second. Around the 17,000th call, Chrome's optimised path started throwing "The provided value cannot be converted to a sequence" on `setBindGroup(index, group, undefined)`, and the very same call made again a moment later went through. So the compiler no longer uses defaults for trailing optional arguments. It emits one declaration per prefix (`getMappedRange()`, `getMappedRange(offset)`, `getMappedRange(offset, size)`), and the JavaScript call carries exactly the arguments the Kotlin call has.
+
 **Unknown types fail the build.** A type name that isn't defined in the IDL or mapped to an existing Kotlin type stops the build, listing every unknown name and where it's used. The alternative, quietly turning it into `JsAny`, is how bindings lose their types without anyone noticing.
 
 ## Reproducible builds
