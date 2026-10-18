@@ -7,6 +7,8 @@ import com.cdodi.adapters.browser.followVisibility
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.transitions
 import com.cdodi.adapters.gpu.GpuCanvas
+import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.adapters.gpu.SceneHost
 import com.cdodi.adapters.gpu.SceneRegistry
 import com.cdodi.adapters.gpu.effects.GpuEffects
@@ -26,6 +28,9 @@ import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Heartbeat
 import com.cdodi.features.background.BackgroundScene
+import com.cdodi.features.boids.BoidsController
+import com.cdodi.features.boids.BoidsDestination
+import com.cdodi.features.boids.BoidsScene
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
@@ -60,6 +65,9 @@ class AppRuntime(
     val input: InputState,
     val gpu: StateFlow<GpuStatus>,
     val life: LifeController,
+    val boids: BoidsController,
+    /** GPU time per pass, or null when the browser can't time GPU passes. */
+    val gpuTimings: StateFlow<List<PassTiming>?>,
 )
 
 fun bootstrap(): AppRuntime {
@@ -79,12 +87,14 @@ fun bootstrap(): AppRuntime {
     followBrowserHistory(navigation, heartbeat, urls)
     val input = InputState()
     val life = LifeController(heartbeat.child(LifeController.CLOCK))
+    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK))
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
+    val gpuTimings = MutableStateFlow<List<PassTiming>?>(null)
     val scope = MainScope()
-    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, scope, gpu) }
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, scope, gpu) }
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life)
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow())
 }
 
 /**
@@ -99,13 +109,15 @@ private suspend fun runGpuLayer(
     graph: NavGraph,
     input: InputState,
     life: LifeController,
+    boids: BoidsController,
+    gpuTimings: MutableStateFlow<List<PassTiming>?>,
     scope: CoroutineScope,
     status: MutableStateFlow<GpuStatus>,
 ) {
     var restartsLeft = 1
     while (true) {
         val gpu = try {
-            requestGpuContext()
+            requestGpuContext(optionalFeatures = setOf(GpuProfiler.FEATURE))
         } catch (e: Exception) {
             status.value = unavailable(signals, graph, "the device request failed: ${e.message}")
             return
@@ -114,12 +126,22 @@ private suspend fun runGpuLayer(
             return
         }
 
+        val profiler = if (gpu.hasFeature(GpuProfiler.FEATURE)) GpuProfiler(gpu, scope, gpuTimings) else null.also { gpuTimings.value = null }
         val stopped = CompletableDeferred<String>()
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
         val background = BackgroundScene(heartbeat.ambient)
-        val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope)
-        val scenes = SceneRegistry(graph.routes.associateWith { if (it == LifeDestination) lifeScene else background })
-        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope) { error ->
+        val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, profiler)
+        val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, profiler)
+        val scenes = SceneRegistry(
+            graph.routes.associateWith {
+                when (it) {
+                    LifeDestination -> lifeScene
+                    BoidsDestination -> boidsScene
+                    else -> background
+                }
+            }
+        )
+        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope, profiler) { error ->
             stopped.complete("the GPU layer failed: ${error.message}")
         }
         status.value = GpuStatus.Running

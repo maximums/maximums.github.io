@@ -4,6 +4,7 @@ import androidx.compose.ui.unit.IntOffset
 import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
 import com.cdodi.adapters.gpu.FullscreenPass
+import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.adapters.gpu.Scene
 import com.cdodi.adapters.input.InputState
 import com.cdodi.core.time.Clock
@@ -44,6 +45,7 @@ class LifeScene(
     override val clock: Clock,
     private val controller: LifeController,
     private val scope: CoroutineScope,
+    private val profiler: GpuProfiler? = null,
     private val gridWidth: Int = 2048,
     private val gridHeight: Int = 2048,
 ) : Scene {
@@ -135,7 +137,7 @@ class LifeScene(
             needsCount = true
         }
         if (pendingSteps > 0) {
-            simulation.encodeSteps(encoder, pendingSteps, frameIndex)
+            simulation.encodeSteps(encoder, pendingSteps, frameIndex, profiler?.span("step"))
         } else if (needsCount) {
             simulation.encodeCount(encoder, frameIndex)
         }
@@ -151,7 +153,7 @@ class LifeScene(
         view[6] = gridWidth.toFloat()
         view[7] = gridHeight.toFloat()
         gpu.queue.writeBuffer(viewBuffer, 0.0, viewStaging.fill(view))
-        pass.encode(encoder, target, bindGroupFor(simulation.current))
+        pass.encode(encoder, target, bindGroupFor(simulation.current), profiler?.span("draw")?.render())
     }
 
     override fun afterSubmit() {

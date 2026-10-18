@@ -401,9 +401,9 @@ val siteGraph = navGraph(start = Home) {
 Built in steps; each step ships on its own. The simulation steps on the `boids` clock.
 
 ### 6.1 Naive O(N²) version
-- [ ] Particle buffers `{ pos: vec2f, vel: vec2f }`, ping-ponged. The compute pass applies separation, alignment and cohesion within a perception radius. Integration uses a max speed and max force, and edges wrap.
-- [ ] Rendering: the vertex shader reads the storage buffer directly (**no vertex buffer**); each boid is a triangle rotated to its velocity, drawn instanced.
-- [ ] Start with N = 4,096 and confirm it looks right. Turn the old `Rule`/`Vec2` code into a small CPU reference that checks one simulation step for N = 64.
+- [x] Particle buffers `{ pos: vec2f, vel: vec2f }`, ping-ponged. The compute pass applies separation, alignment and cohesion within a perception radius. Integration uses a max speed and max force, and edges wrap.
+- [x] Rendering: the vertex shader reads the storage buffer directly (**no vertex buffer**); each boid is a triangle rotated to its velocity, drawn instanced.
+- [x] Start with N = 4,096 and confirm it looks right. Turn the old `Rule`/`Vec2` code into a small CPU reference that checks one simulation step for N = 64.
 
 ### 6.2 Spatial grid (so it scales)
 Per frame, compute passes over a grid whose cell size equals the perception radius:
@@ -413,18 +413,44 @@ Per frame, compute passes over a grid whose cell size equals the perception radi
 4. **Scatter**: write boids into a buffer sorted by cell (a counting sort).
 5. **Neighbour search**: each boid only looks at the 3×3 surrounding cells of the sorted buffer.
 
-- [ ] Goal: **100k+ boids at 60 fps** on a mid-range laptop GPU; try for 1M.
-- [ ] Unit test for the scan against a CPU scan on random input (browser test).
+- [ ] _(not yet measured; see the notes)_ Goal: **100k+ boids at 60 fps** on a mid-range laptop GPU; try for 1M.
+- [x] Unit test for the scan against a CPU scan on random input (browser test).
 
 ### 6.3 Interaction and parameters
-- [ ] Compose sliders for the rule weights, perception radius, max speed and boid count; these write a uniform buffer.
-- [ ] Pointer: attract with the left button, repel with the right; the wheel sets the radius.
-- [ ] Extras: predators (a second species), obstacles (signed distance fields in the shader), trails (render into a texture that fades out), colour by speed or heading.
+- [x] Compose sliders for the rule weights, perception radius, max speed and boid count; these write a uniform buffer.
+- [x] Pointer: attract with the left button, repel with the right; the wheel sets the radius.
+- [ ] _(partly: colour by heading)_ Extras: predators (a second species), obstacles (signed distance fields in the shader), trails (render into a texture that fades out), colour by speed or heading.
 
 ### 6.4 Profiling HUD
-- [ ] If `has("timestamp-query")` (the typed setlike from 1.3/1.4) is true, request the feature and measure every pass. A Compose overlay shows the milliseconds per pass, the boid count and the FPS (from the heartbeat). Seeing where GPU time goes is both a learning tool and a showpiece.
+- [x] If `has("timestamp-query")` (the typed setlike from 1.3/1.4) is true, request the feature and measure every pass. A Compose overlay shows the milliseconds per pass, the boid count and the FPS (from the heartbeat). Seeing where GPU time goes is both a learning tool and a showpiece.
 
 **What you learn:** parallel algorithms (scan, counting sort, spatial hashing), GPU profiling, designing a simulation around memory access.
+
+> **6.1–6.4 done**, apart from the extras and a measurement on real hardware. Checked in headless Chrome:
+> - 32,768 boids form streams like a murmuration, and 262,144 run as well.
+> - Holding the left button draws the flock into a knot at the pointer.
+> - The HUD times every pass, on both the Boids and Life pages.
+>
+> **Tests:**
+> - The scan matches a CPU scan on random input across every block boundary, up to 262,144 values.
+> - The naive step matches the CPU reference boid by boid (N = 64).
+> - The grid step finds the same neighbours (N = 256).
+> - Speeds stay between their limits.
+> - Shrinking the neighbourhood to 2×2 fails the grid test. Breaking the scan's down-sweep fails the scan test.
+>
+> How it's built, where the plan left it open:
+> - **The CPU reference is the old `Rule`/`Vec2` sketch, finished**: `Separation`, `Alignment` and `Cohesion` are `Rule`s, and `Vec2` is still a value class over an `Offset`. `step.wgsl` follows it operation for operation, so the naive step agrees boid by boid.
+> - **The count pass keeps `atomicAdd`'s old value** as each boid's rank in its cell, so the scatter is a plain write with no second atomic.
+> - **Cells** are at least the perception radius wide, and at least 3 across, so the 3×3 never visits a cell twice.
+> - **The grid step writes its output in cell order**, so neighbours stay close in memory for the next frame too.
+> - **A neighbour cap** (48) keeps a dense knot from costing more than open sky; the tests lift it.
+> - **The scan** is a two-level Blelloch scan in 512-value blocks, up to 262,144 values; the grid stays at or below 512×512 cells.
+> - **The rendering** follows DESIGN.md's murmuration: dark birds against a lit fog bank, the birds heading towards the lamp catching its light, with 4× MSAA so the small triangles don't shimmer.
+> - **The flock size** ranges from 1,024 to 262,144 on a log slider, default 32,768. A million would need bigger buffers and wasn't tried.
+> - **The time step** is the frame's own `dt`, capped at 1/30 s, rather than fixed steps: one simulation step per frame, so nothing stutters at high refresh rates.
+> - **The profiler** wraps multi-pass work in one span (the scan's three passes, a frame's Life generations). It reads timestamps back without stalls. A pass that runs only on some frames stays listed, and one that stops drops out after about two seconds.
+> - **Not measured**: 100k boids at 60 fps, and Life at 2048×2048. Headless SwiftShader reports 3.15 ms of GPU time for 262,144 boids, but a software GPU says nothing about real ones. The HUD now shows the real numbers in any browser with `timestamp-query`.
+> - **Extras not done**: predators, obstacles and trails. Colour by heading is in, as the lamp-lit birds.
 
 ---
 

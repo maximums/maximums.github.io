@@ -10,6 +10,7 @@ import com.cdodi.webgpu.bindings.GPUFragmentState
 import com.cdodi.webgpu.bindings.GPULoadOp
 import com.cdodi.webgpu.bindings.GPURenderPassColorAttachment
 import com.cdodi.webgpu.bindings.GPURenderPassDescriptor
+import com.cdodi.webgpu.bindings.GPURenderPassTimestampWrites
 import com.cdodi.webgpu.bindings.GPURenderPipeline
 import com.cdodi.webgpu.bindings.GPURenderPipelineDescriptor
 import com.cdodi.webgpu.bindings.GPUStoreOp
@@ -33,8 +34,8 @@ class FullscreenPass private constructor(private val pipeline: GPURenderPipeline
 
     val bindGroupLayout: GPUBindGroupLayout get() = pipeline.getBindGroupLayout(0)
 
-    fun encode(encoder: GPUCommandEncoder, target: GPUTextureView, bindGroup: GPUBindGroup) {
-        encoder.beginRenderPass(passInto(target)).apply {
+    fun encode(encoder: GPUCommandEncoder, target: GPUTextureView, bindGroup: GPUBindGroup, timestamps: GPURenderPassTimestampWrites? = null) {
+        encoder.beginRenderPass(passInto(target, timestamps)).apply {
             setPipeline(pipeline)
             setBindGroup(0, bindGroup)
             draw(3)
@@ -61,10 +62,11 @@ class FullscreenPass private constructor(private val pipeline: GPURenderPipeline
             encoder.beginRenderPass(passInto(target)).end()
         }
 
-        private fun passInto(target: GPUTextureView) = GPURenderPassDescriptor(
+        private fun passInto(target: GPUTextureView, timestamps: GPURenderPassTimestampWrites? = null) = GPURenderPassDescriptor(
             colorAttachments = listOf(
                 GPURenderPassColorAttachment(view = target, clearValue = NIGHT, loadOp = GPULoadOp.clear, storeOp = GPUStoreOp.store)
-            )
+            ),
+            timestampWrites = timestamps,
         )
     }
 }
