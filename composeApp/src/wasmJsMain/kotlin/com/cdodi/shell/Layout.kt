@@ -48,15 +48,19 @@ data class MenuLayout(
 /** The layout for a window [width] × [height] (the whole viewport). */
 fun menuLayout(width: Dp, height: Dp): MenuLayout {
     val compact = width < CompactWidth
+    val window = if (compact) min(width - 32.dp, height * 0.55f) else min(width * 0.39f, height * 0.62f)
+    // Home's words are set for the mockup's 558 dp window; a smaller one (a short laptop window) sets them smaller, so
+    // they keep their room.
+    val type = if (compact) 1f else (window / 558.dp).coerceIn(0.7f, 1f)
     return MenuLayout(
         compact = compact,
         margin = if (compact) 16.dp else 48.dp,
-        window = if (compact) min(width - 32.dp, height * 0.55f) else min(width * 0.39f, height * 0.62f),
+        window = window,
         barHeight = if (compact) 56.dp else 72.dp,
         navGap = if (compact) 16.dp else 44.dp,
         navLabel = if (compact) 17.sp else 23.sp,
-        homeLabel = if (compact) 24.sp else 34.sp,
-        welcome = if (compact) 40.sp else 64.sp,
+        homeLabel = if (compact) 24.sp else 34.sp * type,
+        welcome = if (compact) 40.sp else 64.sp * type,
     )
 }
 
