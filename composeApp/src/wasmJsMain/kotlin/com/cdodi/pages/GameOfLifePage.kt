@@ -42,18 +42,17 @@ import com.cdodi.data.gameoflife.CELL_SIZE_PX
 import com.cdodi.data.gameoflife.Cell
 import com.cdodi.data.gameoflife.GameOfLifeManager
 import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.LifeController
 import com.cdodi.data.gameoflife.Grid
 import com.cdodi.vw
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.round
 
 
-/** The simulation's own clock: pausing or slowing it touches nothing else. */
-private const val LIFE_CLOCK = "life"
 
 @Composable
 internal fun rememberLifeManager(rule: LifeRule): GameOfLifeManager {
-    val clock = LocalHeartbeat.current.child(LIFE_CLOCK)
+    val clock = LocalHeartbeat.current.child(LifeController.CLOCK)
     val manager = remember(clock, rule) { GameOfLifeManager(clock, rule) }
 
     DisposableEffect(manager) {

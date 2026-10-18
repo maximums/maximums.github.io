@@ -1,0 +1,109 @@
+package com.cdodi.features.life
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Slider
+import androidx.compose.material.SliderDefaults
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.data.gameoflife.LifeRule
+import kotlin.math.roundToInt
+
+/** The rules on offer, by name. Any other B/S rule still works through the URL (`#/life?rule=B36/S23`). */
+private val namedRules = listOf(
+    "Conway" to LifeRule.Conway,
+    "HighLife" to LifeRule.HighLife,
+    "Seeds" to LifeRule.Seeds,
+    "Day & Night" to LifeRule.DayAndNight,
+)
+
+private val Quiet = Color.White.copy(alpha = 0.72f)
+private val Faint = Color.White.copy(alpha = 0.45f)
+
+/**
+ * The Life page over its GPU scene: the grid itself is the scene underneath, so this is only the controls and the
+ * readouts. The rule comes from the destination, so it is in the URL; picking another one navigates.
+ */
+@Composable
+fun LifeControls(controller: LifeController, rule: LifeRule, onRuleChange: (LifeRule) -> Unit) {
+    LaunchedEffect(rule) { controller.setRule(rule) }
+    val status by controller.status.collectEachFrame()
+
+    Box(Modifier.fillMaxSize().padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                QuietButton(if (status.isPaused) "Play" else "Pause", onClick = controller::playPause)
+                QuietButton("Step", enabled = status.isPaused, onClick = controller::step)
+                QuietButton("Scatter", onClick = controller::scatter)
+                QuietButton("Clear", onClick = controller::clear)
+                QuietButton("Fit", onClick = controller::fitView)
+                Spacer(Modifier.width(12.dp))
+                Slider(
+                    value = status.generationsPerSecond,
+                    onValueChange = controller::setSpeed,
+                    valueRange = LifeController.MIN_SPEED..LifeController.MAX_SPEED,
+                    modifier = Modifier.width(220.dp),
+                    colors = SliderDefaults.colors(activeTrackColor = Color.LightGray.copy(alpha = 0.3f), thumbColor = Color.LightGray.copy(alpha = 0.7f)),
+                )
+                Text("${status.generationsPerSecond.roundToInt()} gen/s", color = Quiet, fontSize = 16.sp)
+                Spacer(Modifier.width(12.dp))
+                QuietButton(if (status.wrap) "Edges wrap" else "Edges are walls") { controller.setWrap(!status.wrap) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                for ((name, namedRule) in namedRules) {
+                    QuietButton(name, selected = namedRule == rule) { onRuleChange(namedRule) }
+                }
+                Text(rule.toString(), color = Quiet, fontSize = 16.sp, fontFamily = FontFamily.Monospace)
+            }
+        }
+
+        Row(Modifier.fillMaxWidth().align(Alignment.BottomStart), verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = if (status.isPaused) "drag to draw · shift-drag to erase · scroll to zoom · right-drag to pan" else "scroll to zoom · drag to pan",
+                color = Faint,
+                fontSize = 13.sp,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "generation ${status.generation} · ${status.population} alive · ${status.width} × ${status.height}",
+                color = Quiet,
+                fontSize = 14.sp,
+                fontFamily = FontFamily.Monospace,
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuietButton(text: String, enabled: Boolean = true, selected: Boolean = false, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color.LightGray.copy(alpha = if (selected) 0.45f else 0.18f),
+            contentColor = Color.White,
+            disabledBackgroundColor = Color.LightGray.copy(alpha = 0.08f),
+            disabledContentColor = Color.White.copy(alpha = 0.4f),
+        ),
+    ) {
+        Text(text)
+    }
+}

@@ -13,7 +13,15 @@ class InputState {
     var hasPointer: Boolean = false
         internal set
 
+    /** The primary button (or a touch) is down. */
     var isPressed: Boolean = false
+        internal set
+
+    /** The secondary or middle button is down: scenes pan with it. */
+    var isPanPressed: Boolean = false
+        internal set
+
+    var isShiftPressed: Boolean = false
         internal set
 
     /** Presses that started this frame. */

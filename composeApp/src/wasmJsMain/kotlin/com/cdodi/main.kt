@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,8 @@ import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
+import com.cdodi.features.life.LifeControls
+import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.pages.AboutPage
 import com.cdodi.pages.BoidsPage
@@ -51,14 +54,14 @@ fun main() {
         ) {
             AppRoot {
                 InputLayer(runtime.input, runtime.heartbeat)
-                App(runtime.gpu.collectAsState().value)
+                App(runtime.gpu.collectAsState().value, runtime.life)
             }
         }
     }
 }
 
 @Composable
-private fun App(gpu: GpuStatus) {
+private fun App(gpu: GpuStatus, life: LifeController) {
     MaterialTheme {
         LookaheadScope {
             // A Box, not a Material Surface: a Surface blocks pointer events from reaching what's behind it, and behind
@@ -74,7 +77,7 @@ private fun App(gpu: GpuStatus) {
                 if (LocalIsSmallWindow.current) {
                     SmallScreenPage()
                 } else {
-                    AppContent()
+                    AppContent(gpu, life)
                 }
             }
             if (gpu is GpuStatus.Unavailable) FallbackNotice()
@@ -102,13 +105,14 @@ private fun FallbackNotice() {
 }
 
 @Composable
-private fun LookaheadScope.AppContent() {
+private fun LookaheadScope.AppContent(gpu: GpuStatus, life: LifeController) {
     val navigation = LocalNavigationBus.current
     val navState = navigation.state.collectEachFrame()
     // The layout switches sides when the menu morph starts: at the click going to a page, but only after the page has
     // faded going back to Home. Until then it stays on the side being left.
     val layoutAt by remember(navState) { derivedStateOf { navState.value.layoutAt() } }
     val morph = remember(navState) { MorphSource { navState.value.morph(UiEffectIds.MENU_MORPH) } }
+    val paneFill = remember(navState, gpu) { { navState.value.paneFill(lifeIsScene = gpu is GpuStatus.Running) } }
     val pageEffects = rememberPageEffects()
 
     fun open(destination: Destination): () -> Unit = { navigation.send(NavIntent.NavigateTo(destination)) }
@@ -132,7 +136,7 @@ private fun LookaheadScope.AppContent() {
     )
     val bodyCard = movableBodyCard()
 
-    CompositionLocalProvider(LocalMorph provides morph) {
+    CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill) {
     Box(contentAlignment = Alignment.Center) {
         if (layoutAt == HomeDestination) {
             MainMenu(
@@ -168,13 +172,27 @@ private fun LookaheadScope.AppContent() {
                     when (destination) {
                         AboutDestination -> AboutPage()
                         BoidsDestination -> BoidsPage()
-                        is LifeDestination -> GameOfLifePage(destination.rule)
+                        // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.
+                        is LifeDestination -> if (gpu is GpuStatus.Running) {
+                            LifeControls(life, destination.rule) { rule -> navigation.send(NavIntent.NavigateTo(LifeDestination(rule))) }
+                        } else {
+                            GameOfLifePage(destination.rule)
+                        }
                         else -> Unit
                     }
                 }
             }
         }
     }
+    }
+}
+
+/** The glass over a page: cleared where the page is the scene behind it, following the page fade in between. */
+private fun NavState.paneFill(lifeIsScene: Boolean): Color {
+    fun fillOf(destination: Destination) = if (lifeIsScene && destination is LifeDestination) ClearedPane else FoggedPane
+    return when (this) {
+        is NavState.Idle -> fillOf(at)
+        is NavState.Transitioning -> lerp(fillOf(from), fillOf(to), effects.firstOrNull { it.effect.id == UiEffectIds.FADE }?.travelled ?: 0f)
     }
 }
 

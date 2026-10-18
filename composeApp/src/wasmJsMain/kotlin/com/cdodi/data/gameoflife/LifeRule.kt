@@ -29,6 +29,7 @@ data class LifeRule(val birth: Int, val survive: Int) {
         val Conway = parse("B3/S23")
         val HighLife = parse("B36/S23")
         val Seeds = parse("B2/S")
+        val DayAndNight = parse("B3678/S34678")
 
         fun parse(notation: String): LifeRule {
             val match = NOTATION.matchEntire(notation.trim().uppercase())

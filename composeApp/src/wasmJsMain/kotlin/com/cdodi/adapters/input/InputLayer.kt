@@ -10,6 +10,9 @@ import androidx.compose.ui.input.pointer.PointerEvent
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.isPrimaryPressed
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.input.pointer.isTertiaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
 import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
@@ -49,21 +52,29 @@ private class PendingInput {
     private var y = 0f
     private var hasPointer = false
     private var isPressed = false
+    private var isPanPressed = false
+    private var isShiftPressed = false
     private var presses = 0
     private var wheel = 0f
 
     fun record(event: PointerEvent) {
         val change = event.changes.firstOrNull() ?: return
         val isForScene = !change.isConsumed
+        isShiftPressed = event.keyboardModifiers.isShiftPressed
+        if (event.type == PointerEventType.Exit) {
+            hasPointer = false
+            return
+        }
+        // Every other event, the wheel included, happens somewhere: that's where the pointer is.
+        x = change.position.x
+        y = change.position.y
+        hasPointer = true
         when (event.type) {
-            PointerEventType.Exit -> hasPointer = false
             PointerEventType.Scroll -> if (isForScene) wheel += change.scrollDelta.y
             else -> {
-                x = change.position.x
-                y = change.position.y
-                hasPointer = true
                 if (event.type == PointerEventType.Press && isForScene) presses++
                 isPressed = event.buttons.isPrimaryPressed && (isForScene || isPressed)
+                isPanPressed = (event.buttons.isSecondaryPressed || event.buttons.isTertiaryPressed) && (isForScene || isPanPressed)
             }
         }
     }
@@ -73,6 +84,8 @@ private class PendingInput {
         input.pointerY = y
         input.hasPointer = hasPointer
         input.isPressed = isPressed
+        input.isPanPressed = isPanPressed
+        input.isShiftPressed = isShiftPressed
         input.presses = presses
         input.wheel = wheel
         presses = 0
