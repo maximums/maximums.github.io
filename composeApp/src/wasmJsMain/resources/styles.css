@@ -1,4 +1,4 @@
-/* Colours are DESIGN.md tokens: Night #0D1013, Fog #8C9499. */
+/* Colours are DESIGN.md tokens: Night #0D1013, Fog #8C9499, Mist #D6D2C8, Parchment #EDE6D6, Lamp #D8A15A. */
 
 html, body {
     width: 100%;
@@ -57,4 +57,61 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
     #loading span { animation: none; }
+}
+
+/* The site in plain HTML (index.html): read by screen readers and search engines while the canvas runs, and shown to
+   browsers that can't run it. */
+#plain {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+#plain .unsupported {
+    display: none;
+}
+
+.no-wasm-gc #gpu, .no-wasm-gc #compose, .no-wasm-gc #loading {
+    display: none;
+}
+
+.no-wasm-gc body {
+    overflow: auto;
+}
+
+.no-wasm-gc #plain {
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    overflow: visible;
+    white-space: normal;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 56px 20px;
+    color: #D6D2C8;
+    font: 400 17px/1.65 system-ui, sans-serif;
+}
+
+.no-wasm-gc #plain .unsupported {
+    display: block;
+    color: #8C9499;
+    font-style: italic;
+}
+
+#plain h1, #plain h2 {
+    color: #EDE6D6;
+    font: italic 300 44px/1.1 "Cormorant Garamond", Georgia, serif;
+}
+
+#plain h2 {
+    font-size: 28px;
+    margin-top: 40px;
+}
+
+#plain a {
+    color: #D8A15A;
 }

@@ -96,6 +96,21 @@ class BoidsSimulationTest {
     }
 
     @Test
+    fun aFlockOutgrowingTheBuffersGetsBiggerOnes() = gpuTest { gpu, simulation ->
+        simulation.ensureCapacity(300)
+        assertEquals(512, simulation.capacity, "already fits")
+        simulation.ensureCapacity(1500)
+        assertEquals(2048, simulation.capacity, "the next power of two")
+        assertEquals(0, simulation.count, "growing empties the flock")
+
+        val start = flock(1500, seed = 4)
+        simulation.load(start)
+        gpu.submit { simulation.encodeNaiveStep(it, params, dt) }
+        val expected = BoidsReference.step(start, params, dt)
+        expected.zip(simulation.readBoids()).forEachIndexed { i, (e, a) -> assertClose(e, a, "boid $i") }
+    }
+
+    @Test
     fun boidsKeepTheirSpeedBetweenTheLimits() = gpuTest { gpu, simulation ->
         simulation.scatter(512, params, Random(3))
         repeat(30) { gpu.submit { simulation.encodeGridStep(it, params, dt) } }

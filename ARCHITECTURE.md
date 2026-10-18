@@ -83,6 +83,7 @@ maximums.github.io/
 │   │                               (cdodi.kmp-wasm-library, cdodi.testing)
 │   └── webidl-compiler/            the WebIDL → Kotlin compiler (Gradle plugin)
 ├── core/                           :core — heartbeat, buses, navigation (pure Kotlin)
+├── notes/                          :notes — Markdown → blocks → HTML; the JVM build writes the notes as plain pages
 ├── webgpu/                         :webgpu — generated bindings + runtime + idiomatic layer
 │   └── idl/webgpu.idl              committed, pinned @webref/idl version
 ├── composeApp/                     :composeApp — the site
@@ -210,6 +211,7 @@ com.cdodi
 │   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
 │   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
 │   PageEffects (the page effects the site plays) · FeatureRegistry (later)
+│   Layout (MenuLayout: the menu's sizes from the viewport; compact below 600 dp, the phone layout)
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
@@ -226,9 +228,11 @@ com.cdodi
 ├── ui/                      design system (tokens from DESIGN.md), Compose only, no app logic
 │   theme/ · components/ (UiCard, buttons, sliders) · modifiers/ (morphingShape,
 │   animatePlacement, QuadVertexProgress) · units (vw, vh)
+│   (today in components/: MainMenu, the morph modifiers, CompactPanel: scene controls that fold on a phone)
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
-    ├── about/               AboutFeature · AboutDestination · content UI
+    ├── about/               AboutFeature · AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
+    ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
     ├── background/          BackgroundScene (bokeh at ¼/½/full, upscaled; widgets drawn on top) · BackgroundSettings
     │                        QualityToggle · StillScene (the static, dimmed scene without WebGPU)
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
@@ -245,9 +249,12 @@ composeResources/files/
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/life/            step.wgsl · render.wgsl
 ├── shaders/boids/           step.wgsl (naive and grid kernels) · render.wgsl
+├── notes/                   index.txt (the order) · <slug>.md (front matter + Markdown)
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
-wasmJsMain/resources/        index.html (two layers + loading state) · styles.css
+wasmJsMain/resources/        index.html (two layers + loading state; a plain-HTML summary for screen readers, search
+                             engines and browsers without WasmGC; Open Graph tags) · styles.css · og.png · favicon.svg
+build/generated/notesSite/   generateNotesSite: notes/<slug>.html · notes/index.html · sitemap.xml · robots.txt
 ```
 
 A feature package always has the same pieces: a `…Feature` (registers everything), a `…Destination`, a `…Scene` if it draws on the GPU, and its overlay UI. `FeatureRegistry` is the single place that lists the features.

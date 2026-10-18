@@ -4,8 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dodi Cristian-Dumitru</title>
+    <meta name="description" content="A rainy street behind glass, drawn with WebGPU from Kotlin/Wasm: the Game of Life and a million boids on compute shaders, and notes on how it's built.">
+    <link rel="canonical" href="https://maximums.github.io/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Dodi Cristian-Dumitru">
+    <meta property="og:title" content="Dodi Cristian-Dumitru">
+    <meta property="og:description" content="A rainy street behind glass, drawn with WebGPU from Kotlin/Wasm: the Game of Life and a million boids on compute shaders, and notes on how it's built.">
+    <meta property="og:url" content="https://maximums.github.io/">
+    <meta property="og:image" content="https://maximums.github.io/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#0D1013">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link type="text/css" rel="stylesheet" href="styles.css">
-    <script type="application/javascript" src="composeApp.js"></script>
+    <script>
+        // Kotlin/Wasm needs WasmGC (Chrome 119, Firefox 120, Safari 18.2). Without it the bundle can't even load, so
+        // say so instead of leaving the loading line up forever. The module is the smallest one with a GC type.
+        window.wasmGcSupported = typeof WebAssembly === "object"
+            && WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]));
+        if (!window.wasmGcSupported) document.documentElement.classList.add("no-wasm-gc");
+    </script>
 </head>
 <body>
     <!-- Two layers: WebGPU draws the scene underneath, Compose draws the UI on top of it. -->
@@ -13,5 +32,40 @@
     <div id="compose"></div>
     <!-- Shown until Compose draws its first frame. -->
     <div id="loading" role="status"><span>the rain is coming…</span></div>
+
+    <!-- The canvas is invisible to screen readers and search engines: this is the site for them. It's also what a
+         browser that can't run the site (no JavaScript, no WasmGC) shows. -->
+    <main id="plain">
+        <h1>Dodi Cristian-Dumitru</h1>
+        <p class="unsupported">The rain can't reach this browser: the site needs WebAssembly GC, which recent Chrome, Edge, Firefox and Safari have. The notes below work anywhere.</p>
+        <p>Software engineer: Android and Gradle builds. Android engineer with 5+ years building production Android applications and libraries in Kotlin, mostly on Jetpack Compose, Gradle and modularization, and on keeping large codebases maintainable through static analysis and custom lint tooling. I have delivered work for GlobalPayments, Bloomberg and BMW across the payments and automotive domains.</p>
+        <p>This site is a rainy street behind fogged glass, drawn with WebGPU from Kotlin compiled to WebAssembly. Behind the panes: the Game of Life and a murmuration of up to a million boids, both on compute shaders.</p>
+        <h2>Notes</h2>
+        <ul>
+            <li><a href="notes/webidl-compiler.html">I built a WebIDL compiler to get type-safe WebGPU in Kotlin/Wasm</a></li>
+            <li><a href="notes/boids-compute-shaders.html">1M boids in the browser: spatial hashing with compute shaders</a></li>
+            <li><a href="notes/navigation-graph.html">A navigation graph where the edges are the transitions</a></li>
+        </ul>
+        <h2>Elsewhere</h2>
+        <ul>
+            <li><a href="https://github.com/maximums">GitHub</a></li>
+            <li><a href="https://www.linkedin.com/in/cristian-dodi-4249831b5/">LinkedIn</a></li>
+            <li><a href="mailto:cdodi907@gmail.com">cdodi907@gmail.com</a></li>
+        </ul>
+    </main>
+    <script>
+        // Only a browser that can run it loads the app, once the elements it draws into exist.
+        if (window.wasmGcSupported) {
+            const app = document.createElement("script");
+            app.src = "composeApp.js";
+            document.body.appendChild(app);
+        }
+    </script>
+    <noscript><style>
+        body { overflow: auto; }
+        #loading { display: none; }
+        #plain { position: static; width: auto; height: auto; clip: auto; overflow: visible; white-space: normal; max-width: 40rem;
+                 margin: 0 auto; padding: 56px 20px; color: #D6D2C8; font: 400 17px/1.65 system-ui, sans-serif; }
+    </style></noscript>
 </body>
 </html>

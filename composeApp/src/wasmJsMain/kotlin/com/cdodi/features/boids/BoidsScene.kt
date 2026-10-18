@@ -58,7 +58,6 @@ class BoidsScene(
     override val clock: Clock,
     private val controller: BoidsController,
     private val profiler: GpuProfiler? = null,
-    private val capacity: Int = BoidsController.MAX_COUNT,
 ) : Scene {
 
     private lateinit var gpu: GpuContext
@@ -92,7 +91,7 @@ class BoidsScene(
             gpu,
             Res.readBytes("files/shaders/boids/step.wgsl").decodeToString(),
             Res.readBytes("files/shaders/common/scan.wgsl").decodeToString(),
-            capacity,
+            capacity = INITIAL_CAPACITY,
         )
         val module = gpu.compileShader(Res.readBytes("files/shaders/boids/render.wgsl").decodeToString(), label = "boids render")
         fogPipeline = pipeline(module, "fogVertex", "fogFragment", "fog bank")
@@ -125,7 +124,10 @@ class BoidsScene(
         val world = status.params.copy(worldWidth = width.toFloat(), worldHeight = height.toFloat())
         if (controller.scatterRequested || (simulation.count == 0 && width > 0)) {
             controller.scatterRequested = false
-            simulation.scatter(min(status.count, capacity), world)
+            val capacity = simulation.capacity
+            simulation.ensureCapacity(status.count)
+            if (simulation.capacity != capacity) birdGroups.clear() // they bound the buffers growing replaced
+            simulation.scatter(status.count, world)
         }
 
         if (input.wheel != 0f) pointerRadius = (pointerRadius * exp(-input.wheel * 0.0015f)).coerceIn(40f, 600f)
@@ -206,5 +208,8 @@ class BoidsScene(
 
     private companion object {
         const val SAMPLES = 4
+
+        /** Buffers for this many boids to begin with; a bigger flock grows them. */
+        const val INITIAL_CAPACITY = 32_768
     }
 }

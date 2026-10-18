@@ -6,7 +6,6 @@ import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 
 @Immutable
 data class ViewportSize(val width: Dp, val height: Dp)
@@ -26,17 +25,5 @@ val LocalViewportSize = compositionLocalWithComputedDefaultOf {
             width = windowInfo.containerSize.width.toDp(),
             height = windowInfo.containerSize.height.toDp()
         )
-    }
-}
-
-val LocalIsSmallWindow = compositionLocalWithComputedDefaultOf {
-    val windowInfo = LocalWindowInfo.currentValue
-    val density = LocalDensity.currentValue
-
-    with(density) {
-        val width = windowInfo.containerSize.width.toDp()
-        val height = windowInfo.containerSize.height.toDp()
-
-        width < 600.dp || height < 600.dp
     }
 }

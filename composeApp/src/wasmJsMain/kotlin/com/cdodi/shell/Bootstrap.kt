@@ -38,6 +38,7 @@ import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
 import com.cdodi.webgpu.context.requestGpuContext
 import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
@@ -92,7 +93,9 @@ fun bootstrap(): AppRuntime {
     followBrowserHistory(navigation, heartbeat, urls)
     val input = InputState()
     val life = LifeController(heartbeat.child(LifeController.CLOCK))
-    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK))
+    // A phone starts with a smaller flock; the viewer can still ask for more.
+    val smallScreen = window.innerWidth < CompactWidth.value
+    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK), if (smallScreen) BoidsController.SMALL_SCREEN_COUNT else BoidsController.DEFAULT_COUNT)
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
     val gpuTimings = MutableStateFlow<List<PassTiming>?>(null)

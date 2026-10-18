@@ -161,8 +161,17 @@ fn scatter(@builtin(global_invocation_id) id: vec3u) {
     sorted[cellStarts[boidCell[i]] + boidRank[i]] = boidsIn[i];
 }
 
+// The eight cells around a boid's own, in a ring.
+var<private> RING: array<vec2i, 8> = array(
+    vec2i(-1, -1), vec2i(0, -1), vec2i(1, -1), vec2i(1, 0), vec2i(1, 1), vec2i(0, 1), vec2i(-1, 1), vec2i(-1, 0),
+);
+
 // 4. Each boid only looks at the 3×3 cells around its own. The output stays in sorted order: nearby boids sit nearby
 // in memory for the next frame too.
+//
+// A boid stops looking once it has seen maxNeighbours (like a starling, which keeps track of a handful of birds, not of
+// the whole flock), so a dense crowd costs no more than a sparse one. In a crowd, the order it looks in decides whom it
+// sees: its own cell first, then the ring, starting from a different cell for each boid so no direction is favoured.
 @compute @workgroup_size(256)
 fn stepGrid(@builtin(global_invocation_id) id: vec3u) {
     let i = id.x;
@@ -172,17 +181,19 @@ fn stepGrid(@builtin(global_invocation_id) id: vec3u) {
     let me = sorted[i];
     let grid = vec2i(params.grid);
     let home = vec2i(cellOf(me.pos));
+    let enough = u32(params.maxNeighbours);
     var sums = noSums();
-    for (var dy = -1; dy <= 1; dy++) {
-        for (var dx = -1; dx <= 1; dx++) {
-            let c = (home + vec2i(dx, dy) + grid) % grid;
-            let cell = u32(c.y) * u32(grid.x) + u32(c.x);
-            let start = cellStarts[cell];
-            let end = start + atomicLoad(&cellCounts[cell]);
-            for (var j = start; j < end; j++) {
-                if (j != i) {
-                    visit(&sums, me, sorted[j]);
-                }
+    for (var k = 0u; k < 9u && sums.count < enough; k++) {
+        var c = home;
+        if (k > 0u) {
+            c = (home + RING[(k - 1u + i) % 8u] + grid) % grid;
+        }
+        let cell = u32(c.y) * u32(grid.x) + u32(c.x);
+        let start = cellStarts[cell];
+        let end = start + atomicLoad(&cellCounts[cell]);
+        for (var j = start; j < end && sums.count < enough; j++) {
+            if (j != i) {
+                visit(&sums, me, sorted[j]);
             }
         }
     }

@@ -1,0 +1,4 @@
+# The notes, in the order the site lists them. A note is files/notes/<slug>.md; every .md here must be listed.
+webidl-compiler
+boids-compute-shaders
+navigation-graph
