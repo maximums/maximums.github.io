@@ -53,6 +53,6 @@ class BoidsController(private val clock: Clock) {
 
         const val DEFAULT_COUNT = 32_768
         const val MIN_COUNT = 1_024
-        const val MAX_COUNT = 262_144
+        const val MAX_COUNT = 1_048_576
     }
 }

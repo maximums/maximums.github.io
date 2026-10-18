@@ -42,26 +42,33 @@ import kotlin.random.Random
  * count boids per cell, scan the counts into cell starts, scatter the boids into cell order, then search the 3×3
  * cells around each one. [current] is what the scene draws.
  *
- * @param capacity the most boids the buffers hold; a bigger flock needs a new simulation.
+ * The per-boid buffers grow on demand ([ensureCapacity]), in powers of two up to a million boids: a phone showing a
+ * small flock doesn't pay for a big one. The pipelines are compiled once.
  */
 class BoidsSimulation private constructor(
     private val gpu: GpuContext,
-    val capacity: Int,
+    capacity: Int,
     private val pipelines: Map<String, GPUComputePipeline>,
     private val scan: GpuScan,
 ) : AutoCloseable {
+
+    /** The most boids the buffers hold right now. */
+    var capacity: Int = capacity
+        private set
 
     /** How many boids fly. */
     var count: Int = 0
         private set
 
     private val resources = gpu.resourceScope()
-    private val boids = List(2) { boidBuffer("boids $it") }
-    private val sorted = boidBuffer("boids by cell")
-    private val boidCell = storage(capacity * 4, "boid cell")
-    private val boidRank = storage(capacity * 4, "boid rank in cell")
     private val cellCounts = storage(MAX_CELLS * 4, "cell counts", copyDestination = true)
     private val cellStarts = storage(MAX_CELLS * 4, "cell starts")
+
+    // Sized by the capacity, so outside the resource scope: they're replaced when the flock outgrows them.
+    private var boids = List(2) { boidBuffer("boids $it") }
+    private var sorted = boidBuffer("boids by cell")
+    private var boidCell = perBoid("boid cell")
+    private var boidRank = perBoid("boid rank in cell")
     private val params = resources.buffer(
         GPUBufferDescriptor(size = BoidsParams.UNIFORM_FLOATS * 4.0, usage = GPUBufferUsage.UNIFORM or GPUBufferUsage.COPY_DST, label = "boids params")
     )
@@ -105,6 +112,26 @@ class BoidsSimulation private constructor(
         dispatch(encoder, "scatter", "scatter", profiler?.span("scatter")?.compute())
         dispatch(encoder, "stepGrid", "neighbours", profiler?.span("neighbours")?.compute())
         currentIndex = 1 - currentIndex
+    }
+
+    /**
+     * Makes room for at least [required] boids, growing to the next power of two (up to [MAX_CAPACITY]). Growing empties
+     * the flock: scatter or load one afterwards.
+     */
+    fun ensureCapacity(required: Int) {
+        require(required <= MAX_CAPACITY) { "at most $MAX_CAPACITY boids, not $required" }
+        if (required <= capacity) return
+        destroyPerBoidBuffers()
+        var grown = capacity
+        while (grown < required) grown *= 2
+        capacity = grown
+        boids = List(2) { boidBuffer("boids $it") }
+        sorted = boidBuffer("boids by cell")
+        boidCell = perBoid("boid cell")
+        boidRank = perBoid("boid rank in cell")
+        bindGroups.clear()
+        currentIndex = 0
+        count = 0
     }
 
     /** Replaces the flock. */
@@ -155,8 +182,13 @@ class BoidsSimulation private constructor(
     }
 
     override fun close() {
+        destroyPerBoidBuffers()
         resources.close()
         scan.close()
+    }
+
+    private fun destroyPerBoidBuffers() {
+        (boids + sorted + boidCell + boidRank).forEach { it.destroy() }
     }
 
     private fun writeParams(params: BoidsParams, dt: Float, gridX: Int, gridY: Int) {
@@ -192,9 +224,11 @@ class BoidsSimulation private constructor(
         )
     }
 
-    private fun boidBuffer(label: String) = resources.buffer(
+    private fun boidBuffer(label: String) = gpu.device.createBuffer(
         GPUBufferDescriptor(size = capacity * 16.0, usage = GPUBufferUsage.STORAGE or GPUBufferUsage.COPY_SRC or GPUBufferUsage.COPY_DST, label = label)
     )
+
+    private fun perBoid(label: String) = gpu.device.createBuffer(GPUBufferDescriptor(size = capacity * 4.0, usage = GPUBufferUsage.STORAGE, label = label))
 
     private fun storage(bytes: Int, label: String, copyDestination: Boolean = false) = resources.buffer(
         GPUBufferDescriptor(size = bytes.toDouble(), usage = GPUBufferUsage.STORAGE or (if (copyDestination) GPUBufferUsage.COPY_DST else 0), label = label)
@@ -205,6 +239,9 @@ class BoidsSimulation private constructor(
         private const val MIN_CELLS_ACROSS = 3
         private const val MAX_CELLS_ACROSS = 512
         private val MAX_CELLS = min(MAX_CELLS_ACROSS * MAX_CELLS_ACROSS, GpuScan.MAX_COUNT)
+
+        /** A million boids: 16 MB for each of the three boid buffers. */
+        const val MAX_CAPACITY = 1 shl 20
 
         /** Compiles the step ([stepCode]) and scan ([scanCode]) shaders for a flock of up to [capacity] boids. */
         suspend fun create(gpu: GpuContext, stepCode: String, scanCode: String, capacity: Int): BoidsSimulation {

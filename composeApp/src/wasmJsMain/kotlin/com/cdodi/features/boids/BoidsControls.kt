@@ -76,7 +76,7 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
     }
 }
 
-/** The flock size on a log scale, 1,024 to 262,144; applied when the slider is let go, since it scatters a new flock. */
+/** The flock size on a log scale, 1,024 to 1,048,576; applied when the slider is let go, since it scatters a new flock. */
 @Composable
 private fun FlockSize(count: Int, onChange: (Int) -> Unit) {
     var exponent by remember(count) { mutableFloatStateOf(log2(count.toFloat())) }
@@ -87,7 +87,7 @@ private fun FlockSize(count: Int, onChange: (Int) -> Unit) {
             value = exponent,
             onValueChange = { exponent = it },
             onValueChangeFinished = { onChange(shown) },
-            valueRange = 10f..18f,
+            valueRange = 10f..20f,
             colors = sliderColors(),
         )
     }
