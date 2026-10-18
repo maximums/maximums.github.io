@@ -483,7 +483,7 @@ Per frame, compute passes over a grid whose cell size equals the perception radi
 - [x] Items from REVIEW §6: meta description and Open Graph tags, a real small-screen layout (the GPU scenes work on phones too, with a lower quality setting), finishing the About and Contact content.
   - [x] Meta description, Open Graph and Twitter tags, a preview image and a favicon.
   - [x] A real small-screen layout.
-  - [x] About and Contact content: the bio from the author's CV, work, tools, GitHub and email. LinkedIn joins the links when there's a URL.
+  - [x] About and Contact content: the bio from the author's CV, work, tools, GitHub, LinkedIn and email.
 
 > **Notes on Phase 7** (checked in headless Chrome at 1400×900, on an emulated 390×844 phone, without WebGPU, and with WasmGC switched off):
 >

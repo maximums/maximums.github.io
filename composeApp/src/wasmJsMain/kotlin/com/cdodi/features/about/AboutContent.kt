@@ -33,6 +33,7 @@ object AboutContent {
 
     val links = listOf(
         ContactLink("GitHub", "https://github.com/maximums"),
+        ContactLink("LinkedIn", "https://www.linkedin.com/in/cristian-dodi-4249831b5/"),
         ContactLink("cdodi907@gmail.com", "mailto:cdodi907@gmail.com"),
     )
 }
