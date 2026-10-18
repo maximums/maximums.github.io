@@ -9,9 +9,8 @@ package com.cdodi.adapters.gpu
 class GpuWidgets {
 
     enum class Kind {
-        /** A lit sphere, its light circling (the Welcome card's, which also breathes in and out). */
+        /** A lit sphere, its light circling (the About page's). */
         Sphere,
-        BreathingSphere,
     }
 
     /**

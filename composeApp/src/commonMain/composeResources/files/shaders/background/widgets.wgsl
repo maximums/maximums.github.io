@@ -1,10 +1,10 @@
 // Effects drawn behind UI elements ("GPU-backed widgets"): Compose reports where an element is, and the scene draws
 // there, under it. One quad per element. The effect for now is a raytraced sphere lit by a circling light: the old
-// MY_TRY Skia shader, behind the Welcome card (where it also breathes in and out) and on the About page.
+// MY_TRY Skia shader, on the About page.
 
 struct Widget {
     rect: vec4f,    // x, y, width, height in target pixels
-    style: vec4f,   // x: visibility 0..1, y: 1 if the sphere breathes, zw: unused
+    style: vec4f,   // x: visibility 0..1, yzw: unused
 }
 
 struct Frame {
@@ -42,7 +42,7 @@ fn fs(in: Out) -> @location(0) vec4f {
     uv.x *= size.x / size.y;
 
     let t = frame.time;
-    let camera = vec3f(0.0, 0.0, widget.style.y * sin(t) / 2.0);
+    let camera = vec3f(0.0);
     let light = normalize(vec3f(sin(t), 1.0, -cos(t)));
     let ray = normalize(vec3f(uv, 1.0) - camera);
     let centre = vec3f(0.0, 0.0, 5.0);

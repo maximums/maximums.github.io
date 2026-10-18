@@ -1,75 +1,29 @@
 package com.cdodi.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MovableContent
 import androidx.compose.runtime.currentComposer
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.RectangleShape
+import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.AutumnColors
 import androidx.compose.ui.layout.LookaheadScope
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.cdodi.adapters.compose.gpuBacked
-import com.cdodi.adapters.gpu.GpuWidgets
 
-/** A pane of the menu: a triangle around the Welcome rhombus on Home, a rectangle in the top row elsewhere. */
-@Composable
-fun movableCard(
-    text: String,
-    fontSize: TextUnit,
-    onClick: () -> Unit,
-): @Composable LookaheadScope.(Modifier, MorphingShape) -> Unit {
+/** The page's glass, read while drawing so it can follow a transition frame by frame: Home's fog, then the page's. */
+val LocalPaneFill = staticCompositionLocalOf<() -> Color> { { AutumnColors.FogPane } }
 
-    val currentText by rememberUpdatedState(text)
-    val currentFontSize by rememberUpdatedState(fontSize)
-    val currentOnClick by rememberUpdatedState(onClick)
-
-    return remember {
-        movableContentWithReceiverOf { modifier, targetShape ->
-            Box(
-                contentAlignment = targetShape.contentAlignment,
-                modifier = modifier
-                    .animatePlacement(lookaheadScope = this)
-                    .morphingShape(targetShape)
-                    .background(color = Color(0xA0_00_00_00))
-                    .clickable(onClick = currentOnClick)
-                    .padding(8.dp)
-            ) {
-                Text(
-                    modifier = Modifier.animatePlacement(this@movableContentWithReceiverOf),
-                    text = currentText,
-                    fontSize = currentFontSize,
-                    color = Color(0xa0_5a_d6_ff),
-                )
-            }
-        }
-    }
-}
-
-/** DESIGN.md glass fills: fogged by default, cleared where the page's content is the scene behind it (Life's grid). */
-val FoggedPane = Color(0xA0_00_00_00)
-val ClearedPane = Color(0x29_10_14_18)
-
-/** The body card's fill, read while drawing so it can follow a transition frame by frame. */
-val LocalPaneFill = staticCompositionLocalOf<() -> Color> { { FoggedPane } }
-
+/**
+ * The Welcome rhombus on Home, and the page's glass everywhere else: one pane that morphs between the two shapes
+ * ([morphingShape]) while it moves ([animatePlacement]), its fog following [LocalPaneFill].
+ */
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
     return remember {
@@ -80,9 +34,8 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape)
-                    // Compact (the Welcome card), the scene draws a breathing sphere behind it and the card stays clear.
-                    .then(if (isExpanded) Modifier.drawBehind { drawRect(paneFill()) } else Modifier.gpuBacked(GpuWidgets.Kind.BreathingSphere))
-                    .padding(8.dp)
+                    .glass(shape = RectangleShape, hairline = false, shadow = false, fill = paneFill)
+                    .padding(if (isExpanded) 0.dp else 8.dp)
             ) {
                 content()
             }
@@ -108,20 +61,5 @@ fun <R, P1, P2, P3, P4> movableContentWithReceiverOf(
             movableContent,
             MovableArgs(this, p1, p2, p3, p4)
         )
-    }
-}
-
-@Composable
-fun MainMenu(
-    size: Dp,
-    body: @Composable BoxScope.() -> Unit,
-    menuContent: @Composable BoxScope.() -> Unit,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.size(size)
-    ) {
-        menuContent()
-        body()
     }
 }

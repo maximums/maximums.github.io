@@ -3,7 +3,6 @@ package com.cdodi.shell
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalWithComputedDefaultOf
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
@@ -14,51 +13,50 @@ import com.cdodi.LocalViewportSize
 val CompactWidth = 600.dp
 
 /**
- * The sizes of the menu for this window. On Home, the menu is a square window of four panes around the Welcome
- * rhombus; on every other page, it's a row of panes along the top, above the page. On a phone ([compact]) the window
- * fills the width, the row is shorter, and its labels are short.
+ * The sizes of the site's frame for this window (DESIGN.md §8, the mockups at 1440 × 900). On Home, the menu is a
+ * square window of four panes around the Welcome rhombus; on every other page, a slim top bar with the menu's words.
+ * On a phone ([compact]) the window fills the width and the type is smaller.
  */
 @Immutable
 data class MenuLayout(
     val compact: Boolean,
-    /** Space around everything, from the edges of the window. */
+    /** Space from the window's edges to the bar's contents and the corner hints. */
     val margin: Dp,
     /** The side of Home's square of panes. */
     val window: Dp,
-    /** One pane in the top row. */
-    val bar: DpSize,
-    val barGap: Dp,
-    val label: TextUnit,
+    /** The top bar's height; pages start below it. */
+    val barHeight: Dp,
+    /** Space between the words in the top bar. */
+    val navGap: Dp,
+    /** A word in the top bar. */
+    val navLabel: TextUnit,
+    /** The same word on its Home pane. */
+    val homeLabel: TextUnit,
+    /** "Welcome". */
     val welcome: TextUnit,
 ) {
-    /** One triangle pane's box: a quarter of the window. */
+    /** One pane's box: a quarter of the window. */
     val pane: Dp get() = window / 2
 
-    /** The Welcome rhombus. */
-    val rhombus: Dp get() = window * 2 / 3
+    /** The Welcome rhombus, 14 dp inside the window. */
+    val rhombus: Dp get() = window - 28.dp
 
-    /** Where a page starts, below the top row. */
-    val pageTop: Dp get() = bar.height + barGap
+    /** Where a page starts. */
+    val pageTop: Dp get() = barHeight
 }
 
-/**
- * The layout for a window [width] × [height] (the whole viewport) and a top row of [panes].
- */
-fun menuLayout(width: Dp, height: Dp, panes: Int = 5): MenuLayout {
+/** The layout for a window [width] × [height] (the whole viewport). */
+fun menuLayout(width: Dp, height: Dp): MenuLayout {
     val compact = width < CompactWidth
-    val margin = if (compact) 12.dp else 24.dp
-    val innerWidth = width - margin * 2
-    val innerHeight = height - margin * 2
-    val gap = if (compact) 6.dp else 16.dp
-    val paneWidth = min(if (compact) 120.dp else 220.dp, (innerWidth - gap * (panes - 1)) / panes)
     return MenuLayout(
         compact = compact,
-        margin = margin,
-        window = if (compact) min(innerWidth, innerHeight * 0.7f) else min(innerWidth * 0.31f, innerHeight * 0.8f),
-        bar = DpSize(paneWidth, if (compact) 44.dp else 64.dp),
-        barGap = gap,
-        label = if (compact) 15.sp else 22.sp,
-        welcome = if (compact) 24.sp else 30.sp,
+        margin = if (compact) 16.dp else 48.dp,
+        window = if (compact) min(width - 32.dp, height * 0.55f) else min(width * 0.39f, height * 0.62f),
+        barHeight = if (compact) 56.dp else 72.dp,
+        navGap = if (compact) 16.dp else 44.dp,
+        navLabel = if (compact) 17.sp else 23.sp,
+        homeLabel = if (compact) 24.sp else 34.sp,
+        welcome = if (compact) 40.sp else 64.sp,
     )
 }
 

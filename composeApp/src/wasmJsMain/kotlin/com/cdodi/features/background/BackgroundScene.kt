@@ -203,7 +203,6 @@ class BackgroundScene(
             widgetValues[at + 2] = widget.width
             widgetValues[at + 3] = widget.height
             widgetValues[at + 4] = visibility
-            widgetValues[at + 5] = if (widget.kind == GpuWidgets.Kind.BreathingSphere) 1f else 0f
             count++
         }
         return count
