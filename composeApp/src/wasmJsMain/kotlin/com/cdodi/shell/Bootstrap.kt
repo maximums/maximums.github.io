@@ -26,6 +26,9 @@ import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Heartbeat
 import com.cdodi.features.background.BackgroundScene
+import com.cdodi.features.boids.BoidsController
+import com.cdodi.features.boids.BoidsDestination
+import com.cdodi.features.boids.BoidsScene
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
@@ -60,6 +63,7 @@ class AppRuntime(
     val input: InputState,
     val gpu: StateFlow<GpuStatus>,
     val life: LifeController,
+    val boids: BoidsController,
 )
 
 fun bootstrap(): AppRuntime {
@@ -79,12 +83,13 @@ fun bootstrap(): AppRuntime {
     followBrowserHistory(navigation, heartbeat, urls)
     val input = InputState()
     val life = LifeController(heartbeat.child(LifeController.CLOCK))
+    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK))
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
     val scope = MainScope()
-    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, scope, gpu) }
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, scope, gpu) }
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life)
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids)
 }
 
 /**
@@ -99,6 +104,7 @@ private suspend fun runGpuLayer(
     graph: NavGraph,
     input: InputState,
     life: LifeController,
+    boids: BoidsController,
     scope: CoroutineScope,
     status: MutableStateFlow<GpuStatus>,
 ) {
@@ -118,7 +124,16 @@ private suspend fun runGpuLayer(
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
         val background = BackgroundScene(heartbeat.ambient)
         val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope)
-        val scenes = SceneRegistry(graph.routes.associateWith { if (it == LifeDestination) lifeScene else background })
+        val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids)
+        val scenes = SceneRegistry(
+            graph.routes.associateWith {
+                when (it) {
+                    LifeDestination -> lifeScene
+                    BoidsDestination -> boidsScene
+                    else -> background
+                }
+            }
+        )
         val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope) { error ->
             stopped.complete("the GPU layer failed: ${error.message}")
         }
