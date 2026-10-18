@@ -61,15 +61,33 @@ enum class PageRole { Leaving, Entering }
 interface PageEffect {
     val id: String
 
-    fun GraphicsLayerScope.apply(state: EffectState, role: PageRole, transition: NavState.Transitioning)
+    /**
+     * How visible the page is under this effect, given how visible it is so far. The page's layer takes it as its
+     * alpha, and effects the scene draws behind the page's elements fade with it.
+     */
+    fun visibility(state: EffectState, role: PageRole, visibility: Float): Float = visibility
+
+    /** Anything else the effect does to the page's layer: a shader over its pixels, for one. */
+    fun GraphicsLayerScope.apply(state: EffectState, role: PageRole, transition: NavState.Transitioning) {}
 }
 
 /** The page being entered fades in over the one being left, which fades out. */
 object FadeEffect : PageEffect {
     override val id = UiEffectIds.FADE
 
-    override fun GraphicsLayerScope.apply(state: EffectState, role: PageRole, transition: NavState.Transitioning) {
-        val travelled = state.travelled ?: return
-        alpha = if (role == PageRole.Entering) travelled else 1f - travelled
+    override fun visibility(state: EffectState, role: PageRole, visibility: Float): Float {
+        val travelled = state.travelled ?: return visibility
+        return if (role == PageRole.Entering) travelled else 1f - travelled
     }
+}
+
+/** How visible a page in [role] is now, after every page effect has had its say; 1 outside a transition. */
+fun NavState.visibilityOf(role: PageRole?, pageEffects: List<PageEffect>): Float {
+    if (role == null || this !is NavState.Transitioning) return 1f
+    var visibility = if (role == PageRole.Entering) 0f else 1f
+    for (state in effects) {
+        val effect = pageEffects.firstOrNull { it.id == state.effect.id } ?: continue
+        visibility = effect.visibility(state, role, visibility)
+    }
+    return visibility
 }

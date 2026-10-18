@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ComposeViewport
 import com.cdodi.adapters.compose.HeartbeatDriver
 import com.cdodi.adapters.compose.LocalHeartbeat
+import com.cdodi.adapters.compose.LocalGpuWidgets
 import com.cdodi.adapters.compose.LocalNavigationBus
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.compose.NavPages
@@ -28,6 +29,8 @@ import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.NavState
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.features.about.AboutDestination
+import com.cdodi.features.background.QualityToggle
+import com.cdodi.features.background.StillScene
 import com.cdodi.features.boids.BoidsControls
 import com.cdodi.features.boids.BoidsController
 import com.cdodi.features.boids.BoidsDestination
@@ -57,7 +60,9 @@ fun main() {
         ) {
             AppRoot {
                 InputLayer(runtime.input, runtime.heartbeat)
-                App(runtime)
+                CompositionLocalProvider(LocalGpuWidgets provides runtime.widgets) {
+                    App(runtime)
+                }
             }
         }
     }
@@ -71,10 +76,10 @@ private fun App(runtime: AppRuntime) {
             // A Box, not a Material Surface: a Surface blocks pointer events from reaching what's behind it, and behind
             // it is the input layer that hands them to the scene. Like a Surface, it passes its size down as the
             // minimum: the menu is placed across the whole screen, and clicks only reach it inside its parents' bounds.
+            if (gpu is GpuStatus.Unavailable) StillScene()
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(if (gpu is GpuStatus.Unavailable) Modifier.fallbackBackground() else Modifier)
                     .padding(24.dp),
                 propagateMinConstraints = true,
             ) {
@@ -87,13 +92,6 @@ private fun App(runtime: AppRuntime) {
             if (gpu is GpuStatus.Unavailable) FallbackNotice()
         }
     }
-}
-
-/** Without WebGPU, Compose draws the old Skia version of the background. */
-@Composable
-private fun Modifier.fallbackBackground(): Modifier {
-    val runtimeShader by rememberShader("bokeh")
-    return backgroundShader(runtimeShader)
 }
 
 @Composable
@@ -142,6 +140,13 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
 
     CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill) {
     Box(contentAlignment = Alignment.Center) {
+        if (gpu is GpuStatus.Running && (layoutAt == HomeDestination || layoutAt == AboutDestination)) {
+            QualityToggle(
+                runtime.background,
+                runtime.gpuTimings,
+                Modifier.align(Alignment.BottomEnd).offset(y = 20.dp),
+            )
+        }
         if (layoutAt == HomeDestination) {
             MainMenu(
                 body = {
@@ -191,10 +196,13 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
     }
 }
 
-/** The glass over a page: cleared where the page is the scene behind it (Life, Boids), following the page fade in between. */
+/**
+ * The glass over a page: cleared where what the page shows is drawn by the scene behind it (Life, Boids, the About
+ * sphere), following the page fade in between.
+ */
 private fun NavState.paneFill(scenesRun: Boolean): Color {
     fun fillOf(destination: Destination) =
-        if (scenesRun && (destination is LifeDestination || destination == BoidsDestination)) ClearedPane else FoggedPane
+        if (scenesRun && (destination is LifeDestination || destination == BoidsDestination || destination == AboutDestination)) ClearedPane else FoggedPane
     return when (this) {
         is NavState.Idle -> fillOf(at)
         is NavState.Transitioning -> lerp(fillOf(from), fillOf(to), effects.firstOrNull { it.effect.id == UiEffectIds.FADE }?.travelled ?: 0f)

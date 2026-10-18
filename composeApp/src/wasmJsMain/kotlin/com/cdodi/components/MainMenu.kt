@@ -21,19 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cdodi.adapters.compose.LocalHeartbeat
-import com.cdodi.adapters.compose.ambient
-import com.cdodi.adapters.compose.shaderTime
-import com.cdodi.pages.MY_TRY
+import com.cdodi.adapters.compose.gpuBacked
+import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.vw
-import org.jetbrains.skia.ImageFilter
-import org.jetbrains.skia.RuntimeEffect
-import org.jetbrains.skia.RuntimeShaderBuilder
 
 val topBarModifier = Modifier.size(300.dp, 100.dp)
 
@@ -77,10 +71,7 @@ val LocalPaneFill = staticCompositionLocalOf<() -> Color> { { FoggedPane } }
 
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
-    val effect = remember { RuntimeEffect.makeForShader(MY_TRY) }
-    val time by LocalHeartbeat.current.ambient.shaderTime()
-
-    return remember(effect) {
+    return remember {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->
             val paneFill = LocalPaneFill.current
             Box(
@@ -88,22 +79,8 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape)
-                    .drawBehind { drawRect(paneFill()) }
-                    .then(if (isExpanded) Modifier else Modifier.graphicsLayer {
-                        val builder = RuntimeShaderBuilder(effect).apply {
-                            uniform("resolution", size.width, size.height)
-                            uniform("time", time)
-                            uniform("flag", 1.0f)
-                        }
-
-                        val skiaFilter = ImageFilter.makeRuntimeShader(
-                            runtimeShaderBuilder = builder,
-                            shaderName = "composable",
-                            input = null
-                        )
-
-                        renderEffect = skiaFilter.asComposeRenderEffect()
-                    })
+                    // Compact (the Welcome card), the scene draws a breathing sphere behind it and the card stays clear.
+                    .then(if (isExpanded) Modifier.drawBehind { drawRect(paneFill()) } else Modifier.gpuBacked(GpuWidgets.Kind.BreathingSphere))
                     .padding(8.dp)
             ) {
                 content()
