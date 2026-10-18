@@ -499,7 +499,43 @@ Per frame, compute passes over a grid whose cell size equals the perception radi
 - [x] A write-up on the site: "I built a WebIDL compiler to get type-safe WebGPU in Kotlin/Wasm", "1M boids in the browser: spatial hashing with compute shaders", and "A navigation graph where the edges are the transitions". This is what makes the work visible.
 - [x] README: architecture diagram, how to update the IDL by hand, how to run the tests.
 
-## Phase 8 — Stretch goals (pick any)
+## Phase 8 — The "Autumn Rain" redesign  _(L)_
+
+DESIGN.md and its canvas made real: the site's own type and colour, glass panes, the components, the four screens, and the full "Breath on the window" transition. Two PRs.
+
+### 8a — Design system and screens
+
+- [x] **Fonts** as compose resources (Cormorant Garamond, Manrope, JetBrains Mono, OFL), held behind the loading line until they've loaded.
+- [x] **`ui/theme`**: `AutumnColors` (DESIGN.md §3 by name), `AutumnType` (§4's roles), `Motion` (Settle; `settling()` on the heartbeat's `ui` clock).
+- [x] **`ui/components`** (§6): lamp, quiet and round buttons; stroke icons; the drop slider; serif choice; toggle; readout rows; labels; focus rings; the fog pane (Compose's part of it).
+- [x] **Screens** (§8, the mockups):
+  - Home's window of four panes, around the Welcome rhombus;
+  - the slim top bar;
+  - the Life and Boids panes, with outline readouts and corner hints;
+  - the no-WebGPU pane;
+  - About, Notes and the CPU Life page in the new type.
+- [x] **Leaving Home** (the author's choice): the words fly from their panes into the top bar on the menu morph (`animatePlacement` plus `morphScale`), the panes dissolve, the rhombus morphs into the page's glass, and the top bar condenses.
+
+> **Notes.** Checked in headless Chrome at 1440 × 900, on an emulated phone, and without WebGPU.
+> - The Home sphere is gone, following the mockup (the author's choice); the About sphere stays. The old cyan, the rectangle menu cards and Material's styling are gone too.
+> - Hover warmth runs on the heartbeat like everything else (`settling()`), so it pauses and keeps time with the scene.
+> - Not drawn yet: the blur behind the panes. Until 8b, a pane is fog, condensation and a hairline over the sharp scene.
+
+### 8b — GPU glass and "Breath on the window"
+
+- [ ] **Scenes render offscreen.** A glass compositor in `SceneHost` blurs the frame (dual Kawase: down and back up a few mips) and draws each glass pane Compose reports (a new `GpuWidgets` kind with its shape: rectangle, triangle, rhombus). Each pane shows the blurred scene, desaturated, under its fog, condensation and drops. Clearing on hover lowers the blur (DESIGN.md §5: blur 18 → 2).
+- [ ] **The full transition** (§9), with per-pane parts:
+  - `wipe`: `fog-wipe` on the chosen pane, `fog-thicken` on the others, `label-glow` in the UI;
+  - `fogRoll`: `menu-dissolve` in the UI;
+  - `holdFog`: a caption line fades in;
+  - `clearing`: `condense` in the UI, starting 500 ms in.
+
+  Effects learn which pane they play on from the transition's target.
+- [ ] Home → Life and Boids plays `breathOnTheWindow` with `Interrupt.Reverse`. Going back evaporates the page, fogs the window back over and re-forms it.
+
+**Done when:** a pane over the street looks like wet glass (blurred, fogged, clearing under the pointer), and clicking Boids on Home plays the storyboard.
+
+## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.
 - **A visual debugger for the navigation graph**: render the graph (nodes, edges, active transition, progress) as an overlay, driven by the same model.
@@ -536,11 +572,11 @@ Per frame, compute passes over a grid whose cell size equals the perception radi
 | GPU device lost (driver reset, tab in background) | `device.lost` watcher recreates the device and scenes once, then falls back |
 | A heavy subscriber delays the whole frame (synchronous heartbeat) | Keep per-frame CPU work small (the GPU does the heavy work); the HUD shows time per phase so problems are visible |
 | Navigation framework grows too general | Start from the site's real transitions; add combinators only when an edge needs them |
-| Uniform layout and alignment bugs | Helpers written against WGSL rules now; the Phase 8 generator later |
+| Uniform layout and alignment bugs | Helpers written against WGSL rules now; the Phase 9 generator later |
 | Element-by-element Kotlin↔JS copies | Keep data on the GPU; reuse staging typed arrays; upload only small regions |
 | Dictionary `null` vs `undefined` | Factories never set absent keys; a golden test and a runtime test cover it |
 | A spec update changes the generated API | The IDL is committed and updated only by hand; golden tests show the change as a diff |
 
 ## Suggested order
 
-Phase 0 → **Phase 1 and Phase 2 in parallel** (they're independent: one is build tooling, the other pure Kotlin) → Phase 3 → Phase 5 (simpler compute first) → Phase 6 → Phase 4 → Phase 7. Life comes before Boids because it teaches ping-pong buffers, atomics and readback, all of which Boids needs. The background shader port can happen whenever it's needed as a break from compute work.
+Phase 0 → **Phase 1 and Phase 2 in parallel** (they're independent: one is build tooling, the other pure Kotlin) → Phase 3 → Phase 5 (simpler compute first) → Phase 6 → Phase 4 → Phase 7 → Phase 8. Life comes before Boids because it teaches ping-pong buffers, atomics and readback, all of which Boids needs. The background shader port can happen whenever it's needed as a break from compute work.

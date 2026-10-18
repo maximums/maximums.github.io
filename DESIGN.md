@@ -135,5 +135,5 @@ edge(from = Home, to = anyOf(Life, Boids), transition = breathOnTheWindow, onInt
 - [ ] Final copy. Placeholders today: "stay a while — it's raining", "a murmuration under the rain", "the flock is gathering". The readout numbers on the canvas are sample values.
 - [x] Confirm the fourth Home pane, "Notes" (for the write-ups from `PLAN.md` Phase 7).
 - [ ] Tune the transition timings.
-- [ ] Contrast: the mockups use `#6F777C` for the small colophon line and past segment rows. That is 4.2:1, just under 4.5:1 for 11 px text; use `Fog` instead.
-- [ ] The old cyan (`#5ad6ff`) is retired; remove it from the code when the theme lands.
+- [x] Contrast: the mockups use `#6F777C` for the small colophon line and past segment rows. That is 4.2:1, just under 4.5:1 for 11 px text; use `Fog` instead. (Done in PLAN Phase 8a: the colophon is in Fog.)
+- [x] The old cyan (`#5ad6ff`) is retired; remove it from the code when the theme lands. (Gone in Phase 8a.)
