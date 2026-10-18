@@ -344,11 +344,34 @@ val siteGraph = navGraph(start = Home) {
 
 - [x] _(done in Phase 3)_ Port `bokeh.sksl` to WGSL: a full-screen triangle and a uniform buffer `{ resolution: vec2f, time: f32, pad }`. Mind WGSL alignment: `vec2f` aligns to 8, uniform struct sizes round up to 16. Time comes from the heartbeat (a per-shader folded `elapsed`).
 - [x] _(done in Phase 3)_ Load `.wgsl` files from compose resources, with compile checking from 1.6.
-- [ ] **Performance** (fixes REVIEW 2.1): render into an offscreen texture at half resolution, then upscale with a linear sampler. Add a quality setting (¼, ½, full); pausing and reduced motion already come from the heartbeat and lifecycle bus.
-- [ ] "GPU-backed widgets": Compose reports widget positions (`onGloballyPositioned`) to the scene as a small uniform or storage array, so WebGPU can draw effects *behind* specific UI elements (e.g. the sphere behind the "Welcome" card). This replaces the Skia `RenderEffect`s that were only decoration.
-- [ ] Remove `RuntimeShaderModifier`, `uniformData`, and the other Skia shaders that aren't applied to Compose content. Keep the pixel melt (it acts on Compose content, so it lives in the UI effect registry).
+- [x] **Performance** (fixes REVIEW 2.1): render into an offscreen texture at half resolution, then upscale with a linear sampler. Add a quality setting (¼, ½, full); pausing and reduced motion already come from the heartbeat and lifecycle bus.
+- [x] "GPU-backed widgets": Compose reports widget positions (`onGloballyPositioned`) to the scene as a small uniform or storage array, so WebGPU can draw effects *behind* specific UI elements (e.g. the sphere behind the "Welcome" card). This replaces the Skia `RenderEffect`s that were only decoration.
+- [x] Remove `RuntimeShaderModifier`, `uniformData`, and the other Skia shaders that aren't applied to Compose content. Keep the pixel melt (it acts on Compose content, so it lives in the UI effect registry).
 
 **Done when:** the background looks the same as today at a fraction of the cost, and a quality toggle is visible in the UI.
+
+> **Done**, checked in headless Chrome. The background's measured GPU time, read from the toggle's own readout:
+>
+> | Quality | GPU time |
+> |---|---|
+> | full | 0.86 ms |
+> | ½ | 0.24 ms (28%) |
+> | ¼ | 0.10 ms (12%) |
+>
+> These are SwiftShader numbers: the ratios hold, the absolute values don't transfer to real hardware. At ½, the default, the bokeh looks the same; only the sharpest raindrops are a touch softer.
+>
+> How it's built:
+> - **Quality and upscale.** The bokeh renders into an offscreen texture at the chosen scale. One pass on the canvas then draws the linear upscale and the widgets at full resolution on top. The choice is remembered in `localStorage`, guarded: blocked storage just forgets.
+> - **The toggle** is a corner line of spaced mono, shown on the pages the background draws behind (Home, About). It shows the background's GPU time when the browser can time passes.
+> - **GPU-backed widgets.** `Modifier.gpuBacked(kind)` reports an element's bounds (`onGloballyPositioned`) and its page's visibility to a `GpuWidgets` registry. The scene draws each effect behind its element, as instanced quads.
+>   - The raytraced sphere from `MY_TRY` sits behind the Welcome card (breathing, with the card clear around it, as before) and on the About page.
+>   - The About page gets cleared glass, since its content is now drawn by the scene. It can fog again when it gets real text.
+> - **Same-frame placement, a change to when the GPU draws.**
+>   - In a Compose frame, the heartbeat ticks *before* layout. Drawing during the tick would put widgets where their elements were a frame ago, trailing a morphing card.
+>   - The scene host now draws in a microtask queued in the Render phase. It runs after Compose has laid out and drawn the frame, and both canvases still present together.
+>   - Checked mid-morph: the sphere stays centred under "Welcome" as the card shrinks.
+> - **Page visibility is one calculation.** `PageEffect.visibility()` gives the page layer's alpha and the `LocalPageVisibility` widgets read, so a widget's effect fades with its page.
+> - **Removed:** `RuntimeShaderModifier`, `uniformData`, `Shaders.kt`, `MY_TRY`, `bokeh.sksl` and `wet_neural_network.sksl`. The pixel melt stays. Without WebGPU, `StillScene` draws DESIGN.md's static, dimmed scene: a dark sky with a band of soft lights.
 
 ---
 

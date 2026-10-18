@@ -214,10 +214,12 @@ com.cdodi
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
 │   │                        ProfilingHud (GPU time per pass, frame rate) · LocalHeartbeat · LocalNavigationBus
+│   │                        Modifier.gpuBacked · LocalGpuWidgets · LocalPageVisibility
 │   │   └── effects/         UiEffects (registry) · PageEffect · FadeEffect · PixelMeltEffect (SkSL)
 │   │                        Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
 │   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
 │   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
+│   │                        GpuWidgets (elements the scene draws behind) · draws in a microtask, after Compose's layout
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, reduced motion)
@@ -227,7 +229,8 @@ com.cdodi
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutFeature · AboutDestination · content UI
-    ├── background/          BackgroundScene · BackgroundUniforms · quality setting
+    ├── background/          BackgroundScene (bokeh at ¼/½/full, upscaled; widgets drawn on top) · BackgroundSettings
+    │                        QualityToggle · StillScene (the static, dimmed scene without WebGPU)
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
     │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls · LifeFeature (later)
     │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks (still in data/gameoflife)
@@ -237,8 +240,8 @@ com.cdodi
         └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
 
 composeResources/files/
-├── shaders/common/          fullscreen.wgsl · noise.wgsl · scan.wgsl
-├── shaders/background/      bokeh.wgsl
+├── shaders/common/          scan.wgsl · upscale.wgsl
+├── shaders/background/      bokeh.wgsl · widgets.wgsl (effects behind UI elements: the sphere)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/life/            step.wgsl · render.wgsl
 ├── shaders/boids/           step.wgsl (naive and grid kernels) · render.wgsl
