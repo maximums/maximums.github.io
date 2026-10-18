@@ -40,6 +40,7 @@ import com.cdodi.pages.BoidsPage
 import com.cdodi.pages.GameOfLifePage
 import com.cdodi.pages.SmallScreenPage
 import com.cdodi.shell.AppRoot
+import com.cdodi.shell.AppRuntime
 import com.cdodi.shell.GpuStatus
 import com.cdodi.shell.bootstrap
 import com.cdodi.shell.rememberPageEffects
@@ -56,14 +57,15 @@ fun main() {
         ) {
             AppRoot {
                 InputLayer(runtime.input, runtime.heartbeat)
-                App(runtime.gpu.collectAsState().value, runtime.life, runtime.boids)
+                App(runtime)
             }
         }
     }
 }
 
 @Composable
-private fun App(gpu: GpuStatus, life: LifeController, boids: BoidsController) {
+private fun App(runtime: AppRuntime) {
+    val gpu = runtime.gpu.collectAsState().value
     MaterialTheme {
         LookaheadScope {
             // A Box, not a Material Surface: a Surface blocks pointer events from reaching what's behind it, and behind
@@ -79,7 +81,7 @@ private fun App(gpu: GpuStatus, life: LifeController, boids: BoidsController) {
                 if (LocalIsSmallWindow.current) {
                     SmallScreenPage()
                 } else {
-                    AppContent(gpu, life, boids)
+                    AppContent(runtime, gpu)
                 }
             }
             if (gpu is GpuStatus.Unavailable) FallbackNotice()
@@ -107,7 +109,7 @@ private fun FallbackNotice() {
 }
 
 @Composable
-private fun LookaheadScope.AppContent(gpu: GpuStatus, life: LifeController, boids: BoidsController) {
+private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus) {
     val navigation = LocalNavigationBus.current
     val navState = navigation.state.collectEachFrame()
     // The layout switches sides when the menu morph starts: at the click going to a page, but only after the page has
@@ -173,10 +175,10 @@ private fun LookaheadScope.AppContent(gpu: GpuStatus, life: LifeController, boid
                 NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
                     when (destination) {
                         AboutDestination -> AboutPage()
-                        BoidsDestination -> if (gpu is GpuStatus.Running) BoidsControls(boids) else BoidsPage()
+                        BoidsDestination -> if (gpu is GpuStatus.Running) BoidsControls(runtime.boids, runtime.gpuTimings) else BoidsPage()
                         // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.
                         is LifeDestination -> if (gpu is GpuStatus.Running) {
-                            LifeControls(life, destination.rule) { rule -> navigation.send(NavIntent.NavigateTo(LifeDestination(rule))) }
+                            LifeControls(runtime.life, destination.rule, runtime.gpuTimings) { rule -> navigation.send(NavIntent.NavigateTo(LifeDestination(rule))) }
                         } else {
                             GameOfLifePage(destination.rule)
                         }

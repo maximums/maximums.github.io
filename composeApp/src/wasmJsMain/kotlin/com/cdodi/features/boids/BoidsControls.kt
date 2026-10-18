@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.adapters.gpu.PassTiming
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -36,11 +39,16 @@ private val Faint = Color.White.copy(alpha = 0.45f)
  * (DESIGN.md §8) and a line of hints. Changes reach the scene in its next frame.
  */
 @Composable
-fun BoidsControls(controller: BoidsController) {
+fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTiming>?>) {
     val status by controller.status.collectEachFrame()
     val params = status.params
 
     Box(Modifier.fillMaxSize().padding(16.dp)) {
+        ProfilingHud(
+            gpuTimings,
+            Modifier.align(Alignment.TopStart),
+            extra = listOf("boids" to formatThousands(status.count), "grid" to "${status.grid.first} × ${status.grid.second}"),
+        )
         Column(
             modifier = Modifier.align(Alignment.TopEnd).width(300.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -57,7 +65,6 @@ fun BoidsControls(controller: BoidsController) {
                 controller.setParams { it.copy(perception = v, separationDistance = v * 0.4f) }
             }
             Labelled("max speed", params.maxSpeed, 60f..400f, "%.0f px/s") { v -> controller.setParams { it.copy(maxSpeed = v, minSpeed = v / 2f) } }
-            Text("grid ${status.grid.first} × ${status.grid.second} cells", color = Faint, fontSize = 13.sp, fontFamily = FontFamily.Monospace)
         }
 
         Text(

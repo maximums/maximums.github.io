@@ -49,6 +49,7 @@ class SceneHost(
     private val effects: List<GpuEffectRenderer>,
     private val input: InputState,
     private val scope: CoroutineScope,
+    private val profiler: GpuProfiler?,
     private val onFailure: (Throwable) -> Unit,
 ) : AutoCloseable {
 
@@ -86,12 +87,15 @@ class SceneHost(
         if (canvas.width == 0 || canvas.height == 0) return
 
         val encoder = gpu.device.createCommandEncoder()
+        profiler?.beginFrame()
         val target = canvas.currentView()
         when (nav) {
             is NavState.Idle -> draw(sceneOf(nav.at), encoder, target)
             is NavState.Transitioning -> drawTransition(nav, encoder, target, frame)
         }
+        profiler?.resolve(encoder)
         gpu.queue.submit(listOf(encoder.finish()).toJsArray())
+        profiler?.afterSubmit()
         encodedThisFrame.forEach { it.afterSubmit() }
         encodedThisFrame.clear()
     }
@@ -174,6 +178,7 @@ class SceneHost(
         offscreen?.close()
         scenes.all.forEach { it.close() }
         effects.forEach { it.close() }
+        profiler?.close()
         canvas.close()
     }
 

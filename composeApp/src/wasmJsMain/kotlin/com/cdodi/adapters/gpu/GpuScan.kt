@@ -10,6 +10,7 @@ import com.cdodi.webgpu.bindings.GPUBufferDescriptor
 import com.cdodi.webgpu.bindings.GPUBufferUsage
 import com.cdodi.webgpu.bindings.GPUCommandEncoder
 import com.cdodi.webgpu.bindings.GPUComputePassDescriptor
+import com.cdodi.webgpu.bindings.GPUComputePassTimestampWrites
 import com.cdodi.webgpu.bindings.GPUComputePipeline
 import com.cdodi.webgpu.bindings.GPUComputePipelineDescriptor
 import com.cdodi.webgpu.bindings.GPUProgrammableStage
@@ -42,25 +43,37 @@ class GpuScan private constructor(
     private val staging = Uint32Staging(4)
     private val bindGroups = mutableMapOf<Pair<GPUBuffer, GPUBuffer>, List<GPUBindGroup>>()
 
-    /** Records the exclusive scan of the first [count] values of [input] into [output] (a different buffer). */
-    fun encode(encoder: GPUCommandEncoder, input: GPUBuffer, output: GPUBuffer, count: Int) {
+    /**
+     * Records the exclusive scan of the first [count] values of [input] into [output] (a different buffer).
+     *
+     * @param span measures the whole scan: it starts in the first pass and ends in the last.
+     */
+    fun encode(encoder: GPUCommandEncoder, input: GPUBuffer, output: GPUBuffer, count: Int, span: GpuProfiler.Span? = null) {
         require(count in 1..MAX_COUNT) { "can scan 1..$MAX_COUNT values, not $count" }
         val blocks = (count + BLOCK - 1) / BLOCK
         gpu.queue.writeBuffer(countParams, 0.0, staging.fill(intArrayOf(count, 0, 0, 0)))
         gpu.queue.writeBuffer(blockParams, 0.0, staging.fill(intArrayOf(blocks, 0, 0, 0)))
 
         val (blocksGroup, totalsGroup, addGroup) = bindGroups.getOrPut(input to output) { bindGroupsFor(input, output) }
-        dispatch(encoder, scanBlocks, blocksGroup, blocks, "scan blocks")
-        if (blocks > 1) {
+        val single = blocks == 1
+        dispatch(encoder, scanBlocks, blocksGroup, blocks, "scan blocks", span?.compute(first = true, last = single))
+        if (!single) {
             dispatch(encoder, scanBlocks, totalsGroup, 1, "scan block totals")
-            dispatch(encoder, addBlockSums, addGroup, (count + THREADS - 1) / THREADS, "scan add-back")
+            dispatch(encoder, addBlockSums, addGroup, (count + THREADS - 1) / THREADS, "scan add-back", span?.compute(first = false, last = true))
         }
     }
 
     override fun close() = resources.close()
 
-    private fun dispatch(encoder: GPUCommandEncoder, pipeline: GPUComputePipeline, group: GPUBindGroup, workgroups: Int, label: String) {
-        encoder.beginComputePass(GPUComputePassDescriptor(label = label)).apply {
+    private fun dispatch(
+        encoder: GPUCommandEncoder,
+        pipeline: GPUComputePipeline,
+        group: GPUBindGroup,
+        workgroups: Int,
+        label: String,
+        timestamps: GPUComputePassTimestampWrites? = null,
+    ) {
+        encoder.beginComputePass(GPUComputePassDescriptor(label = label, timestampWrites = timestamps)).apply {
             setPipeline(pipeline)
             setBindGroup(0, group)
             dispatchWorkgroups(workgroups)

@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cdodi.adapters.compose.ProfilingHud
 import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.adapters.gpu.PassTiming
+import kotlinx.coroutines.flow.StateFlow
 import com.cdodi.data.gameoflife.LifeRule
 import kotlin.math.roundToInt
 
@@ -43,11 +46,12 @@ private val Faint = Color.White.copy(alpha = 0.45f)
  * readouts. The rule comes from the destination, so it is in the URL; picking another one navigates.
  */
 @Composable
-fun LifeControls(controller: LifeController, rule: LifeRule, onRuleChange: (LifeRule) -> Unit) {
+fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFlow<List<PassTiming>?>, onRuleChange: (LifeRule) -> Unit) {
     LaunchedEffect(rule) { controller.setRule(rule) }
     val status by controller.status.collectEachFrame()
 
     Box(Modifier.fillMaxSize().padding(16.dp)) {
+        ProfilingHud(gpuTimings, Modifier.align(Alignment.TopEnd).padding(top = 104.dp), extra = listOf("cells" to "${status.width} × ${status.height}"))
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 QuietButton(if (status.isPaused) "Play" else "Pause", onClick = controller::playPause)

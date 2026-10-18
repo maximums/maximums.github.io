@@ -1,5 +1,6 @@
 package com.cdodi.features.life
 
+import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.data.gameoflife.Cell
 import com.cdodi.data.gameoflife.LifeRule
 import com.cdodi.webgpu.bindings.GPUBindGroup
@@ -15,6 +16,8 @@ import com.cdodi.webgpu.bindings.GPUBufferBindingType
 import com.cdodi.webgpu.bindings.GPUBufferDescriptor
 import com.cdodi.webgpu.bindings.GPUBufferUsage
 import com.cdodi.webgpu.bindings.GPUCommandEncoder
+import com.cdodi.webgpu.bindings.GPUComputePassDescriptor
+import com.cdodi.webgpu.bindings.GPUComputePassTimestampWrites
 import com.cdodi.webgpu.bindings.GPUComputePipeline
 import com.cdodi.webgpu.bindings.GPUComputePipelineDescriptor
 import com.cdodi.webgpu.bindings.GPUMapMode
@@ -111,12 +114,12 @@ class LifeSimulation private constructor(
      * Records [steps] generations into [encoder], then the copy of the last one's population into the readback buffer
      * picked by [slot] (the frame index). Call [afterSubmit] once the encoder's commands are submitted.
      */
-    fun encodeSteps(encoder: GPUCommandEncoder, steps: Int, slot: Long) {
+    fun encodeSteps(encoder: GPUCommandEncoder, steps: Int, slot: Long, span: GpuProfiler.Span? = null) {
         if (steps <= 0) return
         writeParams()
-        repeat(steps) {
+        repeat(steps) { step ->
             encoder.clearBuffer(counter)
-            dispatch(encoder, stepPipeline)
+            dispatch(encoder, stepPipeline, span?.compute(first = step == 0, last = step == steps - 1))
             currentIndex = 1 - currentIndex
             generation++
         }
@@ -217,8 +220,8 @@ class LifeSimulation private constructor(
         gpu.queue.writeBuffer(params, 0.0, paramStaging.fill(paramValues))
     }
 
-    private fun dispatch(encoder: GPUCommandEncoder, pipeline: GPUComputePipeline) {
-        encoder.beginComputePass().apply {
+    private fun dispatch(encoder: GPUCommandEncoder, pipeline: GPUComputePipeline, timestamps: GPUComputePassTimestampWrites? = null) {
+        encoder.beginComputePass(GPUComputePassDescriptor(timestampWrites = timestamps)).apply {
             setPipeline(pipeline)
             setBindGroup(0, bindGroups[currentIndex])
             dispatchWorkgroups(groupsX, groupsY)

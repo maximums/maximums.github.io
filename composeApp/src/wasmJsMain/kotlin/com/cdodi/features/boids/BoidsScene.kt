@@ -2,6 +2,7 @@ package com.cdodi.features.boids
 
 import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
+import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.adapters.gpu.Scene
 import com.cdodi.adapters.input.InputState
 import com.cdodi.core.time.Clock
@@ -56,6 +57,7 @@ import kotlin.math.sqrt
 class BoidsScene(
     override val clock: Clock,
     private val controller: BoidsController,
+    private val profiler: GpuProfiler? = null,
     private val capacity: Int = BoidsController.MAX_COUNT,
 ) : Scene {
 
@@ -140,7 +142,7 @@ class BoidsScene(
     }
 
     override fun encode(encoder: GPUCommandEncoder, target: GPUTextureView) {
-        if (dt > 0f) simulation.encodeGridStep(encoder, params, dt)
+        if (dt > 0f) simulation.encodeGridStep(encoder, params, dt, profiler)
         controller.reportGrid(simulation.grid)
 
         view[0] = width.toFloat()
@@ -162,6 +164,7 @@ class BoidsScene(
                         storeOp = GPUStoreOp.discard,
                     )
                 ),
+                timestampWrites = profiler?.span("draw")?.render(),
                 label = "murmuration",
             )
         ).apply {

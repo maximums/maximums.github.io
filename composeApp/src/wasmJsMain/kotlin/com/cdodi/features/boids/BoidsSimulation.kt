@@ -1,5 +1,6 @@
 package com.cdodi.features.boids
 
+import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.adapters.gpu.GpuScan
 import com.cdodi.features.boids.reference.Boid
 import com.cdodi.features.boids.reference.Vec2
@@ -88,9 +89,9 @@ class BoidsSimulation private constructor(
      * The grid step. Cells are at least the perception radius wide (so the 3×3 around a boid holds everything it can
      * see) and there are at least 3 in each direction (so the 3×3 never visits a cell twice).
      *
-     * @param timestamps the writes for each of the four compute passes, in order, when profiling.
+     * @param profiler measures each stage (count, scan, scatter, neighbours) when given.
      */
-    fun encodeGridStep(encoder: GPUCommandEncoder, params: BoidsParams, dt: Float, timestamps: (String) -> GPUComputePassTimestampWrites? = { null }) {
+    fun encodeGridStep(encoder: GPUCommandEncoder, params: BoidsParams, dt: Float, profiler: GpuProfiler? = null) {
         if (count == 0) return
         val gridX = (params.worldWidth / params.perception).toInt().coerceIn(MIN_CELLS_ACROSS, MAX_CELLS_ACROSS)
         val gridY = (params.worldHeight / params.perception).toInt().coerceIn(MIN_CELLS_ACROSS, MAX_CELLS_ACROSS)
@@ -99,10 +100,10 @@ class BoidsSimulation private constructor(
         writeParams(params, dt, gridX, gridY)
 
         encoder.clearBuffer(cellCounts, 0.0, cells * 4.0)
-        dispatch(encoder, "countCells", "count", timestamps("count"))
-        scan.encode(encoder, cellCounts, cellStarts, cells)
-        dispatch(encoder, "scatter", "scatter", timestamps("scatter"))
-        dispatch(encoder, "stepGrid", "neighbours", timestamps("neighbours"))
+        dispatch(encoder, "countCells", "count", profiler?.span("count")?.compute())
+        scan.encode(encoder, cellCounts, cellStarts, cells, profiler?.span("scan"))
+        dispatch(encoder, "scatter", "scatter", profiler?.span("scatter")?.compute())
+        dispatch(encoder, "stepGrid", "neighbours", profiler?.span("neighbours")?.compute())
         currentIndex = 1 - currentIndex
     }
 
