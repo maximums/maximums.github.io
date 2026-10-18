@@ -131,9 +131,9 @@ edge(from = Home, to = anyOf(Life, Boids), transition = breathOnTheWindow, onInt
 
 ## 10. Open items
 
-- [ ] Phone layouts (the four panes and the fog panes need a different arrangement).
+- [ ] Phone layouts (the four panes and the fog panes need a different arrangement). A first version is in (PLAN Phase 7): the menu and pages resize, and scene controls fold behind a button. It still needs the redesigned panes.
 - [ ] Final copy. Placeholders today: "stay a while — it's raining", "a murmuration under the rain", "the flock is gathering". The readout numbers on the canvas are sample values.
-- [ ] Confirm the fourth Home pane, "Notes" (for the write-ups from `PLAN.md` Phase 7).
+- [x] Confirm the fourth Home pane, "Notes" (for the write-ups from `PLAN.md` Phase 7).
 - [ ] Tune the transition timings.
 - [ ] Contrast: the mockups use `#6F777C` for the small colophon line and past segment rows. That is 4.2:1, just under 4.5:1 for 11 px text; use `Fog` instead.
 - [ ] The old cyan (`#5ad6ff`) is retired; remove it from the code when the theme lands.

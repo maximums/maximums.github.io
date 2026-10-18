@@ -479,10 +479,25 @@ Per frame, compute passes over a grid whose cell size equals the perception radi
 
 ## Phase 7 — Polish and ship  _(M)_
 
-- [ ] Remove what's left of the Skia/CPU paths that WebGPU replaced; keep `LifeEngine` as the reference and fallback.
+- [x] Remove what's left of the Skia/CPU paths that WebGPU replaced; keep `LifeEngine` as the reference and fallback.
 - [ ] Items from REVIEW §6: meta description and Open Graph tags, a real small-screen layout (the GPU scenes work on phones too, with a lower quality setting), finishing the About and Contact content.
-- [ ] A write-up on the site: "I built a WebIDL compiler to get type-safe WebGPU in Kotlin/Wasm", "1M boids in the browser: spatial hashing with compute shaders", and "A navigation graph where the edges are the transitions". This is what makes the work visible.
-- [ ] README: architecture diagram, how to update the IDL by hand, how to run the tests.
+  - [x] Meta description, Open Graph and Twitter tags, a preview image and a favicon.
+  - [x] A real small-screen layout.
+  - [ ] About and Contact content: the layout is in place; the bio, email and LinkedIn are still to come.
+
+> **Notes on Phase 7** (checked in headless Chrome at 1400×900, on an emulated 390×844 phone, without WebGPU, and with WasmGC switched off):
+>
+> - **Cleanup.** The Skia decoration went in Phase 4. This phase removes the small-screen wall (`SmallScreenPage`, its three images, `LocalIsSmallWindow`). The CPU Game of Life stays as the fallback without WebGPU, and `LifeEngine` stays as its reference.
+> - **Phones.** `MenuLayout` sizes the menu from the viewport: Home's square fills a phone's width, the top row is 44 dp tall, and "Game Of Life" becomes "Life" there. Pages fill the space under the row. Life and Boids fold their controls behind a "Controls" button (`CompactPanel`), which scrolls when open. Phones start with 8,192 boids.
+>   - The background stays at ½ on phones: at ¼ a high-DPI phone showed blocky raindrops, and ½ of a phone's device pixels is still about its CSS size.
+> - **Notes.** DESIGN.md's fourth Home pane is now Notes, and Home moved to the top row, where it fades in with the morph.
+>   - The notes are Markdown in `composeResources/files/notes`. The new `:notes` module parses them on both targets. The app renders them with Compose; the JVM build writes them as plain HTML pages with Open Graph tags and structured data, plus a sitemap and `robots.txt`.
+>   - The three write-ups are drafts written from the code; the author will adjust the voice.
+> - **Discoverability.** `index.html` carries a description, Open Graph tags, a 1200×630 preview of Home and a favicon. It also has a plain-HTML summary of the site, which screen readers and search engines read while the canvas runs. A browser without WasmGC gets that summary instead of a loading line that never ends, and doesn't load the app at all.
+> - **A million boids.** The buffers grow on demand, up to 2^20. A boid stops looking once it has seen 48 neighbours, so crowds cost the same as sparse flocks. Each boid starts its ring of cells at a different cell, so no direction is favoured. The 60 fps at 100k and 1M goals still need measuring on real hardware; the HUD shows them.
+
+- [x] A write-up on the site: "I built a WebIDL compiler to get type-safe WebGPU in Kotlin/Wasm", "1M boids in the browser: spatial hashing with compute shaders", and "A navigation graph where the edges are the transitions". This is what makes the work visible.
+- [x] README: architecture diagram, how to update the IDL by hand, how to run the tests.
 
 ## Phase 8 — Stretch goals (pick any)
 
