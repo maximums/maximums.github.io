@@ -572,6 +572,30 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 - **A small WGSL preprocessor** (`#include`, `#define` for workgroup sizes).
 - **Make the compiler general**: generate bindings for a second spec (Web Audio or WebXR) to prove it works beyond WebGPU; publish it to the Gradle Plugin Portal.
 - **Recorded replays**: save and load Life patterns (RLE format) and Boids parameter presets. The heartbeat's deterministic fixed steps make replays reproducible.
+- **A 3D model on Home: a bonsai behind the Welcome glass** (idea from 2026-10-18, not researched yet). Load a textured model, such as a bonsai tree, and maybe let the visitor turn around it by dragging.
+  - **The question.** Can our own WebGPU setup do this, or is an engine better (Google's Filament, for example)?
+  - **First opinion: our own renderer, kept small.**
+    - Use glTF (`.glb`), the web's model format: mesh, materials and textures in one file, laid out to go straight into GPU buffers.
+    - What's needed:
+      - a small glTF reader: accessors become vertex and index buffers;
+      - textures: the browser decodes the images, `copyExternalImageToTexture` uploads them, and a pass generates mipmaps;
+      - a little matrix maths, and a depth buffer;
+      - a lighting shader;
+      - an orbit camera driven by the existing pointer input, eased on the heartbeat so it feels heavy, not fast.
+    - It would be a scene or a GPU-backed widget like the About sphere. The glass, the fog transitions and the heartbeat would all apply as they do now.
+    - Size: a contained "L" phase, not an engine. Leave out skinning, animation, shadows and multiple-model scenes.
+  - **Why not an engine?**
+    - Filament (and three.js or Babylon) would bring its own canvas or device, its own render loop and clock, and several MB of wasm or JS.
+    - It couldn't share our WebGPU device, so the glass blur and the fog couldn't draw over it in the same frame.
+    - It would also go against the project's aim of building the pieces ourselves.
+  - **Things to settle when we come back:**
+    - **Style.** A photoreal tree could clash with the fog and lamp mood. Probably stylised: a dark silhouette, an amber rim light, fog around it.
+    - **The asset.**
+      - Licence: CC0 or CC-BY.
+      - Size: aim for a couple of MB. Draco or meshopt compression would need a decoder.
+      - Leaves: alpha-tested cards.
+    - **Fit.** How it sits with the Welcome rhombus, and how it behaves on phones.
+    - **A cheaper start.** Render the model offline into a turntable sprite sheet first?
 
 ---
 
