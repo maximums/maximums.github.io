@@ -89,4 +89,11 @@ Three layers:
 - **A compile test.** Gradle TestKit builds a throwaway Kotlin/Wasm project per fixture and compiles the generated code. The goldens show what is generated; this shows that it compiles.
 - **Runtime tests.** The bindings drive a real WebGPU device in headless Chrome, on SwiftShader's software GPU: they request a device, run a compute shader, read the results back and render a frame. The site's own GPU code is tested the same way, against CPU reference implementations.
 
-Nothing in the pipeline is specific to WebGPU, apart from the table that maps DOM names to kotlinx-browser types. Other specs (WebCodecs, WebXR) are the obvious next test of that claim.
+Nothing in the pipeline is specific to WebGPU, apart from the table that maps DOM names to kotlinx-browser types. Web Audio was the first test of that claim: the rain you can turn on plays through bindings generated from its spec. Its IDL went through once its foreign types were mapped, and it found what WebGPU's never reached:
+
+- a sequence of floats in a dictionary, which needs widening to double;
+- an operation a subclass redeclares with more optional arguments (`AudioBufferSourceNode.start`), whose shorter forms must be inherited, not repeated;
+- a union parameter on a promise-returning operation, whose suspend wrappers need one overload per member;
+- an interface with a constructor, generated as an abstract class that nothing could construct.
+
+Each now has a fixture.

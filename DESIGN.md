@@ -108,6 +108,8 @@ In Compose these become `ui/theme/AutumnColors` with exactly these names, so a t
 
 Shared: a slim top bar (brand mark and name on the left, serif navigation in the centre), and hints in spaced-out mono in the bottom corners.
 
+Sound: the rain outside, off until asked (a "RAIN · ON OFF" hint, top right), heard through the glass. It's muffled behind Home's fogged window, clearer on the pages, and falls only while the page is in front of the viewer.
+
 ## 9. Transition — "Breath on the window"
 
 The signature transition from Home to a scene page. Built from four transitions with `+` (`PLAN.md` Phase 2.3):
