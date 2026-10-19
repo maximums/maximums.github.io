@@ -3,7 +3,7 @@ package com.cdodi.adapters.compose
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -27,6 +27,9 @@ import com.cdodi.ui.theme.AutumnColors
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 
+/** The readout's width, unless it's asked to fill its place. */
+val ProfilingHudWidth = 360.dp
+
 /**
  * Where the GPU's time goes (DESIGN.md §6, Readout; the Boids mockup): an outline pane, so it hides as little of the
  * scene as possible. A line with [title] (what's being simulated), the frame rate and the GPU total, then a row per
@@ -40,13 +43,14 @@ fun ProfilingHud(timings: StateFlow<List<PassTiming>?>, title: String, modifier:
 
     Column(
         modifier = modifier
-            .width(360.dp)
+            .width(ProfilingHudWidth)
             .border(1.dp, AutumnColors.Parchment.copy(alpha = 0.1f), GlassShape)
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(Modifier.fillMaxWidth()) {
-            Text(title, style = Autumn.type.readout, color = AutumnColors.Mist, maxLines = 1, modifier = Modifier.weight(1f))
+        // In a narrow place (a phone's panel), the frame rate goes under the title rather than cut it short.
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(title, style = Autumn.type.readout, color = AutumnColors.Mist, maxLines = 1, modifier = Modifier.padding(end = 16.dp))
             val total = measured?.sumOf { it.milliseconds }
             Text(
                 "${fps.roundToInt()} fps" + (total?.let { " · ${formatDecimal(it, 2)} ms gpu" } ?: ""),

@@ -1,5 +1,6 @@
 package com.cdodi.shell
 
+import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.browser.HashUrls
 import com.cdodi.adapters.browser.followBrowserHistory
 import com.cdodi.adapters.audio.AmbientSound
@@ -39,6 +40,7 @@ import com.cdodi.features.boids.BoidsScene
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
+import com.cdodi.ui.theme.Viewport
 import com.cdodi.webgpu.context.requestGpuContext
 import kotlinx.browser.document
 import kotlinx.browser.window
@@ -100,8 +102,8 @@ fun bootstrap(): AppRuntime {
     val input = InputState()
     val life = LifeController(heartbeat.child(LifeController.CLOCK))
     // A phone starts with a smaller flock; the viewer can still ask for more.
-    val smallScreen = window.innerWidth < CompactWidth.value
-    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK), if (smallScreen) BoidsController.SMALL_SCREEN_COUNT else BoidsController.DEFAULT_COUNT)
+    val phone = Viewport(window.innerWidth.dp, window.innerHeight.dp).compact
+    val boids = BoidsController(heartbeat.child(BoidsController.CLOCK), if (phone) BoidsController.SMALL_SCREEN_COUNT else BoidsController.DEFAULT_COUNT)
 
     val gpu = MutableStateFlow<GpuStatus>(GpuStatus.Starting)
     val gpuTimings = MutableStateFlow<List<PassTiming>?>(null)

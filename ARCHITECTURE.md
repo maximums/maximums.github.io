@@ -213,12 +213,14 @@ com.cdodi.webgpu
 com.cdodi
 ├── main.kt                  entry point: ComposeViewport("compose") { AppRoot { InputLayer; App } }
 ├── shell/                   wiring — the only package that knows every feature
-│   AppRoot (transparent root, the Skiko white-clear workaround; retires the loading line)
+│   AppRoot (transparent root, the Skiko white-clear workaround; retires the loading line; provides the viewport and
+│            the frame's layout, once)
 │   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
 │   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
 │   PageEffects (the page effects the site plays) · FeatureRegistry (later)
-│   Layout (MenuLayout: the frame's sizes from the viewport; compact below 600 dp, the phone layout)
-│   Menu (MenuItem · the menu words that fly between Home and the top bar · HomeWindow · TopBar · hints)
+│   Layout (MenuLayout: the frame's sizes from the Viewport; HomeDesign, Home's window as designed, large or small,
+│           scaled by density between 0.75 and 1.5 of it, AtDesignScale/AtPageScale in Menu)
+│   Menu (MenuItem · the menu words that fly between Home and the top bar · HomeWindow · TopBar)
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
@@ -237,11 +239,13 @@ com.cdodi
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 ├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
 │   theme/       AutumnColors · AutumnType + bundled fonts · AutumnTheme · Motion (Settle, settling() on the heartbeat)
-│   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label
+│                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport
+│   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label · CornerHint
 │                glass (the fog pane: Compose's fog + the pane's outline reported to the GPU's blur) · glow ·
 │                focusRing · drawThread
 ├── components/              the menu's morph machinery: movableBodyCard (rhombus ⇄ page) · morphingShape ·
-│                            animatePlacement · morphScale · ProgressTween · CompactPanel
+│                            animatePlacement · morphScale · ProgressTween · SceneOverlay (a scene page's panel,
+│                            readout and hint, arranged for the window's width)
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutFeature · AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
