@@ -8,7 +8,7 @@ import com.cdodi.webaudio.bindings.BiquadFilterType
 import com.cdodi.webaudio.bindings.GainNode
 import com.cdodi.webaudio.bindings.decodeAudioDataSuspend
 import com.cdodi.webaudio.bindings.lowpass
-import com.cdodi.webgpu.runtime.await
+import com.cdodi.webidl.runtime.await
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

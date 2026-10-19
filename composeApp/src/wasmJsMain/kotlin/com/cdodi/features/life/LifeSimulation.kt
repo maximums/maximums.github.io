@@ -30,7 +30,7 @@ import com.cdodi.webgpu.bindings.storage
 import com.cdodi.webgpu.bindings.uniform
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.runtime.Uint32Staging
+import com.cdodi.webgpu.resource.Uint32Staging
 import com.cdodi.webgpu.shader.compileShader
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.CoroutineScope

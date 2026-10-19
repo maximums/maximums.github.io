@@ -3,7 +3,7 @@
 
 package fixtures.promise_unions
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.String
 import kotlin.Suppress
 import kotlin.js.JsAny

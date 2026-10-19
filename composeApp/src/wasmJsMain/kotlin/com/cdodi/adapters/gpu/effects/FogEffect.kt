@@ -24,7 +24,7 @@ import com.cdodi.webgpu.bindings.linear
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.runtime.Float32Staging
+import com.cdodi.webgpu.resource.Float32Staging
 
 /**
  * The fog of "Breath on the window": `fog-roll` covers the scene being left, `fog-hold` breathes while the next scene

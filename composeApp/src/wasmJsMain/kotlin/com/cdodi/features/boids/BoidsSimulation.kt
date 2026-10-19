@@ -23,7 +23,7 @@ import com.cdodi.webgpu.bindings.auto
 import com.cdodi.webgpu.bindings.mapAsyncSuspend
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.runtime.Float32Staging
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.shader.compileShader
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Float32Array

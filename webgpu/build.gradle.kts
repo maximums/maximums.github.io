@@ -27,6 +27,7 @@ kotlin {
         wasmJsMain.dependencies {
             // Generated declarations extend and use kotlinx-browser types (EventTarget, ArrayBuffer, ...).
             api(libs.kotlinx.browser)
+            api(projects.webidlRuntime)
             implementation(libs.kotlinx.coroutines.core)
         }
         wasmJsTest.dependencies {
@@ -44,7 +45,7 @@ tasks.withType<KotlinJsTest>().configureEach {
 webIdl {
     idlFiles.from("idl/webgpu.idl")
     packageName = "com.cdodi.webgpu.bindings"
-    runtimePackage = "com.cdodi.webgpu.runtime"
+    runtimePackage = "com.cdodi.webidl.runtime"
     fileNamePrefix = "WebGpu"
     specUrl = "https://gpuweb.github.io/gpuweb/"
 }

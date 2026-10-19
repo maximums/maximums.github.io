@@ -3,7 +3,7 @@
 
 package fixtures.dictionary
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.Boolean
 import kotlin.Int
 import kotlin.String

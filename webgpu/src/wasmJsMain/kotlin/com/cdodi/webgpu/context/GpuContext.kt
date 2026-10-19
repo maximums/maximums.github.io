@@ -16,7 +16,7 @@ import com.cdodi.webgpu.bindings.popErrorScopeSuspend
 import com.cdodi.webgpu.bindings.requestAdapterSuspend
 import com.cdodi.webgpu.bindings.requestDeviceSuspend
 import com.cdodi.webgpu.bindings.validation
-import com.cdodi.webgpu.runtime.await
+import com.cdodi.webidl.runtime.await
 import kotlinx.browser.window
 import org.w3c.dom.events.Event
 

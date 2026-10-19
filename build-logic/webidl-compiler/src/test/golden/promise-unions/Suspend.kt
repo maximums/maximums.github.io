@@ -3,7 +3,7 @@
 
 package fixtures.promise_unions
 
-import com.cdodi.webgpu.runtime.await
+import com.cdodi.webidl.runtime.await
 import kotlin.String
 import kotlin.Suppress
 

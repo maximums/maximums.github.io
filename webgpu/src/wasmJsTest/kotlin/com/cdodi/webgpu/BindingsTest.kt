@@ -1,43 +1,17 @@
 package com.cdodi.webgpu
 
 import com.cdodi.webgpu.bindings.GPUBufferDescriptor
-import com.cdodi.webgpu.runtime.Float32Staging
-import com.cdodi.webgpu.runtime.JsPromiseRejection
-import com.cdodi.webgpu.runtime.await
-import kotlinx.coroutines.test.runTest
+import com.cdodi.webgpu.resource.Float32Staging
 import org.khronos.webgl.get
-import kotlin.js.Promise
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
-private fun resolvedWith(value: String): Promise<JsString> = js("Promise.resolve(value)")
-
-private fun typeError(message: String): JsAny = js("new TypeError(message)")
-
-private fun rejectedWith(reason: JsAny): Promise<JsAny?> = js("Promise.reject(reason)")
-
 private fun keysOf(obj: JsAny): String = js("Object.keys(obj).sort().join(',')")
 
-class RuntimeTest {
-
-    @Test
-    fun awaitReturnsTheResolvedValue() = runTest {
-        assertEquals("done", resolvedWith("done").await().toString())
-    }
-
-    @Test
-    fun rejectionKeepsTheOriginalJsError() = runTest {
-        val error = typeError("boom")
-
-        val rejection = assertFailsWith<JsPromiseRejection> { rejectedWith(error).await() }
-
-        assertSame(error, rejection.reason)
-        assertEquals("TypeError", rejection.name)
-        assertEquals("TypeError: boom", rejection.message)
-    }
+/** WebGPU's generated dictionaries on the shared runtime, and the staging arrays for uploads. (The runtime's own tests are in :webidl-runtime.) */
+class BindingsTest {
 
     @Test
     fun dictionaryFactoriesLeaveUnsetMembersOut() {

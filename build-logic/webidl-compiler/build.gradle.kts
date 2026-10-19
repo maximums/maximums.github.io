@@ -45,8 +45,8 @@ tasks.test {
     systemProperty("webidl.golden", golden.asFile.absolutePath)
     systemProperty("webidl.updateGoldens", updateGoldens)
 
-    // CompileTest compiles the generated code against the real runtime helpers of :webgpu.
-    val runtimeSource = layout.projectDirectory.file("../../webgpu/src/wasmJsMain/kotlin/com/cdodi/webgpu/runtime/Runtime.kt")
+    // CompileTest compiles the generated code against the real runtime of :webidl-runtime.
+    val runtimeSource = layout.projectDirectory.file("../../webidl-runtime/src/wasmJsMain/kotlin/com/cdodi/webidl/runtime/Runtime.kt")
     inputs.file(runtimeSource).withPathSensitivity(PathSensitivity.NONE).withPropertyName("runtimeSource")
     systemProperty("webidl.runtimeSource", runtimeSource.asFile.absolutePath)
     systemProperty("webidl.kotlinxBrowser", libs.kotlinx.browser.get().toString())

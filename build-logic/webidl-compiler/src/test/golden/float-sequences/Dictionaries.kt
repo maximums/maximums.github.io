@@ -3,7 +3,7 @@
 
 package fixtures.float_sequences
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.Boolean
 import kotlin.Float
 import kotlin.Suppress

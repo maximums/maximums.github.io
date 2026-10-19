@@ -3,7 +3,7 @@
 
 package fixtures.sequences
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.Int
 import kotlin.Suppress
 import kotlin.collections.List

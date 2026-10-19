@@ -80,6 +80,6 @@ class GoldenTest {
     }
 
     companion object {
-        const val RUNTIME_PACKAGE = "com.cdodi.webgpu.runtime"
+        const val RUNTIME_PACKAGE = "com.cdodi.webidl.runtime"
     }
 }

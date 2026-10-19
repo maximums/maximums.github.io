@@ -21,13 +21,19 @@ flowchart TB
 
     subgraph modules["Modules"]
         webgpu[":webgpu<br/>generated bindings + GpuContext"]
+        webaudio[":webaudio<br/>generated bindings"]
+        runtime[":webidl-runtime<br/>what generated code calls"]
         core[":core<br/>heartbeat · buses · navigation graph<br/>(pure Kotlin, JVM-tested)"]
         notes[":notes<br/>Markdown → blocks → HTML"]
         app[":composeApp<br/>the site"]
     end
 
     compiler --> webgpu
+    compiler --> webaudio
+    runtime --> webgpu
+    runtime --> webaudio
     webgpu --> app
+    webaudio --> app
     core --> app
     notes --> app
     notes --> site
@@ -51,7 +57,7 @@ flowchart TB
 - **Navigation is a graph.** Destinations are nodes, and edges carry transitions as values (`(melt with fogRoll) +
   holdFog + (fade with clearing)`). The model knows nothing about Compose or WebGPU; each layer renders the effects it
   registers.
-- **The bindings are generated** from the specs' own WebIDL by the compiler in `build-logic`: WebGPU (`:webgpu`) and Web Audio (`:webaudio`, for the rain).
+- **The bindings are generated** from the specs' own WebIDL by the compiler in `build-logic`: WebGPU (`:webgpu`) and Web Audio (`:webaudio`, for the rain), both on the small shared runtime the generated code calls (`:webidl-runtime`).
 
 [ARCHITECTURE.md](ARCHITECTURE.md) has the details, [DESIGN.md](DESIGN.md) the look ("Autumn Rain"), and
 [PLAN.md](PLAN.md) the phases and what's next.

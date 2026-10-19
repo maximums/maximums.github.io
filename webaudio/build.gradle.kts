@@ -5,10 +5,7 @@ plugins {
     id("com.cdodi.webidl")
 }
 
-/**
- * Web Audio bindings, generated from the spec's WebIDL by the same compiler as `:webgpu`'s. Its runtime
- * (`createJsObject`, `await`) is the one in `:webgpu`, which the generated code calls into.
- */
+/** Web Audio bindings, generated from the spec's WebIDL by the same compiler as `:webgpu`'s, on the same runtime. */
 kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
@@ -21,7 +18,9 @@ kotlin {
 
     sourceSets {
         wasmJsMain.dependencies {
-            api(projects.webgpu)
+            // Generated declarations use kotlinx-browser's types (EventTarget, MediaStream, typed arrays, ...).
+            api(libs.kotlinx.browser)
+            api(projects.webidlRuntime)
         }
     }
 }
@@ -29,7 +28,7 @@ kotlin {
 webIdl {
     idlFiles.from("idl/webaudio.idl")
     packageName = "com.cdodi.webaudio.bindings"
-    runtimePackage = "com.cdodi.webgpu.runtime"
+    runtimePackage = "com.cdodi.webidl.runtime"
     fileNamePrefix = "WebAudio"
     specUrl = "https://webaudio.github.io/web-audio-api/"
 

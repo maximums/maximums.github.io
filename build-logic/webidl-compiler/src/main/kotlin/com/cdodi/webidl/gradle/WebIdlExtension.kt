@@ -9,7 +9,7 @@ import org.gradle.api.provider.Property
  * webIdl {
  *     idlFiles.from("idl/webgpu.idl")
  *     packageName = "com.cdodi.webgpu.bindings"
- *     runtimePackage = "com.cdodi.webgpu.runtime"
+ *     runtimePackage = "com.cdodi.webidl.runtime"
  *     externalClass("OffscreenCanvas", "org.w3c.dom.OffscreenCanvas")
  * }
  * ```
