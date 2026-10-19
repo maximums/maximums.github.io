@@ -17,16 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.ProfilingHud
+import com.cdodi.adapters.compose.ProfilingHudWidth
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
-import com.cdodi.components.PanelCorner
-import com.cdodi.components.SceneOverlay
-import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.engine.LifeRule
 import com.cdodi.ui.components.Choice
 import com.cdodi.ui.components.DripSlider
 import com.cdodi.ui.components.Label
+import com.cdodi.ui.components.PanelCorner
 import com.cdodi.ui.components.QuietButton
 import com.cdodi.ui.components.RoundButton
+import com.cdodi.ui.components.SceneOverlay
 import com.cdodi.ui.components.StrokeIcons
 import com.cdodi.ui.components.ToggleRow
 import com.cdodi.ui.components.formatThousands
@@ -65,6 +66,7 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
             status.isPaused -> "Draw with the pointer · shift erases · scroll zooms"
             else -> "Scroll zooms · drag pans · pause to draw"
         },
+        readoutWidth = ProfilingHudWidth,
         readout = { ProfilingHud(gpuTimings, cells, it) },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

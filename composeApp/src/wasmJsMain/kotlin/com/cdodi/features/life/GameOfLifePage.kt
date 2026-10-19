@@ -1,14 +1,13 @@
-package com.cdodi.pages
+package com.cdodi.features.life
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -20,34 +19,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import blog.composeapp.generated.resources.Res
+import blog.composeapp.generated.resources.game_of_life_evolution_speed
 import blog.composeapp.generated.resources.game_of_life_pause_button
 import blog.composeapp.generated.resources.game_of_life_play_button
-import blog.composeapp.generated.resources.game_of_life_reset_button
 import blog.composeapp.generated.resources.game_of_life_population
-import blog.composeapp.generated.resources.game_of_life_evolution_speed
+import blog.composeapp.generated.resources.game_of_life_reset_button
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.collectEachFrame
-import com.cdodi.data.gameoflife.CELL_SIZE_PX
-import com.cdodi.data.gameoflife.Cell
-import com.cdodi.data.gameoflife.GameOfLifeManager
-import com.cdodi.data.gameoflife.LifeRule
-import com.cdodi.features.life.LifeController
-import com.cdodi.data.gameoflife.Grid
+import com.cdodi.features.life.engine.CELL_SIZE_PX
+import com.cdodi.features.life.engine.Cell
+import com.cdodi.features.life.engine.GameOfLifeManager
+import com.cdodi.features.life.engine.Grid
+import com.cdodi.features.life.engine.LifeRule
 import com.cdodi.ui.components.DripSlider
 import com.cdodi.ui.components.QuietButton
 import com.cdodi.ui.components.RoundButton
 import com.cdodi.ui.components.StrokeIcons
+import com.cdodi.ui.components.formatDecimal
 import com.cdodi.ui.theme.Autumn
 import com.cdodi.ui.theme.AutumnColors
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.round
 
 
 
@@ -87,7 +84,6 @@ fun GameOfLifePage(rule: LifeRule = LifeRule.Conway) {
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
-                .background(color = Color.Transparent)
                 .onSizeChanged(manager::updateGridBounds)
                 .pointerInput(manager) { detectTapGestures { offset -> manager.addCell(offset) } }
         ) {
@@ -110,7 +106,7 @@ private fun GridHeader(
     val playText = stringResource(if (isPlaying) Res.string.game_of_life_pause_button else Res.string.game_of_life_play_button)
     val resetText = stringResource(Res.string.game_of_life_reset_button)
     val populationText = stringResource(Res.string.game_of_life_population, population)
-    val speedText = stringResource(Res.string.game_of_life_evolution_speed, evolutionSpeed.twoDecimals)
+    val speedText = stringResource(Res.string.game_of_life_evolution_speed, formatDecimal(evolutionSpeed.toDouble(), 2))
 
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -157,12 +153,3 @@ private fun DrawScope.drawAliveCells(cells: Set<Cell>) {
 
 /** DESIGN.md §8: a faint Rain-coloured grid; the cells are embers. */
 private val GridLine = AutumnColors.Rain.copy(alpha = 0.12f)
-
-inline val Float.twoDecimals: String
-    get() {
-        val rounded = round(this * 100).toInt()
-        val whole = rounded / 100
-        val fraction = rounded % 100
-
-        return "$whole.${fraction.toString().padStart(2, '0')}"
-    }

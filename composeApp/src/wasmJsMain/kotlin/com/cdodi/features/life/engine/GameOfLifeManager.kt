@@ -1,10 +1,9 @@
-package com.cdodi.data.gameoflife
+package com.cdodi.features.life.engine
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.cdodi.core.time.Clock
-import com.cdodi.data.Manager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

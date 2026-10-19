@@ -1,4 +1,4 @@
-package com.cdodi.pages
+package com.cdodi.features.about
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
-import com.cdodi.features.about.AboutContent
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.theme.Autumn
 import com.cdodi.ui.theme.LocalViewport

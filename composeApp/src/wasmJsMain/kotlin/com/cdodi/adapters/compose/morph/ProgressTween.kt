@@ -1,4 +1,4 @@
-package com.cdodi.components
+package com.cdodi.adapters.compose.morph
 
 import com.cdodi.adapters.compose.effects.Morph
 

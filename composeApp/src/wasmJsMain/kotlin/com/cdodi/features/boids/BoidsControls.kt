@@ -12,14 +12,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.compose.ProfilingHud
+import com.cdodi.adapters.compose.ProfilingHudWidth
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
-import com.cdodi.components.PanelCorner
-import com.cdodi.components.SceneOverlay
 import com.cdodi.ui.components.DripSlider
 import com.cdodi.ui.components.Label
+import com.cdodi.ui.components.PanelCorner
 import com.cdodi.ui.components.QuietButton
 import com.cdodi.ui.components.RoundButton
+import com.cdodi.ui.components.SceneOverlay
 import com.cdodi.ui.components.StrokeIcons
 import com.cdodi.ui.components.formatDecimal
 import com.cdodi.ui.components.formatThousands
@@ -47,6 +48,7 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
         panelWidth = 340.dp,
         corner = PanelCorner.TopEnd,
         hint = if (compact) "Drag to gather the flock" else "Left button gathers · right button scatters · scroll sets how far",
+        readoutWidth = ProfilingHudWidth,
         readout = { ProfilingHud(gpuTimings, title, it) },
         panelSpacing = 16.dp,
     ) {

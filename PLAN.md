@@ -632,6 +632,13 @@ Then, after a code review of the first pass (four reviewers, without its context
 > - The recompositions, counted during a transition.
 > - The interrupted transition's pane.
 
+### 8g — Structure and dead code (from the code review)
+
+- [x] **The packages are the architecture's.** `pages` folded into the features, `data/gameoflife` into `features/life/engine`, and `components` split by what each piece is: the scene overlay to `ui`, the morph modifiers to `adapters/compose/morph`, the Home/page glass card to the shell. `checkPackageRules` reads the imports, in `check` and in CI. `ui`'s two crossings, `Glass` and `Motion`, are named in it until the design system's ports.
+- [x] **`main.kt` is the entry point only.** `App` and `AppContent` are in the shell, and what they read off the navigation state is in `NavProjections`, tested alone. `Menu.kt` is split into `MenuItem`, `HomeWindow` and `TopBar`.
+- [x] **Each `MenuItem` carries the destination it opens.** The melt order is the menu's, not a second list that had drifted (Life to Boids melted the wrong way).
+- [x] **Dead code deleted:** four triangle shapes, an icon, `LifeController.rule`, `BoidsStatus.grid`, a duplicate formatter, a no-op background, and a stale comment. `ResourceScope.texture` and `own` stay: they're the `:webgpu` layer's API, with tests.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.

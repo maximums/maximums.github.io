@@ -5,15 +5,14 @@ import com.cdodi.adapters.gpu.effects.GpuEffects
 import com.cdodi.core.navigation.effect.EffectRegistry
 import com.cdodi.core.navigation.graph.Interrupt
 import com.cdodi.core.navigation.graph.NavGraph
+import com.cdodi.core.navigation.graph.Route
 import com.cdodi.core.navigation.graph.navGraph
-import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.LifeDestination
-import com.cdodi.features.notes.NotesDestination
 
-/** The order of the menu, which also decides which way a page melts. */
-val menuOrder = listOf(HomeDestination, AboutDestination, NotesDestination, BoidsDestination, LifeDestination)
+/** Home, then the menu's pages in its order, which also decides which way a page melts. */
+val menuOrder: List<Route<*>> = listOf(HomeDestination) + MenuItem.entries.map { it.destination.route }
 
 /**
  * Every effect the site can draw, on either layer. GPU effects count whether or not WebGPU turns out to be available,

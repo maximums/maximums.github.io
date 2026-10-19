@@ -4,11 +4,11 @@ import com.cdodi.core.navigation.DestinationCodec
 import com.cdodi.core.navigation.graph.Interrupt
 import com.cdodi.core.navigation.graph.requireRenderable
 import com.cdodi.core.navigation.transition.reversed
-import com.cdodi.data.gameoflife.LifeRule
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.LifeDestination
+import com.cdodi.features.life.engine.LifeRule
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull

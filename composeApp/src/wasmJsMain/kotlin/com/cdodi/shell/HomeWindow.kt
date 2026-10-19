@@ -1,16 +1,12 @@
 package com.cdodi.shell
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.HoverInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,7 +16,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -28,23 +23,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.LookaheadScope
-import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -53,18 +41,12 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.shaderTime
-import com.cdodi.components.animatePlacement
-import com.cdodi.components.morphScale
 import com.cdodi.ui.components.GlassOutline
-import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.drawThread
-import com.cdodi.ui.components.focusRing
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.components.warmth
 import com.cdodi.ui.theme.Autumn
 import com.cdodi.ui.theme.AutumnColors
-import com.cdodi.ui.theme.Motion
-import com.cdodi.ui.theme.settling
 
 /** Home's panes are a little thinner than a fog pane (the Home mockup). */
 private val PaneFog = Color(18, 22, 26).copy(alpha = 0.52f)
@@ -83,73 +65,6 @@ class PaneEffects(val wipe: (MenuItem) -> Float, val thicken: (MenuItem) -> Floa
 }
 
 val LocalPaneEffects = staticCompositionLocalOf { PaneEffects.None }
-
-/** A corner of Home's window, where a pane sits, and where its label grows from. */
-enum class Corner(val alignment: Alignment, val origin: TransformOrigin, val top: Boolean, val start: Boolean) {
-    TopStart(Alignment.TopStart, TransformOrigin(0f, 0f), top = true, start = true),
-    TopEnd(Alignment.TopEnd, TransformOrigin(1f, 0f), top = true, start = false),
-    BottomStart(Alignment.BottomStart, TransformOrigin(0f, 1f), top = false, start = true),
-    BottomEnd(Alignment.BottomEnd, TransformOrigin(1f, 1f), top = false, start = false),
-}
-
-/** The four panes of Home (DESIGN.md §8), in the top bar's order. */
-enum class MenuItem(val label: String, val number: String, val corner: Corner) {
-    About("About", "01", Corner.TopStart),
-    Life("Game of Life", "02", Corner.TopEnd),
-    Boids("Boids", "03", Corner.BottomStart),
-    Notes("Notes", "04", Corner.BottomEnd),
-}
-
-/** A menu word: on its Home pane, or in the top bar. One movable content per word, so it can fly between the two. */
-typealias MenuLabel = @Composable LookaheadScope.(modifier: Modifier, atHome: Boolean, active: Boolean) -> Unit
-
-/** A menu word's line, as a multiple of its size. */
-private const val WORD_LINE = 1.1f
-
-/**
- * The word for [item]. It's laid out at its top-bar size everywhere and drawn larger on Home, growing from its pane's
- * corner, so the flight between the two only moves and scales it ([animatePlacement], [morphScale]). On Home it keeps
- * the page's density (it flies), so its scale carries the window's type scale ([MenuLayout.textScale]). Hover and
- * focus warm it (and its pane, which shares [interaction]); in the top bar, the current page's word carries a lamp
- * thread.
- */
-@Composable
-fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onClick: () -> Unit): MenuLabel {
-    val currentOnClick by rememberUpdatedState(onClick)
-    return remember(item, interaction) {
-        movableContentWithReceiverOf { modifier, atHome, active ->
-            val layout = LocalMenuLayout.current
-            val hover by warmth(interaction)
-            val warm = maxOf(hover, LocalPaneEffects.current.glow(item))
-            val current by settling(active && !atHome, Motion.SHORT_SECONDS)
-            val homeScale = layout.home.label.value / layout.navLabel.value * layout.textScale
-            val colour = when {
-                atHome -> lerp(AutumnColors.Mist, AutumnColors.Parchment, warm)
-                active -> AutumnColors.Parchment
-                else -> lerp(AutumnColors.Fog, AutumnColors.Parchment, warm)
-            }
-            Text(
-                text = item.label,
-                style = Autumn.type.nav.copy(
-                    fontSize = layout.navLabel,
-                    lineHeight = layout.navLabel * WORD_LINE,
-                    shadow = Shadow(AutumnColors.Lamp.copy(alpha = (if (atHome) 0.65f else 0.45f) * warm), blurRadius = if (atHome) 28f else 22f),
-                ),
-                color = colour,
-                maxLines = 1,
-                modifier = modifier
-                    .animatePlacement(this)
-                    .morphScale(if (atHome) homeScale else 1f, item.corner.origin)
-                    .focusRing(interaction, GlassShape)
-                    .clickable(interaction, indication = null, role = Role.Button, onClick = currentOnClick)
-                    .drawBehind {
-                        val y = size.height + 8.dp.toPx()
-                        drawThread(Offset(size.width * 0.15f, y), Offset(size.width * 0.85f, y), alpha = current)
-                    },
-            )
-        }
-    }
-}
 
 /**
  * Home's window (DESIGN.md §8, the Home mockup): four fogged panes around the Welcome rhombus, corner marks around
@@ -424,112 +339,6 @@ fun WelcomeWords(layout: MenuLayout, name: String) = AtDesignScale(layout) {
         Box(Modifier.width(44.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
         Text(name.uppercase(), style = Autumn.type.brand, color = AutumnColors.Fog)
         Text("stay a while — it's raining", style = Autumn.type.verse.copy(fontSize = home.verse), color = AutumnColors.Mist.copy(alpha = 0.8f))
-    }
-}
-
-/**
- * The slim top bar (DESIGN.md §8, shared): the brand mark and name on the left, which go Home, the menu's words in the
- * centre and [end] on the right. Where the centre would crowd the brand or [end], the words keep [MenuLayout.navGap]
- * from them instead. On a phone the words take the right, and [end] sits by the brand. [solid] (read while drawing) is
- * how far the bar has condensed onto the glass: from blurred and faint to sharp.
- */
-@Composable
-fun BoxScope.TopBar(
-    layout: MenuLayout,
-    name: String,
-    onHome: () -> Unit,
-    solid: () -> Float,
-    end: @Composable () -> Unit = {},
-    words: @Composable RowScope.() -> Unit,
-) {
-    Box(
-        Modifier
-            .align(Alignment.TopCenter)
-            .fillMaxWidth()
-            .height(layout.barHeight)
-            .drawBehind {
-                val a = solid()
-                if (a <= 0.001f) return@drawBehind
-                drawRect(Brush.verticalGradient(listOf(Color(10, 13, 16).copy(alpha = 0.85f * a), Color(10, 13, 16).copy(alpha = 0.35f * a))))
-                drawLine(AutumnColors.Parchment.copy(alpha = 0.06f * a), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx())
-            },
-    ) {
-        val condensing = Modifier.graphicsLayer {
-            val a = solid()
-            alpha = a
-            val blur = (1f - a) * 8.dp.toPx()
-            renderEffect = if (blur > 0.5f) BlurEffect(blur, blur, TileMode.Decal) else null
-        }
-        Layout(
-            content = {
-                Row(condensing, verticalAlignment = Alignment.CenterVertically) {
-                    Brand(layout, name, onHome, Modifier)
-                    if (layout.compact) end()
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(layout.navGap), verticalAlignment = Alignment.CenterVertically, content = words)
-                Box(condensing) { if (!layout.compact) end() }
-            },
-            modifier = Modifier.matchParentSize(),
-            measurePolicy = remember(layout) { barPolicy(layout) },
-        )
-    }
-}
-
-/** Places the bar's three parts: the brand, the words and the end ([TopBar]). */
-private fun barPolicy(menu: MenuLayout) = MeasurePolicy { measurables, constraints ->
-    val loose = constraints.copy(minWidth = 0, minHeight = 0)
-    val (brand, words, end) = measurables.map { it.measure(loose) }
-    val width = constraints.maxWidth
-    val margin = menu.margin.roundToPx()
-    val gap = menu.navGap.roundToPx()
-    layout(width, constraints.maxHeight) {
-        fun centred(height: Int) = (constraints.maxHeight - height) / 2
-        brand.place(margin, centred(brand.height))
-        end.place(width - margin - end.width, centred(end.height))
-        val nearest = margin + brand.width + gap
-        val furthest = width - margin - end.width - (if (end.width > 0) gap else 0) - words.width
-        val x = if (menu.compact) furthest else ((width - words.width) / 2).coerceIn(nearest, maxOf(nearest, furthest))
-        words.place(x, centred(words.height))
-    }
-}
-
-/** The lamp-lit diamond and the name (where the bar has no room for the name, the diamond alone). */
-@Composable
-private fun Brand(layout: MenuLayout, name: String, onHome: () -> Unit, modifier: Modifier) {
-    val interaction = remember { MutableInteractionSource() }
-    val warm by warmth(interaction)
-    Row(
-        modifier
-            .focusRing(interaction, GlassShape)
-            .clickable(interaction, indication = null, role = Role.Button, onClick = onHome)
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Canvas(Modifier.size(14.dp)) {
-            val path = Path().apply {
-                moveTo(size.width / 2, 0.5f); lineTo(size.width - 0.5f, size.height / 2)
-                lineTo(size.width / 2, size.height - 0.5f); lineTo(0.5f, size.height / 2); close()
-            }
-            drawPath(path, AutumnColors.Lamp, style = Stroke(1.dp.toPx()))
-        }
-        if (layout.brandName) Text(name.uppercase(), style = Autumn.type.brand, color = lerp(AutumnColors.Mist, AutumnColors.Parchment, warm))
-    }
-}
-
-/**
- * A line of verse over the fog while the next scene gathers itself (DESIGN.md §9, `holdFog`), with a thread of light
- * under it. [alpha] is read while drawing.
- */
-@Composable
-fun Caption(text: String, alpha: () -> Float, modifier: Modifier = Modifier) {
-    Column(
-        modifier.graphicsLayer { this.alpha = alpha() },
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(text, style = Autumn.type.verse.copy(fontSize = 24.sp), color = AutumnColors.Parchment)
-        Box(Modifier.width(56.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
     }
 }
 

@@ -1,7 +1,7 @@
 package com.cdodi.features.life
 
 import com.cdodi.core.time.Clock
-import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.engine.LifeRule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,8 +32,6 @@ class LifeController(private val clock: Clock) {
     internal var clearRequested = false
     internal var scatterRequested = false
     internal var fitRequested = false
-
-    val rule: LifeRule get() = status.value.rule
 
     fun setRule(rule: LifeRule) = mutableStatus.update { it.copy(rule = rule) }
 
