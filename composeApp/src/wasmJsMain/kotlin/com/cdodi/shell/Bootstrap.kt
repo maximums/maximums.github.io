@@ -2,6 +2,8 @@ package com.cdodi.shell
 
 import com.cdodi.adapters.browser.HashUrls
 import com.cdodi.adapters.browser.followBrowserHistory
+import com.cdodi.adapters.audio.AmbientSound
+import com.cdodi.adapters.browser.followFocus
 import com.cdodi.adapters.browser.followReducedMotion
 import com.cdodi.adapters.browser.followVisibility
 import com.cdodi.adapters.compose.ambient
@@ -75,6 +77,8 @@ class AppRuntime(
     /** UI elements the background draws behind. */
     val widgets: GpuWidgets,
     val background: BackgroundSettings,
+    /** The rain outside, when the viewer turns it on. */
+    val sound: AmbientSound,
 )
 
 fun bootstrap(): AppRuntime {
@@ -82,6 +86,7 @@ fun bootstrap(): AppRuntime {
 
     val lifecycle = DefaultLifecycleBus()
     followVisibility(lifecycle)
+    followFocus(lifecycle)
     followReducedMotion(lifecycle)
     heartbeat.pauseWhile(lifecycle) { !it.isVisible }
     heartbeat.ambient.pauseWhile(lifecycle) { it.prefersReducedMotion }
@@ -105,7 +110,9 @@ fun bootstrap(): AppRuntime {
     val scope = MainScope()
     scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, scope, gpu) }
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background)
+    val sound = AmbientSound(lifecycle, scope)
+
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound)
 }
 
 /**

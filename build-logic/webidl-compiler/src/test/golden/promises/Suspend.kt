@@ -3,7 +3,7 @@
 
 package fixtures.promises
 
-import com.cdodi.webgpu.runtime.await
+import com.cdodi.webidl.runtime.await
 import kotlin.Suppress
 
 /**

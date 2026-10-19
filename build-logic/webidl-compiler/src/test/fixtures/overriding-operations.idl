@@ -1,0 +1,10 @@
+// An operation that a derived interface redeclares with more optional arguments (Web Audio's
+// AudioBufferSourceNode.start(when, offset, duration) over AudioScheduledSourceNode.start(when)).
+// Target: the derived class declares only the shapes its parent doesn't, start(when, offset) and longer; start() and
+// start(when) are inherited, since redeclaring them would need `override`.
+interface AudioScheduledSourceNode {
+    undefined start(optional double when = 0);
+};
+interface AudioBufferSourceNode : AudioScheduledSourceNode {
+    undefined start(optional double when = 0, optional double offset, optional double duration);
+};

@@ -53,7 +53,7 @@ import com.cdodi.webgpu.bindings.store
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.runtime.Float32Staging
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.shader.compileShader
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.ceil

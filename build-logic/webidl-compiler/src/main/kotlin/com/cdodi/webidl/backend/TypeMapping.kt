@@ -107,12 +107,15 @@ object TypeMapping {
     /** Conversion of one sequence element `it` from its Kotlin type to its `JsAny?` type, or null if none is needed. */
     private fun Descriptor.TypeDescriptor.elementToJs(context: BindingContext, runtimePackage: String): CodeBlock? {
         val safeCall = if (isNullable) "?." else "."
-        val bridge = when (Primitive.of(name)?.takeUnless { isKnownDescriptor(context) }) {
+        val primitive = Primitive.of(name)?.takeUnless { isKnownDescriptor(context) }
+        val bridge = when (primitive) {
             Primitive.Integer, Primitive.WideInteger, Primitive.Decimal, Primitive.Single -> "toJsNumber"
             Primitive.Bool -> "toJsBoolean"
             Primitive.Text -> "toJsString"
             null -> null
         }
+        // A Float has no toJsNumber(): JS numbers are doubles, so it's widened first (exactly, every float is a double).
+        if (primitive == Primitive.Single) return CodeBlock.of("it%LtoDouble()%L%M()", safeCall, safeCall, MemberName("kotlin.js", "toJsNumber"))
         if (bridge != null) return CodeBlock.of("it%L%M()", safeCall, MemberName("kotlin.js", bridge))
         if (sequenceOf != null) return kotlinToJs(context, CodeBlock.of("it"), runtimePackage)
         return null

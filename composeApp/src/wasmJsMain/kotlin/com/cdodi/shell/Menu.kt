@@ -385,7 +385,14 @@ fun WelcomeWords(layout: MenuLayout, name: String) {
  * the centre. [solid] (read while drawing) is how far it has condensed onto the glass: from blurred and faint to sharp.
  */
 @Composable
-fun BoxScope.TopBar(layout: MenuLayout, name: String, onHome: () -> Unit, solid: () -> Float, words: @Composable RowScope.() -> Unit) {
+fun BoxScope.TopBar(
+    layout: MenuLayout,
+    name: String,
+    onHome: () -> Unit,
+    solid: () -> Float,
+    end: @Composable () -> Unit = {},
+    words: @Composable RowScope.() -> Unit,
+) {
     Box(
         Modifier
             .align(Alignment.TopCenter)
@@ -398,18 +405,18 @@ fun BoxScope.TopBar(layout: MenuLayout, name: String, onHome: () -> Unit, solid:
                 drawLine(AutumnColors.Parchment.copy(alpha = 0.06f * a), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx())
             },
     ) {
-        Brand(
-            layout, name, onHome,
-            Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = layout.margin)
-                .graphicsLayer {
-                    val a = solid()
-                    alpha = a
-                    val blur = (1f - a) * 8.dp.toPx()
-                    renderEffect = if (blur > 0.5f) BlurEffect(blur, blur, TileMode.Decal) else null
-                },
-        )
+        val condensing = Modifier.graphicsLayer {
+            val a = solid()
+            alpha = a
+            val blur = (1f - a) * 8.dp.toPx()
+            renderEffect = if (blur > 0.5f) BlurEffect(blur, blur, TileMode.Decal) else null
+        }
+        // On a phone the words take the right, so [end] sits by the brand; elsewhere it has the right to itself.
+        Row(Modifier.align(Alignment.CenterStart).padding(start = layout.margin).then(condensing), verticalAlignment = Alignment.CenterVertically) {
+            Brand(layout, name, onHome, Modifier)
+            if (layout.compact) end()
+        }
+        if (!layout.compact) Box(Modifier.align(Alignment.CenterEnd).padding(end = layout.margin).then(condensing)) { end() }
         Row(
             Modifier.align(if (layout.compact) Alignment.CenterEnd else Alignment.Center).padding(end = if (layout.compact) layout.margin else 0.dp),
             horizontalArrangement = Arrangement.spacedBy(layout.navGap),

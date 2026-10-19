@@ -565,12 +565,39 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 > - **Short windows.** Home's type now scales with its window. Below the mockup's 558 dp, down to 70 %, the words keep their room.
 > - The link-preview image (`og.png`) shows the new street.
 
+### 8d — The rain you can hear
+
+- [x] The sound of the street: ["Light rain on street"](https://freesound.org/s/380651/) by BonnyOrbit (CC0), light rain recorded from an open window onto a city street at night. Chosen by the author from a shortlist of night-rain recordings on Freesound.
+- [x] Off until the viewer turns it on (a "RAIN · ON OFF" hint on Home and in the top bar), and remembered. A remembered "on" waits for the first click or key, since that's when browsers allow sound to start.
+- [x] It plays only while the page is active: the lifecycle bus now knows focus as well as visibility. When the page isn't, it fades out and the audio context is suspended.
+- [x] It's heard through the glass: a low-pass filter at 2.4 kHz behind Home's fogged window, opening to 9 kHz on the pages as the window dissolves.
+
+> **Notes.**
+> - **No edited loop.** `AmbientSound` plays the recording over and over, each pass overlapping the last by 8 s with an equal-power crossfade. The first pass starts at a random point, so no two visits begin alike.
+> - **Mastered with ffmpeg, measured instead of heard.** `tools/sounds/master-rain.sh` makes the files; its output is committed.
+>   - The recording is steady: −34.7 LUFS integrated, a loudness range of 0.8 LU, passing traffic as low rumble at 0–5 s, 47–65 s and 92–104 s. Its two peaks, at 18 s and 103 s, are drops landing near the microphone, not faults, so they stay.
+>   - It gets a 30 Hz high-pass and a plain gain of +4.7 dB to −30 LUFS, peaking at −4.3 dBFS, so nothing needs limiting.
+>   - It's encoded as Opus at 80 kbps (0.99 MB, down from the 2.4 MB preview) with AAC at 128 kbps as a fallback. The player decodes the first one the browser can.
+>   - The seam, simulated by crossfading the file into itself: short-term loudness across the join stays within 0.2 LU of an equal-power mix of the two ends. The ends are unrelated (r = −0.01), so the overlap can't swell.
+>   - Muffling costs only 1.4 LU, so Home and the pages sound about as loud. The measurement also caught a bug before it shipped: Web Audio reads a low-pass filter's Q in decibels, so `Q = 0.7` put a +0.7 dB bump at the cut-off. It's −3.01 dB (Butterworth) now.
+> - **Typed Web Audio.** The player uses bindings generated from the Web Audio spec by the WebIDL compiler (Phase 9, "make the compiler general"), not hand-written JavaScript.
+> - **Checked in headless Chrome**, with the Web Audio objects instrumented:
+>   - nothing loads before the toggle;
+>   - after it, the context runs and the first pass is scheduled;
+>   - a blur suspends the context and freezes its clock, and focus resumes it;
+>   - the cut-off moves from 2.4 kHz to about 9 kHz on the way to Boids;
+>   - a remembered "on" starts at the first click.
+> - Also checked in headless Chrome: Opus is what loads, the AAC file loads when WebM is refused, and the filter measures −3.01 dB at its cut-off.
+> - The files are fetched only when the rain is turned on.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.
 - **A visual debugger for the navigation graph**: render the graph (nodes, edges, active transition, progress) as an overlay, driven by the same model.
 - **A small WGSL preprocessor** (`#include`, `#define` for workgroup sizes).
 - **Make the compiler general**: generate bindings for a second spec (Web Audio or WebXR) to prove it works beyond WebGPU; publish it to the Gradle Plugin Portal.
+  - [x] Web Audio, for the rain (`:webaudio`). The runtime generated code calls moved out of `:webgpu` into `:webidl-runtime`, so the two bindings modules share it without depending on each other. Mapping its foreign types exposed a plugin bug (a module's own `externalTypes` dropped the defaults). It also exposed four compiler gaps, each now a fixture: float sequences in dictionaries, inherited overloads, union parameters in suspend wrappers, and constructible classes (`open`, with their parents made classes too).
+  - [ ] Publish it to the Gradle Plugin Portal.
 - **Recorded replays**: save and load Life patterns (RLE format) and Boids parameter presets. The heartbeat's deterministic fixed steps make replays reproducible.
 - **A 3D model on Home: a bonsai behind the Welcome glass** (idea from 2026-10-18, not researched yet). Load a textured model, such as a bonsai tree, and maybe let the visitor turn around it by dragging.
   - **The question.** Can our own WebGPU setup do this, or is an engine better (Google's Filament, for example)?

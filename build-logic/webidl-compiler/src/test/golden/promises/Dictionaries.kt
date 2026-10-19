@@ -3,7 +3,7 @@
 
 package fixtures.promises
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.Boolean
 import kotlin.Suppress
 import kotlin.js.JsAny

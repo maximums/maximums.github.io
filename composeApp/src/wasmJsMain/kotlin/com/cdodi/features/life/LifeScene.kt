@@ -24,7 +24,7 @@ import com.cdodi.webgpu.bindings.GPUTextureView
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.runtime.Float32Staging
+import com.cdodi.webgpu.resource.Float32Staging
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.abs
 import kotlin.math.exp

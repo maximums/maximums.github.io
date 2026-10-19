@@ -21,13 +21,19 @@ flowchart TB
 
     subgraph modules["Modules"]
         webgpu[":webgpu<br/>generated bindings + GpuContext"]
+        webaudio[":webaudio<br/>generated bindings"]
+        runtime[":webidl-runtime<br/>what generated code calls"]
         core[":core<br/>heartbeat · buses · navigation graph<br/>(pure Kotlin, JVM-tested)"]
         notes[":notes<br/>Markdown → blocks → HTML"]
         app[":composeApp<br/>the site"]
     end
 
     compiler --> webgpu
+    compiler --> webaudio
+    runtime --> webgpu
+    runtime --> webaudio
     webgpu --> app
+    webaudio --> app
     core --> app
     notes --> app
     notes --> site
@@ -51,7 +57,7 @@ flowchart TB
 - **Navigation is a graph.** Destinations are nodes, and edges carry transitions as values (`(melt with fogRoll) +
   holdFog + (fade with clearing)`). The model knows nothing about Compose or WebGPU; each layer renders the effects it
   registers.
-- **The bindings are generated** from the WebGPU spec's own WebIDL by the compiler in `build-logic`.
+- **The bindings are generated** from the specs' own WebIDL by the compiler in `build-logic`: WebGPU (`:webgpu`) and Web Audio (`:webaudio`, for the rain), both on the small shared runtime the generated code calls (`:webidl-runtime`).
 
 [ARCHITECTURE.md](ARCHITECTURE.md) has the details, [DESIGN.md](DESIGN.md) the look ("Autumn Rain"), and
 [PLAN.md](PLAN.md) the phases and what's next.
@@ -83,7 +89,7 @@ is tested against CPU reference implementations: the Game of Life against `LifeE
 On Windows, `BINARYEN_CORES=1` in front of a Gradle command that builds the wasm keeps Binaryen from running out of
 memory.
 
-## Updating the WebGPU IDL (by hand)
+## Updating the WebGPU or Web Audio IDL (by hand)
 
 Builds only ever read the committed files; nothing is downloaded during a normal build.
 
@@ -91,7 +97,8 @@ Builds only ever read the committed files; nothing is downloaded during a normal
    ```
    ./gradlew :webgpu:updateWebIdl -PwebrefVersion=3.84.0
    ```
-   This rewrites `webgpu/idl/webgpu.idl` with a header naming the version.
+   This rewrites `webgpu/idl/webgpu.idl` with a header naming the version. `:webaudio:updateWebIdl` does the same for
+   `webaudio/idl/webaudio.idl`.
 2. Review the diff, then build. The bindings regenerate from the new file (`:webgpu:transpileWebIdl`). If the compiler
    meets a type it doesn't know, the build fails and lists every unknown type and where it's used.
 3. Fix whatever the API changes broke in the app, run the tests, and commit the IDL with the fixes.
@@ -107,6 +114,11 @@ When a compiler change is meant to change the generated code, rewrite the golden
 ```
 ./gradlew -p build-logic :webidl-compiler:test -PupdateGoldens
 ```
+
+## Credits
+
+- **Fonts:** Cormorant Garamond, Manrope and JetBrains Mono, under the SIL Open Font License (bundled with their licences in `composeResources/files/licenses`).
+- **The rain:** ["Light rain on street"](https://freesound.org/s/380651/) by BonnyOrbit, on Freesound, CC0. Light rain recorded from an open window onto a city street at night. It plays only when turned on, from the "RAIN" hint. `tools/sounds/master-rain.sh` masters the site's files from it (ffmpeg): a 30 Hz high-pass, a plain gain to −30 LUFS, then Opus and an AAC fallback.
 
 ## Writing a note
 

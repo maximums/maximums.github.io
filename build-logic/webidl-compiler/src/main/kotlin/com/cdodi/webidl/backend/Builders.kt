@@ -23,18 +23,41 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
 
 /**
- * An IDL interface becomes an `external abstract class` when it has a constructor or extends a class (an external one
- * such as EventTarget, or a generated one): a Kotlin interface cannot extend a class. Otherwise it is an external interface.
+ * An IDL interface becomes an external class (open with a constructor, abstract without) when:
+ *
+ * - it has a constructor, so Kotlin can construct it (`AudioContext()`);
+ * - it extends a class (an external one such as EventTarget, or a generated one): a Kotlin interface can't;
+ * - a class extends it. A concrete class implementing an interface would have to implement its members, and IDL
+ *   inheritance is single, so the parent simply becomes a class too (`GPUError` under `GPUValidationError`).
+ *
+ * Otherwise it's an external interface. Union markers stay interfaces: several types implement them.
  */
-fun Descriptor.InterfaceDescriptor.isGeneratedAsClass(context: BindingContext): Boolean =
-    hasConstructor || superTypes.any { superName ->
-        context[BindingSlices.EXTERNAL_TYPE, superName]?.kind == ExternalType.Kind.Class ||
-            context[BindingSlices.INTERFACE, superName]?.isGeneratedAsClass(context) == true
-    }
+fun Descriptor.InterfaceDescriptor.isGeneratedAsClass(context: BindingContext): Boolean = name in generatedClasses(context)
+
+private val classesByContext = java.util.WeakHashMap<BindingContext, Set<String>>()
+
+/** The interfaces generated as classes ([isGeneratedAsClass]): the rules above, applied until nothing changes. */
+private fun generatedClasses(context: BindingContext): Set<String> = classesByContext.getOrPut(context) {
+    val interfaces = context[BindingSlices.INTERFACE].orEmpty().filterValues { it.unionOf.isEmpty() }
+    val classes = interfaces.values.filter { descriptor ->
+        descriptor.hasConstructor || descriptor.superTypes.any { context[BindingSlices.EXTERNAL_TYPE, it]?.kind == ExternalType.Kind.Class }
+    }.mapTo(mutableSetOf()) { it.name }
+    do {
+        var changed = false
+        for (descriptor in interfaces.values) {
+            val parents = descriptor.superTypes.filter { it in interfaces }
+            if (descriptor.name !in classes && parents.any { it in classes }) changed = classes.add(descriptor.name) || changed
+            if (descriptor.name in classes) parents.forEach { changed = classes.add(it) || changed }
+        }
+    } while (changed)
+    classes
+}
 
 fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String, docs: Docs): TypeSpec {
     val interfaceBuilder = if (isGeneratedAsClass(context)) {
-        TypeSpec.classBuilder(name).addModifiers(KModifier.ABSTRACT)
+        // With a constructor, `open` so it can be constructed (`AudioContext()`) and still extended; without one,
+        // abstract: only the browser makes them.
+        TypeSpec.classBuilder(name).addModifiers(if (hasConstructor) KModifier.OPEN else KModifier.ABSTRACT)
     } else {
         TypeSpec.interfaceBuilder(name)
     }
@@ -60,8 +83,9 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
         )
     }
 
+    val inherited = inheritedShapes(context, generatedPackageName)
     members.filterIsInstance<InterfaceMember.FunctionDescriptor>().forEach { function ->
-        function.callableShapes(context, generatedPackageName).forEach { parameterTypes ->
+        function.callableShapes(context, generatedPackageName).filter { (function.name to it) !in inherited }.forEach { parameterTypes ->
             val funBuilder = if (function.name == "constructor") {
                 FunSpec.constructorBuilder()
             } else {
@@ -185,9 +209,7 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
             val promiseInner = function.returnType.promiseOf!!
             val isVoid = promiseInner.isUndefined
             val returnType = if (isVoid) UNIT else promiseInner.toKotlin(context, generatedPackageName, Position.TypeArgument)
-            val hasOptionalParams = function.parameters.any { it.isOptional }
-
-            fun buildWrapper(params: List<InterfaceMember.VariableDescriptor>): FunSpec {
+            fun buildWrapper(params: List<InterfaceMember.VariableDescriptor>, types: List<TypeName>): FunSpec {
                 val builder = FunSpec.builder("${function.name}Suspend")
                     .receiver(className)
                     .addModifiers(KModifier.SUSPEND)
@@ -195,9 +217,11 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
                 if (!isVoid) builder.returns(returnType)
 
                 val paramNames = mutableListOf<String>()
-                params.forEach { param ->
-                    builder.addParameter(param.name, param.type.toKotlin(context, generatedPackageName))
-                    paramNames.add(param.name)
+                params.zip(types).forEach { (param, type) ->
+                    val spec = ParameterSpec.builder(param.name, type)
+                    if (param.isVariadic) spec.addModifiers(KModifier.VARARG)
+                    builder.addParameter(spec.build())
+                    paramNames.add(if (param.isVariadic) "*${param.name}" else param.name)
                 }
 
                 val args = paramNames.joinToString(", ")
@@ -210,15 +234,10 @@ fun Descriptor.InterfaceDescriptor.suspendWrappers(
                 return builder.build()
             }
 
-            wrappers.add(buildWrapper(function.parameters))
-
-            if (hasOptionalParams) {
-                val lastRequiredIdx = function.parameters.indexOfLast { !it.isOptional }
-                val firstOptionalIdx = function.parameters.indexOfFirst { it.isOptional }
-                val optionalsAreTrailing = firstOptionalIdx > lastRequiredIdx
-                if (optionalsAreTrailing) {
-                    wrappers.add(buildWrapper(function.parameters.filter { !it.isOptional }))
-                }
+            // The same shapes as the declarations it calls: one per union member, one per prefix of the trailing
+            // optional parameters.
+            function.callableShapes(context, generatedPackageName).forEach { types ->
+                wrappers.add(buildWrapper(function.parameters.take(types.size), types))
             }
         }
 
@@ -315,6 +334,29 @@ private const val MAX_OVERLOADS = 8
 private fun InterfaceMember.VariableDescriptor.isTrailingOptional(function: InterfaceMember.FunctionDescriptor): Boolean {
     val index = function.parameters.indexOf(this)
     return isOptional && !isVariadic && function.parameters.drop(index).all { it.isOptional || it.isVariadic }
+}
+
+/**
+ * The operation declarations ([callableShapes]) this interface's generated supertypes already make, all the way up, by
+ * name and parameter types. Redeclaring one in Kotlin would need `override`; an overriding IDL operation (Web Audio's
+ * `AudioBufferSourceNode.start(when, offset, duration)` over `AudioScheduledSourceNode.start(when)`) shares its
+ * shorter forms with the one it overrides, so those are simply inherited.
+ */
+private fun Descriptor.InterfaceDescriptor.inheritedShapes(context: BindingContext, pkg: String): Set<Pair<String, List<TypeName>>> {
+    val shapes = mutableSetOf<Pair<String, List<TypeName>>>()
+    val seen = mutableSetOf<String>()
+    fun collect(descriptor: Descriptor.InterfaceDescriptor) {
+        for (superName in descriptor.superTypes) {
+            if (!seen.add(superName)) continue
+            val parent = context[BindingSlices.INTERFACE, superName] ?: continue
+            parent.members.filterIsInstance<InterfaceMember.FunctionDescriptor>()
+                .filter { it.name != "constructor" }
+                .forEach { function -> function.callableShapes(context, pkg).forEach { shapes += function.name to it } }
+            collect(parent)
+        }
+    }
+    collect(this)
+    return shapes
 }
 
 /**

@@ -3,7 +3,7 @@
 
 package fixtures.union_mixed
 
-import com.cdodi.webgpu.runtime.createJsObject
+import com.cdodi.webidl.runtime.createJsObject
 import kotlin.Double
 import kotlin.Suppress
 import kotlin.js.JsAny
