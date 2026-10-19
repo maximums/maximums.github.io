@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
+import com.cdodi.ui.theme.SiteTheme
 import kotlin.math.max
 
 /**
@@ -19,8 +20,10 @@ import kotlin.math.max
  */
 @Composable
 fun StillScene(modifier: Modifier = Modifier) {
+    val scene = SiteTheme.scene
     Canvas(modifier.fillMaxSize()) {
-        drawRect(Brush.verticalGradient(0f to Sky0, 0.48f to Sky1, 0.78f to Sky2, 1f to Sky3))
+        val (sky0, sky1, sky2, sky3) = scene.sky
+        drawRect(Brush.verticalGradient(0f to sky0, 0.48f to sky1, 0.78f to sky2, 1f to sky3))
 
         // The study's 1440 × 900 space at the window's height, centred; narrower on a tall window, as street.wgsl.
         val toWindow = size.height / 900f
@@ -30,7 +33,7 @@ fun StillScene(modifier: Modifier = Modifier) {
         val glowCentre = place(720f, 900f)
         scale(scaleX = 864f / narrow / 266f, scaleY = 1f, pivot = glowCentre) {
             val radius = 266f * toWindow
-            drawCircle(Brush.radialGradient(0f to Lamp.copy(alpha = 0.14f), 0.7f to Lamp.copy(alpha = 0f), center = glowCentre, radius = radius), radius, glowCentre)
+            drawCircle(Brush.radialGradient(0f to scene.light.copy(alpha = 0.14f), 0.7f to scene.light.copy(alpha = 0f), center = glowCentre, radius = radius), radius, glowCentre)
         }
 
         for (light in StreetLights.all) {
@@ -54,7 +57,7 @@ fun StillScene(modifier: Modifier = Modifier) {
         scale(scaleX = 0.75f / 0.7f * size.width / size.height, scaleY = 1f, pivot = corner) {
             val radius = 0.7f * size.height
             drawRect(
-                Brush.radialGradient(0.55f to Night.copy(alpha = 0f), 1f to Night.copy(alpha = 0.75f), center = corner, radius = radius),
+                Brush.radialGradient(0.55f to scene.shade.copy(alpha = 0f), 1f to scene.shade.copy(alpha = 0.75f), center = corner, radius = radius),
                 topLeft = Offset(corner.x - radius * 2, corner.y - radius * 2),
                 size = Size(radius * 4, radius * 4),
             )
@@ -78,9 +81,3 @@ private fun DrawScope.drawDisc(centre: Offset, radius: Float, colour: Color, rim
     )
 }
 
-private val Sky0 = Color(0xFF0A0D10)
-private val Sky1 = Color(0xFF10151A)
-private val Sky2 = Color(0xFF171613)
-private val Sky3 = Color(0xFF1E1812)
-private val Lamp = Color(0xFFD8A15A)
-private val Night = Color(0xFF080A0C)

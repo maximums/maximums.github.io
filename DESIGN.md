@@ -43,7 +43,16 @@ Derived values used across the mockups:
 | Lamp glow | `0 0 12px 1px Lamp @ 60–70 %` (threads), `0 0 24px -8px Lamp @ 60 %` (buttons) |
 | Scene fog | `rgb(140 148 152)` at 36–78 %, heavily blurred |
 
-In Compose these become `ui/theme/AutumnColors` with exactly these names, so a token reads the same in the design and in the code.
+In Compose these are the swatches of `AutumnTheme` (`ui/theme/AutumnTheme.kt`), with exactly these names, so a token reads the same in the design and in the theme. The rest of the code asks for **roles** instead (`SiteTheme.colors.accent`, never `Lamp`), so another season can fill them with its own swatches:
+
+| Role | Autumn |
+|---|---|
+| `ground` · `groundRaised` · `stroke` | `Night` · `Slate` · `WetStone` |
+| `muted` · `text` · `bright` | `Fog` · `Mist` · `Parchment` |
+| `accent` · `heat` · `cold` | `Lamp` · `Ember` · `Rain` |
+| `hairline` | `Parchment` at 9 % |
+
+The panes have tokens of their own (`GlassTokens`: fogged, cleared, Home's panes, the thick fog, the Welcome rhombus, the reading ground, a phone's folded controls, the top bar).
 
 ## 4. Type
 

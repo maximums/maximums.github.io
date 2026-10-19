@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.compose.LocalGpuWidgets
 import com.cdodi.adapters.compose.LocalPageVisibility
 import com.cdodi.adapters.gpu.GpuWidgets
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.LocalTheme
 import kotlin.random.Random
 
 /** DESIGN.md §5: panes have a 2 px radius. */
@@ -59,13 +59,13 @@ fun interface GlassOutline {
  * GPU draws what Compose can't see: the street behind the pane, blurred and desaturated. The pane reports itself (its
  * [outline]) to the scene host, and the blur follows how fogged the glass is, so a cleared pane shows the street sharp.
  *
- * [clear] (0 fogged, 1 cleared) wipes the fog off, as hover and focus do. [fill] replaces the default fog for panes a
- * little thicker or thinner (the Welcome rhombus is 62 %). [wipe] (0 to 1) sweeps a band of clearness across the pane
+ * [clear] (0 fogged, 1 cleared) wipes the fog off, as hover and focus do. [fill] replaces the theme's fog pane for
+ * panes a little thicker or thinner (its [GlassTokens][com.cdodi.ui.theme.GlassTokens]). [wipe] (0 to 1) sweeps a band of clearness across the pane
  * from left to right, leaving it clear ("Breath on the window" starts so). The lambdas are read every frame.
  */
 fun Modifier.glass(
     shape: Shape = GlassShape,
-    fill: () -> Color = { AutumnColors.FogPane },
+    fill: (() -> Color)? = null,
     hairline: Boolean = true,
     shadow: Boolean = true,
     clear: () -> Float = { 0f },
@@ -76,7 +76,7 @@ fun Modifier.glass(
 
 private data class GlassElement(
     val shape: Shape,
-    val fill: () -> Color,
+    val fill: (() -> Color)?,
     val hairline: Boolean,
     val shadow: Boolean,
     val clear: () -> Float,
@@ -121,25 +121,28 @@ private class GlassNode(var style: GlassElement) :
             val spread = 40.dp.toPx()
             drawSoft(s.shape, Offset(spread, spread + 40.dp.toPx()), Size((size.width - spread * 2).coerceAtLeast(1f), (size.height - spread * 2).coerceAtLeast(1f)), Color.Black.copy(alpha = 0.85f * opacity), 80.dp.toPx())
         }
-        val fog = lerp(s.fill(), AutumnColors.ClearedPane, cleared)
+        val theme = currentValueOf(LocalTheme)
+        val glass = theme.glass
+        val fog = lerp(s.fill?.invoke() ?: glass.fogged, glass.cleared, cleared)
         // Condensation and blur gather where the glass is fogged: none on a cleared pane.
-        fogginess = ((fog.alpha - AutumnColors.ClearedPane.alpha) / (AutumnColors.FogPane.alpha - AutumnColors.ClearedPane.alpha)).coerceIn(0f, 1f)
+        fogginess = ((fog.alpha - glass.cleared.alpha) / (glass.fogged.alpha - glass.cleared.alpha)).coerceIn(0f, 1f)
         if (wipe <= 0f) {
             drawPath(path, fog.copy(alpha = fog.alpha * opacity))
         } else {
             // The wiped band, as the GPU computes it (panes.wgsl, wiped()), sampled into a gradient across the pane.
             val stops = Array(WIPE_STOPS + 1) { i ->
                 val d = i / WIPE_STOPS.toFloat()
-                val c = lerp(fog, AutumnColors.ClearedPane, wiped(wipe, d))
+                val c = lerp(fog, glass.cleared, wiped(wipe, d))
                 d to c.copy(alpha = c.alpha * opacity)
             }
             drawPath(path, Brush.horizontalGradient(*stops))
         }
-        if (fogginess > 0.001f) clipPath(path) { drawRect(Condensation.brush, alpha = 0.7f * fogginess * (1f - wipe) * opacity) }
+        if (fogginess > 0.001f) clipPath(path) { drawRect(Condensation.brush(theme.colors.bright), alpha = 0.7f * fogginess * (1f - wipe) * opacity) }
         if (s.hairline) {
-            drawPath(path, AutumnColors.Parchment.copy(alpha = 0.09f * opacity), style = Stroke(1.dp.toPx()))
+            val hairline = theme.colors.hairline
+            drawPath(path, hairline.copy(alpha = hairline.alpha * opacity), style = Stroke(1.dp.toPx()))
             // The inner top highlight: light catching the pane's upper edge.
-            drawLine(AutumnColors.Parchment.copy(alpha = 0.06f * opacity), Offset(1.dp.toPx(), 1.5.dp.toPx()), Offset(size.width - 1.dp.toPx(), 1.5.dp.toPx()), 1.dp.toPx())
+            drawLine(theme.colors.bright.copy(alpha = 0.06f * opacity), Offset(1.dp.toPx(), 1.5.dp.toPx()), Offset(size.width - 1.dp.toPx(), 1.5.dp.toPx()), 1.dp.toPx())
         }
     }
 
@@ -180,23 +183,28 @@ private fun wiped(progress: Float, d: Float): Float {
     return 1f - t * t * (3f - 2f * t)
 }
 
-/** Condensation: fine drops of water on the glass, one tile drawn once and repeated. */
+/** Condensation: fine drops of water on the glass, one tile drawn once per colour and repeated. */
 private object Condensation {
     private const val TILE = 256
 
-    val brush: ShaderBrush by lazy {
+    private var drawn: Pair<Color, ShaderBrush>? = null
+
+    /** The tile in [color]; drawn again only when the theme changes it. */
+    fun brush(color: Color): ShaderBrush = drawn?.takeIf { it.first == color }?.second ?: draw(color).also { drawn = color to it }
+
+    private fun draw(color: Color): ShaderBrush {
         val bitmap = ImageBitmap(TILE, TILE)
         val canvas = Canvas(bitmap)
         val paint = Paint()
         val random = Random(17)
         repeat(150) {
             val radius = 0.5f + random.nextFloat() * 0.8f
-            paint.color = AutumnColors.Parchment.copy(alpha = 0.12f + random.nextFloat() * 0.12f)
+            paint.color = color.copy(alpha = 0.12f + random.nextFloat() * 0.12f)
             val x = random.nextFloat() * TILE
             val y = random.nextFloat() * TILE
             // An oval a little taller than wide: water gathers at a drop's lower edge.
             canvas.drawOval(x - radius, y - radius * 1.4f, x + radius, y + radius * 1.4f, paint)
         }
-        ShaderBrush(ImageShader(bitmap, TileMode.Repeated, TileMode.Repeated))
+        return ShaderBrush(ImageShader(bitmap, TileMode.Repeated, TileMode.Repeated))
     }
 }

@@ -31,9 +31,8 @@ import com.cdodi.ui.components.SceneOverlay
 import com.cdodi.ui.components.StrokeIcons
 import com.cdodi.ui.components.ToggleRow
 import com.cdodi.ui.components.formatThousands
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.LocalViewport
+import com.cdodi.ui.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 
@@ -71,8 +70,8 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Label("Simulation")
-            Text("Game of Life", style = Autumn.type.title, color = AutumnColors.Parchment)
-            Text(listOfNotNull(rule.toString(), ruleName).joinToString(" · "), style = Autumn.type.readout, color = AutumnColors.Lamp)
+            Text("Game of Life", style = SiteTheme.type.title, color = SiteTheme.colors.bright)
+            Text(listOfNotNull(rule.toString(), ruleName).joinToString(" · "), style = SiteTheme.type.readout, color = SiteTheme.colors.accent)
         }
         Choice(namedRules, rule, onRuleChange, textSize = 17.sp)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), itemVerticalAlignment = Alignment.CenterVertically) {
@@ -91,7 +90,7 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
             steps = (LifeController.MAX_SPEED - LifeController.MIN_SPEED).roundToInt(),
         )
         ToggleRow("Edges wrap around", status.wrap, controller::setWrap)
-        Box(Modifier.fillMaxWidth().height(1.dp).background(AutumnColors.Parchment.copy(alpha = 0.08f)))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(SiteTheme.colors.hairline))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Figure("Generation", formatThousands(status.generation.toInt()), Modifier.weight(1.15f))
             Figure("Alive", formatThousands(status.population), Modifier.weight(0.9f))
@@ -105,6 +104,6 @@ fun LifeControls(controller: LifeController, rule: LifeRule, gpuTimings: StateFl
 private fun Figure(label: String, value: String, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Label(label)
-        Text(value, style = Autumn.type.readout.copy(fontSize = 15.sp, letterSpacing = 0.sp), color = AutumnColors.Parchment, maxLines = 1)
+        Text(value, style = SiteTheme.type.readout.copy(fontSize = 15.sp, letterSpacing = 0.sp), color = SiteTheme.colors.bright, maxLines = 1)
     }
 }

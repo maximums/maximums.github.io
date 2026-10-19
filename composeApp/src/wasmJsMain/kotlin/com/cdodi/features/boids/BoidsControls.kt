@@ -24,9 +24,8 @@ import com.cdodi.ui.components.SceneOverlay
 import com.cdodi.ui.components.StrokeIcons
 import com.cdodi.ui.components.formatDecimal
 import com.cdodi.ui.components.formatThousands
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.LocalViewport
+import com.cdodi.ui.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.log2
 import kotlin.math.pow
@@ -54,8 +53,8 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Label("Simulation")
-            Text("Boids", style = Autumn.type.title, color = AutumnColors.Parchment)
-            Text("a murmuration under the rain", style = Autumn.type.verse.copy(fontSize = Autumn.type.verse.fontSize * 0.95f), color = AutumnColors.Fog)
+            Text("Boids", style = SiteTheme.type.title, color = SiteTheme.colors.bright)
+            Text("a murmuration under the rain", style = SiteTheme.type.verse.copy(fontSize = SiteTheme.type.verse.fontSize * 0.95f), color = SiteTheme.colors.muted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundButton(if (status.isPaused) StrokeIcons.Play else StrokeIcons.Pause, if (status.isPaused) "Play" else "Pause", controller::playPause)

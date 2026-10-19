@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -42,8 +43,7 @@ import com.cdodi.ui.components.QuietButton
 import com.cdodi.ui.components.RoundButton
 import com.cdodi.ui.components.StrokeIcons
 import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 import org.jetbrains.compose.resources.stringResource
 
 
@@ -65,6 +65,7 @@ fun GameOfLifePage(rule: LifeRule = LifeRule.Conway) {
     val manager = rememberLifeManager(rule)
     val state by manager.state.collectEachFrame()
     val population by remember { derivedStateOf { state.aliveCells.size } }
+    val colors = SiteTheme.colors
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -87,8 +88,9 @@ fun GameOfLifePage(rule: LifeRule = LifeRule.Conway) {
                 .onSizeChanged(manager::updateGridBounds)
                 .pointerInput(manager) { detectTapGestures { offset -> manager.addCell(offset) } }
         ) {
-            drawAliveCells(state.aliveCells)
-            drawGrid(state.grid)
+            drawAliveCells(state.aliveCells, colors.accent.copy(alpha = 0.9f))
+            // DESIGN.md §8: a faint grid of the theme's cold colour; the cells are its accent.
+            drawGrid(state.grid, colors.cold.copy(alpha = 0.12f))
         }
     }
 }
@@ -117,14 +119,14 @@ private fun GridHeader(
         RoundButton(if (isPlaying) StrokeIcons.Pause else StrokeIcons.Play, playText, onPlayPause)
         QuietButton(resetText, onReset, icon = StrokeIcons.Clear, enabled = !isPlaying && population > 0)
         DripSlider("Speed", speedText, evolutionSpeed, onSpeedChange, 0f..1f, Modifier.width(240.dp), steps = 10)
-        Text(populationText, style = Autumn.type.readout.copy(fontSize = 14.sp), color = AutumnColors.Mist)
+        Text(populationText, style = SiteTheme.type.readout.copy(fontSize = 14.sp), color = SiteTheme.colors.text)
     }
 }
 
-private fun DrawScope.drawGrid(grid: Grid) {
+private fun DrawScope.drawGrid(grid: Grid, color: Color) {
     for (i in 0..grid.columns) {
         drawLine(
-            color = GridLine,
+            color = color,
             start = Offset(x = i * CELL_SIZE_PX, y = 0f),
             end = Offset(x = i * CELL_SIZE_PX, y = grid.height.toFloat()),
             strokeWidth = 1.dp.toPx()
@@ -133,7 +135,7 @@ private fun DrawScope.drawGrid(grid: Grid) {
 
     for (j in 0..grid.rows) {
         drawLine(
-            color = GridLine,
+            color = color,
             start = Offset(x = 0f, y = j * CELL_SIZE_PX),
             end = Offset(x = grid.width.toFloat(), y = j * CELL_SIZE_PX),
             strokeWidth = 1.dp.toPx()
@@ -141,15 +143,13 @@ private fun DrawScope.drawGrid(grid: Grid) {
     }
 }
 
-private fun DrawScope.drawAliveCells(cells: Set<Cell>) {
+private fun DrawScope.drawAliveCells(cells: Set<Cell>, color: Color) {
     for (cell in cells) {
         drawRect(
-            color = AutumnColors.Lamp.copy(alpha = 0.9f),
+            color = color,
             topLeft = Offset(cell.x * CELL_SIZE_PX, cell.y * CELL_SIZE_PX),
             size = Size(CELL_SIZE_PX, CELL_SIZE_PX),
         )
     }
 }
 
-/** DESIGN.md §8: a faint Rain-coloured grid; the cells are embers. */
-private val GridLine = AutumnColors.Rain.copy(alpha = 0.12f)

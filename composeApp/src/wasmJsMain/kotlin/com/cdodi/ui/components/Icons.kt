@@ -1,14 +1,17 @@
 package com.cdodi.ui.components
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.AutumnColors
 
-/** DESIGN.md §6: thin stroke icons (1.4 px on a 16 px grid), never emoji or filled glyphs. Tinted where they're drawn. */
+/**
+ * DESIGN.md §6: thin stroke icons (1.4 px on a 16 px grid), never emoji or filled glyphs. Drawn in white, to be tinted
+ * with the theme's colours where they're shown.
+ */
 object StrokeIcons {
     val Play = icon("Play", "M5 3l8 5-8 5V3z")
     val Pause = icon("Pause", "M5.5 3v10M10.5 3v10")
@@ -21,7 +24,7 @@ object StrokeIcons {
         ImageVector.Builder(name = name, defaultWidth = 16.dp, defaultHeight = 16.dp, viewportWidth = 16f, viewportHeight = 16f)
             .addPath(
                 pathData = PathParser().parsePathString(path).toNodes(),
-                stroke = SolidColor(AutumnColors.Parchment),
+                stroke = SolidColor(Color.White),
                 strokeLineWidth = 1.4f,
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,

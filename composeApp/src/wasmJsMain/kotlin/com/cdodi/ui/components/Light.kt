@@ -3,6 +3,9 @@ package com.cdodi.ui.components
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -25,7 +28,7 @@ import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 import com.cdodi.ui.theme.settling
 import org.jetbrains.skia.FilterBlurMode
 import org.jetbrains.skia.MaskFilter
@@ -71,11 +74,12 @@ fun DrawScope.drawSoft(shape: Shape, offset: Offset, size: Size, color: Color, r
 }
 
 /**
- * DESIGN.md §6: focus is always visible, as a 1 px Lamp ring 3 px outside the element. Drawn only while the keyboard
- * is in use: a click focuses an element too, and shouldn't leave a ring behind.
+ * DESIGN.md §6: focus is always visible, as a 1 px ring of the accent 3 px outside the element. Drawn only while the
+ * keyboard is in use: a click focuses an element too, and shouldn't leave a ring behind.
  */
 @Composable
 fun Modifier.focusRing(interaction: InteractionSource, shape: Shape): Modifier {
+    val accent = SiteTheme.colors.accent
     val focused by interaction.collectIsFocusedAsState()
     val inputMode = LocalInputModeManager.current
     return drawWithContent {
@@ -84,19 +88,22 @@ fun Modifier.focusRing(interaction: InteractionSource, shape: Shape): Modifier {
             val offset = 3.dp.toPx()
             val outline = shape.createOutline(Size(size.width + offset * 2, size.height + offset * 2), layoutDirection, this)
             val path = Path().apply { addOutline(outline); translate(Offset(-offset, -offset)) }
-            drawPath(path, AutumnColors.Lamp, style = Stroke(1.dp.toPx()))
+            drawPath(path, accent, style = Stroke(1.dp.toPx()))
         }
     }
 }
 
-/** A 1 px thread of lamp light from [start] to [end], glowing (the active navigation item, a chosen option, a rule). */
-fun DrawScope.drawThread(start: Offset, end: Offset, alpha: Float = 1f, glow: Float = 1f) {
+/**
+ * A 1 px thread of light in [color] (the theme's accent) from [start] to [end], glowing: the active navigation item, a
+ * chosen option, a rule.
+ */
+fun DrawScope.drawThread(color: Color, start: Offset, end: Offset, alpha: Float = 1f, glow: Float = 1f) {
     if (alpha <= 0.001f) return
     val thickness = 1.dp.toPx()
     if (glow > 0f) {
         drawIntoCanvas { canvas ->
             val paint = Paint().apply {
-                color = AutumnColors.Lamp.copy(alpha = 0.7f * alpha * glow).toArgb()
+                this.color = color.copy(alpha = 0.7f * alpha * glow).toArgb()
                 isAntiAlias = true
                 strokeWidth = 3.dp.toPx()
                 maskFilter = MaskFilter.makeBlur(FilterBlurMode.NORMAL, 6.dp.toPx())
@@ -105,5 +112,12 @@ fun DrawScope.drawThread(start: Offset, end: Offset, alpha: Float = 1f, glow: Fl
             paint.close()
         }
     }
-    drawLine(AutumnColors.Lamp.copy(alpha = alpha), start, end, strokeWidth = thickness)
+    drawLine(color.copy(alpha = alpha), start, end, strokeWidth = thickness)
+}
+
+/** A short thread of the accent, [width] long, under a heading or a line of verse. */
+@Composable
+fun Thread(width: Dp, modifier: Modifier = Modifier) {
+    val accent = SiteTheme.colors.accent
+    Box(modifier.width(width).height(1.dp).drawBehind { drawThread(accent, Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
 }

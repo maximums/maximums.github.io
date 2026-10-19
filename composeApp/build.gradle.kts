@@ -137,4 +137,28 @@ val checkPackageRules = tasks.register("checkPackageRules") {
     }
 }
 
-tasks.named("check") { dependsOn(checkPackageRules) }
+/**
+ * Colours come from the theme (ui/theme): a colour written anywhere else (`Color(0x…)`, `Color(r, g, b)`) can't follow
+ * a change of theme. The still street's lights are the study's own and move to the theme with the shaders' colours.
+ */
+val checkThemeTokens = tasks.register("checkThemeTokens") {
+    group = "verification"
+    description = "Fails when a colour is written outside the theme (ui/theme)."
+    val sources = layout.projectDirectory.dir("src/wasmJsMain/kotlin/com/cdodi")
+    inputs.dir(sources).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("sources")
+    val root = sources.asFile
+    doLast {
+        val known = setOf("features/background/StillScene.kt")
+        val literal = Regex("""\bColor\(\s*(?:0x|\d)""")
+        val written = root.walk().filter { it.extension == "kt" }.flatMap { file ->
+            val path = file.relativeTo(root).invariantSeparatorsPath
+            if (path.startsWith("ui/theme/") || path in known) return@flatMap emptySequence()
+            file.readLines().asSequence().withIndex()
+                .filter { (_, line) -> literal.containsMatchIn(line) && !line.trimStart().startsWith("*") && !line.trimStart().startsWith("//") }
+                .map { (index, line) -> "$path:${index + 1}: ${line.trim()}" }
+        }.toList()
+        if (written.isNotEmpty()) throw GradleException("Colours written outside the theme (ui/theme):\n" + written.joinToString("\n"))
+    }
+}
+
+tasks.named("check") { dependsOn(checkPackageRules, checkThemeTokens) }

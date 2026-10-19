@@ -42,17 +42,11 @@ import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.shaderTime
 import com.cdodi.ui.components.GlassOutline
+import com.cdodi.ui.components.Thread
 import com.cdodi.ui.components.drawThread
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
-
-/** Home's panes are a little thinner than a fog pane (the Home mockup). */
-private val PaneFog = Color(18, 22, 26).copy(alpha = 0.52f)
-
-/** How thick the other panes fog over while the chosen one is wiped. */
-private val ThickFog = Color(18, 22, 26).copy(alpha = 0.8f)
+import com.cdodi.ui.theme.SiteTheme
 
 /**
  * What a transition is doing to Home's panes right now (DESIGN.md §9, `wipe`): the chosen pane is wiped clear, the
@@ -102,6 +96,7 @@ fun HomeWindow(
 /** Corner marks reaching [HomeDesign.marksReach] outside the window, and a faint frame 11.5 dp outside it. */
 @Composable
 private fun Frame(home: HomeDesign, modifier: Modifier, alpha: () -> Float) {
+    val colors = SiteTheme.colors
     Canvas(modifier) {
         val a = alpha()
         if (a <= 0.001f) return@Canvas
@@ -118,10 +113,10 @@ private fun Frame(home: HomeDesign, modifier: Modifier, alpha: () -> Float) {
             moveTo(r, b - mark); lineTo(r, b); lineTo(r - mark, b)
             moveTo(l + mark, b); lineTo(l, b); lineTo(l, b - mark)
         }
-        drawPath(marks, AutumnColors.Parchment.copy(alpha = 0.35f * a), style = stroke)
+        drawPath(marks, colors.bright.copy(alpha = 0.35f * a), style = stroke)
         val inset = 11.5.dp.toPx()
         drawRect(
-            AutumnColors.Parchment.copy(alpha = 0.07f * a),
+            colors.bright.copy(alpha = 0.07f * a),
             topLeft = Offset(-inset, -inset),
             size = androidx.compose.ui.geometry.Size(size.width + inset * 2, size.height + inset * 2),
             style = stroke,
@@ -173,6 +168,7 @@ private fun Pane(
     onOpen: () -> Unit,
 ) {
     val warm by warmth(interaction)
+    val glass = SiteTheme.glass
     val effects = LocalPaneEffects.current
     val gap = with(LocalDensity.current) { home.paneGap.toPx() }
     val shape = remember(item, gap) { triangle(item.corner, gap) }
@@ -183,7 +179,7 @@ private fun Pane(
             .size(home.side / 2)
             .glass(
                 shape = shape,
-                fill = { lerp(PaneFog, ThickFog, effects.thicken(item)) },
+                fill = { lerp(glass.homePane, glass.thick, effects.thicken(item)) },
                 hairline = false,
                 shadow = false,
                 // Hover thins the fog most of the way (the storyboard); the wipe takes the rest.
@@ -238,6 +234,7 @@ private fun Pane(
  */
 @Composable
 private fun PaneWords(item: MenuItem, home: HomeDesign, warm: Float, labels: (@Composable (MenuItem, Modifier) -> Unit)?, alpha: () -> Float, modifier: Modifier) {
+    val colors = SiteTheme.colors
     val corner = item.corner
     val wordHeight = with(LocalDensity.current) { (home.label * WORD_LINE).toDp() }
     Column(
@@ -246,7 +243,7 @@ private fun PaneWords(item: MenuItem, home: HomeDesign, warm: Float, labels: (@C
         horizontalAlignment = if (corner.start) Alignment.Start else Alignment.End,
     ) {
         val number = @Composable {
-            Text(item.number, style = Autumn.type.readout.copy(fontSize = 11.sp, letterSpacing = 0.2.em), color = AutumnColors.Fog, modifier = Modifier.graphicsLayer { this.alpha = alpha() })
+            Text(item.number, style = SiteTheme.type.readout.copy(fontSize = 11.sp, letterSpacing = 0.2.em), color = colors.muted, modifier = Modifier.graphicsLayer { this.alpha = alpha() })
         }
         val rule = @Composable {
             Box(
@@ -256,7 +253,7 @@ private fun PaneWords(item: MenuItem, home: HomeDesign, warm: Float, labels: (@C
                     .drawBehind {
                         val length = 28.dp.toPx() + (size.width - 28.dp.toPx()) * warm
                         val x0 = if (corner.start) 0f else size.width - length
-                        drawThread(Offset(x0, 0.5f), Offset(x0 + length, 0.5f), alpha = (0.5f + 0.5f * warm) * alpha())
+                        drawThread(colors.accent, Offset(x0, 0.5f), Offset(x0 + length, 0.5f), alpha = (0.5f + 0.5f * warm) * alpha())
                     },
             )
         }
@@ -273,6 +270,7 @@ private fun PaneWords(item: MenuItem, home: HomeDesign, warm: Float, labels: (@C
 /** A few drops sliding down the glass, on the ambient clock. */
 @Composable
 private fun Drops(modifier: Modifier, alpha: () -> Float) {
+    val colors = SiteTheme.colors
     val time by LocalHeartbeat.current.ambient.shaderTime()
     val drops = remember {
         val random = kotlin.random.Random(77)
@@ -294,7 +292,7 @@ private fun Drops(modifier: Modifier, alpha: () -> Float) {
             drawOval(Color.Black.copy(alpha = 0.45f * fade * a), topLeft = centre + Offset(-w / 2, -h / 2 + 1.dp.toPx()), size = androidx.compose.ui.geometry.Size(w, h))
             drawOval(
                 Brush.radialGradient(
-                    listOf(Color.White.copy(alpha = 0.6f * fade * a), AutumnColors.Parchment.copy(alpha = 0.08f * fade * a)),
+                    listOf(Color.White.copy(alpha = 0.6f * fade * a), colors.bright.copy(alpha = 0.08f * fade * a)),
                     center = centre + Offset(-w * 0.15f, -h * 0.2f),
                     radius = w * 0.6f,
                     tileMode = TileMode.Clamp,
@@ -334,16 +332,17 @@ private fun AtPageScale(content: @Composable () -> Unit) {
 @Composable
 fun WelcomeWords(layout: MenuLayout, name: String) = AtDesignScale(layout) {
     val home = layout.home
+    val colors = SiteTheme.colors
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(home.welcomeGap)) {
-        Text("Welcome", style = Autumn.type.display.copy(fontSize = home.welcome, lineHeight = home.welcome), color = AutumnColors.Parchment)
-        Box(Modifier.width(44.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
-        Text(name.uppercase(), style = Autumn.type.brand, color = AutumnColors.Fog)
-        Text("stay a while — it's raining", style = Autumn.type.verse.copy(fontSize = home.verse), color = AutumnColors.Mist.copy(alpha = 0.8f))
+        Text("Welcome", style = SiteTheme.type.display.copy(fontSize = home.welcome, lineHeight = home.welcome), color = colors.bright)
+        Thread(44.dp)
+        Text(name.uppercase(), style = SiteTheme.type.brand, color = colors.muted)
+        Text("stay a while — it's raining", style = SiteTheme.type.verse.copy(fontSize = home.verse), color = colors.text.copy(alpha = 0.8f))
     }
 }
 
 /** The colophon on Home. */
 @Composable
 fun Colophon(modifier: Modifier = Modifier) {
-    Text("painted with WebGPU · Kotlin/Wasm", style = Autumn.type.readout.copy(fontSize = 11.sp, fontWeight = FontWeight.Normal), color = AutumnColors.Fog, modifier = modifier)
+    Text("painted with WebGPU · Kotlin/Wasm", style = SiteTheme.type.readout.copy(fontSize = 11.sp, fontWeight = FontWeight.Normal), color = SiteTheme.colors.muted, modifier = modifier)
 }

@@ -19,17 +19,17 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.Motion
+import com.cdodi.ui.theme.SiteTheme
 import com.cdodi.ui.theme.settling
 
 /**
- * One choice in a corner hint (DESIGN.md §8): a spaced-out mono word, Parchment over a lamp thread when [chosen],
- * Fog otherwise, warming on hover. A 44 dp touch target, described to screen readers by [description].
+ * One choice in a corner hint (DESIGN.md §8): a spaced-out mono word, bright over a thread of the accent when
+ * [chosen], muted otherwise, warming on hover. A 44 dp touch target, described to screen readers by [description].
  */
 @Composable
 fun HintOption(label: String, chosen: Boolean, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction)
     val thread by settling(chosen, Motion.SHORT_SECONDS)
@@ -42,14 +42,14 @@ fun HintOption(label: String, chosen: Boolean, description: String, onClick: () 
             .padding(horizontal = 6.dp)
             .drawBehind {
                 val y = size.height / 2 + 10.dp.toPx()
-                drawThread(Offset(size.width * 0.2f, y), Offset(size.width * 0.8f, y), alpha = thread)
+                drawThread(colors.accent, Offset(size.width * 0.2f, y), Offset(size.width * 0.8f, y), alpha = thread)
             },
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label.uppercase(),
-            style = Autumn.type.hint,
-            color = if (chosen) AutumnColors.Parchment else lerp(AutumnColors.Fog, AutumnColors.Mist, warm),
+            style = SiteTheme.type.hint,
+            color = if (chosen) colors.bright else lerp(colors.muted, colors.text, warm),
         )
     }
 }
