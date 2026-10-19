@@ -562,7 +562,7 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 > - **The split.** The street (`street.wgsl`) is soft, so it's drawn at the viewer's quality. The rain is 1 px streaks, which would smear at a quarter of the pixels, so it's drawn at full resolution in the upscale pass (`rain.wgsl`), along with the vignette and a trace of dither. The streaks catch the light where they cross a lamp.
 > - **Cost on SwiftShader.** About 0.10 ms at ½ and 0.23 ms at full, against 0.24 ms and 0.86 ms for the old shader: no moving traffic, no raymarched lights.
 > - **Tall windows.** On a phone the street is drawn narrower (positions move in, sizes don't), so the lamps show around the Home window instead of off-screen.
-> - **Short windows.** Home's type now scales with its window. Below the mockup's 558 dp, down to 70 %, the words keep their room.
+> - **Short windows.** Home's type now scales with its window. Below the mockup's 558 dp, down to 70 %, the words keep their room. (Superseded in 8e: the whole window scales, not just its type.)
 > - The link-preview image (`og.png`) shows the new street.
 
 ### 8d — The rain you can hear
@@ -589,6 +589,18 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 >   - a remembered "on" starts at the first click.
 > - Also checked in headless Chrome: Opus is what loads, the AAC file loads when WebM is refused, and the filter measures −3.01 dB at its cut-off.
 > - The files are fetched only when the rain is turned on.
+
+### 8e — Small screens
+
+- [x] **Home's window scales as one composition.** Its words, rules and gaps are laid out at the design size (the mockup's 558 dp, or a 390 dp phone's 358 dp) inside a `LocalDensity` scaled by `window / design`. They keep the mockup's proportions to the panes at any size, instead of only the type scaling (clamped at 70 %) while paddings and the 110 dp lamp rule stayed fixed. On a short window the hovered rule had grown past its triangle into the Welcome rhombus.
+  - The four words and the rhombus card are movable content (they fly to the top bar, and the card morphs into the page), so they stay at the page's density. The words' Home scale carries the window's scale instead, and the flight doesn't jump.
+  - The phone's rule is 64 dp, down from 72: at 72 it touched the diagonal even at the design size.
+- [x] **Scene controls scroll inside their pane** when they're taller than the window. On a short laptop window the Boids sliders were squeezed into each other (the last label disappeared), and Life's stats were cut off. They fade into the fog at an edge with more beyond it. The Boids panel stops short of the corner hint, and on a phone the glass no longer scrolls with the controls.
+
+> **Notes.** Checked in headless Chrome:
+> - Home hovered at 1024×640, 1366×650, 390×844, 360×640 and 320×568: the rule ends 12 design dp short of the diagonal at every size.
+> - The flight to About at 1366×650: no jump at the start.
+> - The Boids and Life panels at 1280×600, scrolled with the wheel, and the phone panel scrolled with a swipe.
 
 ## Phase 9 — Stretch goals (pick any)
 

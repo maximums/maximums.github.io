@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,7 @@ import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -101,8 +103,9 @@ typealias MenuLabel = @Composable LookaheadScope.(modifier: Modifier, atHome: Bo
 
 /**
  * The word for [item]. It's laid out at its top-bar size everywhere and drawn larger on Home, growing from its pane's
- * corner, so the flight between the two only moves and scales it ([animatePlacement], [morphScale]). Hover and focus
- * warm it (and its pane, which shares [interaction]); in the top bar, the current page's word carries a lamp thread.
+ * corner, so the flight between the two only moves and scales it ([animatePlacement], [morphScale]). On Home it keeps
+ * the page's density (it flies), so its scale carries the window's ([MenuLayout.windowScale]). Hover and focus warm it
+ * (and its pane, which shares [interaction]); in the top bar, the current page's word carries a lamp thread.
  */
 @Composable
 fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onClick: () -> Unit): MenuLabel {
@@ -113,7 +116,7 @@ fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onC
             val hover by warmth(interaction)
             val warm = maxOf(hover, LocalPaneEffects.current.glow(item))
             val current by settling(active && !atHome, Motion.SHORT_SECONDS)
-            val homeScale = layout.homeLabel.value / layout.navLabel.value
+            val homeScale = layout.homeLabel.value / layout.navLabel.value * layout.windowScale
             val colour = when {
                 atHome -> lerp(AutumnColors.Mist, AutumnColors.Parchment, warm)
                 active -> AutumnColors.Parchment
@@ -199,7 +202,7 @@ private fun Frame(modifier: Modifier, alpha: () -> Float) {
     }
 }
 
-/** A pane: the right triangle in its quadrant's outer corner, 10 dp off the window's diagonals. */
+/** A pane: the right triangle in its quadrant's outer corner, [gap] off the window's diagonals. */
 private fun triangle(corner: Corner, gap: Float) = GenericShape { size, _ ->
     val w = size.width
     val h = size.height
@@ -245,7 +248,7 @@ private fun Pane(
     val warm by warmth(interaction)
     val effects = LocalPaneEffects.current
     val density = LocalDensity.current
-    val gap = with(density) { 10.dp.toPx() }
+    val gap = with(density) { 10.dp.toPx() } * layout.windowScale
     val shape = remember(item, gap) { triangle(item.corner, gap) }
     val outline = remember(item, gap) { triangleOutline(item.corner, gap) }
     val currentOnOpen by rememberUpdatedState(onOpen)
@@ -297,12 +300,29 @@ private fun Pane(
     }
 }
 
-/** The number, the word and the lamp rule in a pane's outer corner; on the lower panes, the other way up. */
+/**
+ * The number, the word and the lamp rule in a pane's outer corner; on the lower panes, the other way up. Laid out at
+ * the window's design size ([AtDesignScale]): the rule grown on hover stays inside the triangle at any window size.
+ */
 @Composable
 private fun PaneWords(item: MenuItem, layout: MenuLayout, warm: Float, labels: (@Composable (MenuItem, Modifier) -> Unit)?, alpha: () -> Float, modifier: Modifier) {
+    val pageDensity = LocalDensity.current
+    AtDesignScale(layout) { PaneWordsAtDesign(item, layout, warm, labels, alpha, pageDensity, modifier) }
+}
+
+@Composable
+private fun PaneWordsAtDesign(
+    item: MenuItem,
+    layout: MenuLayout,
+    warm: Float,
+    labels: (@Composable (MenuItem, Modifier) -> Unit)?,
+    alpha: () -> Float,
+    pageDensity: Density,
+    modifier: Modifier,
+) {
     val corner = item.corner
     val wordHeight = with(LocalDensity.current) { (layout.homeLabel * 1.1f).toDp() }
-    val ruleLength = if (layout.compact) 72.dp else 110.dp
+    val ruleLength = if (layout.compact) 64.dp else 110.dp
     Column(
         modifier
             .padding(horizontal = if (layout.compact) 18.dp else 36.dp, vertical = if (layout.compact) 18.dp else 38.dp),
@@ -326,7 +346,8 @@ private fun PaneWords(item: MenuItem, layout: MenuLayout, warm: Float, labels: (
         }
         val word = @Composable {
             Box(Modifier.height(wordHeight), contentAlignment = corner.alignment) {
-                labels?.invoke(item, Modifier)
+                // The word flies to the top bar, so it's laid out at the page's density (see rememberMenuLabel).
+                CompositionLocalProvider(LocalDensity provides pageDensity) { labels?.invoke(item, Modifier) }
             }
         }
         if (corner.top) { number(); word(); rule() } else { rule(); word(); number() }
@@ -369,9 +390,19 @@ private fun Drops(modifier: Modifier, alpha: () -> Float) {
     }
 }
 
-/** What the Welcome rhombus says (the Home mockup). */
+/**
+ * Lays [content] out at Home's design size, scaled to the window: inside, a dp is [MenuLayout.windowScale] of the
+ * page's, so the mockup's words, rules and gaps keep their proportions to the panes whatever the window's size.
+ */
 @Composable
-fun WelcomeWords(layout: MenuLayout, name: String) {
+private fun AtDesignScale(layout: MenuLayout, content: @Composable () -> Unit) {
+    val page = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(page.density * layout.windowScale, page.fontScale), content = content)
+}
+
+/** What the Welcome rhombus says (the Home mockup), at the window's design size. */
+@Composable
+fun WelcomeWords(layout: MenuLayout, name: String) = AtDesignScale(layout) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(if (layout.compact) 12.dp else 18.dp)) {
         Text("Welcome", style = Autumn.type.display.copy(fontSize = layout.welcome, lineHeight = layout.welcome), color = AutumnColors.Parchment)
         Box(Modifier.width(44.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })

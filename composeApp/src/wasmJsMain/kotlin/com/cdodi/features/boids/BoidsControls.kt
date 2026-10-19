@@ -50,7 +50,7 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
 
     Box(Modifier.fillMaxSize().padding(if (layout.compact) 12.dp else 48.dp)) {
         if (!layout.compact) ProfilingHud(gpuTimings, title, Modifier.align(Alignment.BottomStart))
-        CompactPanel(width = 340.dp, modifier = Modifier.align(Alignment.TopEnd), spacing = 16.dp) {
+        CompactPanel(width = 340.dp, modifier = Modifier.align(Alignment.TopEnd).padding(bottom = HintRoom), spacing = 16.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Label("Simulation")
                 Text("Boids", style = Autumn.type.title, color = AutumnColors.Parchment)
@@ -78,6 +78,9 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
         )
     }
 }
+
+/** Room kept under the panel for the corner hint. */
+private val HintRoom = 36.dp
 
 /** The flock size on a log scale, 1,024 to 1,048,576; applied when the slider is let go, since it scatters a new flock. */
 @Composable

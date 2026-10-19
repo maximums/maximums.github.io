@@ -217,7 +217,8 @@ com.cdodi
 │   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
 │   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
 │   PageEffects (the page effects the site plays) · FeatureRegistry (later)
-│   Layout (MenuLayout: the frame's sizes from the viewport; compact below 600 dp, the phone layout)
+│   Layout (MenuLayout: the frame's sizes from the viewport; compact below 600 dp, the phone layout; Home's window
+│           laid out at its design size and scaled to fit by density, AtDesignScale in Menu)
 │   Menu (MenuItem · the menu words that fly between Home and the top bar · HomeWindow · TopBar · hints)
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
