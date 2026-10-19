@@ -25,11 +25,11 @@ import org.jetbrains.compose.resources.preloadFont
  * Compose draws text on its own canvas, so CSS web fonts can't reach it: the three faces are bundled as resources.
  */
 @Immutable
-class AutumnFonts(val serif: FontFamily, val sans: FontFamily, val mono: FontFamily)
+class FontSet(val serif: FontFamily, val sans: FontFamily, val mono: FontFamily)
 
 /** DESIGN.md §4's roles. Colours are left to the caller, except where a role always has one. */
 @Immutable
-class AutumnType(fonts: AutumnFonts) {
+class TypeRoles(fonts: FontSet) {
     /** Display: 88–132, the line as tall as the type. */
     val display = TextStyle(fontFamily = fonts.serif, fontWeight = FontWeight.Light, fontStyle = FontStyle.Italic, fontSize = 96.sp, lineHeight = 96.sp)
 
@@ -61,14 +61,14 @@ class AutumnType(fonts: AutumnFonts) {
     val hint = TextStyle(fontFamily = fonts.mono, fontWeight = FontWeight.Normal, fontSize = 11.sp, letterSpacing = 0.24.em)
 }
 
-val LocalAutumnType = staticCompositionLocalOf<AutumnType> { error("No AutumnTheme around this composable") }
+val LocalTypeRoles = staticCompositionLocalOf<TypeRoles> { error("No SiteTheme around this composable") }
 
 /**
  * The fonts, once every face has loaded; null until then. A page drawn before them would flash in a fallback face and
  * then jump, so the app waits (behind the loading line) instead.
  */
 @Composable
-fun rememberAutumnFonts(): AutumnFonts? {
+fun rememberAutumnFonts(): FontSet? {
     val faces = listOf(
         preload(Res.font.cormorant_garamond_light_italic, FontWeight.Light, FontStyle.Italic),
         preload(Res.font.cormorant_garamond_italic, FontWeight.Normal, FontStyle.Italic),
@@ -78,7 +78,7 @@ fun rememberAutumnFonts(): AutumnFonts? {
         preload(Res.font.jetbrains_mono_light, FontWeight.Light),
         preload(Res.font.jetbrains_mono_regular, FontWeight.Normal),
     ).map { it ?: return null }
-    return AutumnFonts(
+    return FontSet(
         serif = FontFamily(faces[0], faces[1]),
         sans = FontFamily(faces[2], faces[3], faces[4]),
         mono = FontFamily(faces[5], faces[6]),

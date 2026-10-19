@@ -12,8 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.audio.AmbientSound
 import com.cdodi.ui.components.HintOption
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 
 /**
  * The rain's sound as a corner hint (DESIGN.md §8): "RAIN", then on and off. [compact] (a phone's top bar) is the word
@@ -27,7 +26,7 @@ fun SoundToggle(sound: AmbientSound, modifier: Modifier = Modifier, compact: Boo
         return
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("RAIN", style = Autumn.type.hint, color = AutumnColors.Fog, modifier = Modifier.padding(end = 6.dp))
+        Text("RAIN", style = SiteTheme.type.hint, color = SiteTheme.colors.muted, modifier = Modifier.padding(end = 6.dp))
         HintOption("On", chosen = on, description = "Rain sound on", onClick = { sound.setEnabled(true) })
         HintOption("Off", chosen = !on, description = "Rain sound off", onClick = { sound.setEnabled(false) })
     }

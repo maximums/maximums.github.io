@@ -23,7 +23,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -37,8 +36,7 @@ import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.focusRing
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 
 /**
  * The slim top bar (DESIGN.md §8, shared): the brand mark and name on the left, which go Home, the menu's words in the
@@ -55,6 +53,8 @@ fun BoxScope.TopBar(
     end: @Composable () -> Unit = {},
     words: @Composable RowScope.() -> Unit,
 ) {
+    val colors = SiteTheme.colors
+    val glass = SiteTheme.glass
     Box(
         Modifier
             .align(Alignment.TopCenter)
@@ -63,8 +63,8 @@ fun BoxScope.TopBar(
             .drawBehind {
                 val a = solid()
                 if (a <= 0.001f) return@drawBehind
-                drawRect(Brush.verticalGradient(listOf(Color(10, 13, 16).copy(alpha = 0.85f * a), Color(10, 13, 16).copy(alpha = 0.35f * a))))
-                drawLine(AutumnColors.Parchment.copy(alpha = 0.06f * a), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx())
+                drawRect(Brush.verticalGradient(listOf(glass.barTop.copy(alpha = glass.barTop.alpha * a), glass.barBottom.copy(alpha = glass.barBottom.alpha * a))))
+                drawLine(colors.hairline.copy(alpha = colors.hairline.alpha * a), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx())
             },
     ) {
         val condensing = Modifier.graphicsLayer {
@@ -106,9 +106,10 @@ private fun barPolicy(menu: MenuLayout) = MeasurePolicy { measurables, constrain
     }
 }
 
-/** The lamp-lit diamond and the name (where the bar has no room for the name, the diamond alone). */
+/** The diamond, in the accent, and the name (where the bar has no room for the name, the diamond alone). */
 @Composable
 private fun Brand(layout: MenuLayout, name: String, onHome: () -> Unit, modifier: Modifier) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction)
     Row(
@@ -124,8 +125,8 @@ private fun Brand(layout: MenuLayout, name: String, onHome: () -> Unit, modifier
                 moveTo(size.width / 2, 0.5f); lineTo(size.width - 0.5f, size.height / 2)
                 lineTo(size.width / 2, size.height - 0.5f); lineTo(0.5f, size.height / 2); close()
             }
-            drawPath(path, AutumnColors.Lamp, style = Stroke(1.dp.toPx()))
+            drawPath(path, colors.accent, style = Stroke(1.dp.toPx()))
         }
-        if (layout.brandName) Text(name.uppercase(), style = Autumn.type.brand, color = lerp(AutumnColors.Mist, AutumnColors.Parchment, warm))
+        if (layout.brandName) Text(name.uppercase(), style = SiteTheme.type.brand, color = lerp(colors.text, colors.bright, warm))
     }
 }

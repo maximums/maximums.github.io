@@ -639,6 +639,20 @@ Then, after a code review of the first pass (four reviewers, without its context
 - [x] **Each `MenuItem` carries the destination it opens.** The melt order is the menu's, not a second list that had drifted (Life to Boids melted the wrong way).
 - [x] **Dead code deleted:** four triangle shapes, an icon, `LifeController.rule`, `BoidsStatus.grid`, a duplicate formatter, a no-op background, and a stale comment. `ResourceScope.texture` and `own` stay: they're the `:webgpu` layer's API, with tests.
 
+### 8h — The design system (from the code review)
+
+The aim: the look is a theme, a value that can be switched (a winter theme, a spring one), with every colour, pane, copy and sound coming from it. In steps, each one leaving the site working:
+
+- [x] **A guard.** `checkThemeTokens` (in `check` and CI) fails on a colour written outside `ui/theme`. The still street's lights are the one known exception, until the shaders' step.
+- [x] **The palette in one place.** About, Notes and the still scene had private copies of it, and they had drifted (Notes' hairline was 10 %, the still scene's dark wasn't the theme's). The panes' fills (Home's panes, the thick fog, the Welcome rhombus, the reading ground, a phone's folded controls, the top bar) were literals in five files; now they're `GlassTokens`.
+- [x] **The theme is a value, provided.** `Theme` (`ColorRoles`, `GlassTokens`, `SceneTokens`) through `LocalTheme`, read as `SiteTheme.colors.accent`. The roles are named for what they do (`accent`, `heat`, `cold`, `muted`, `bright`), and autumn's swatches (`Lamp`, `Ember`, `Rain`…) are private to `AutumnTheme`. Drawing helpers take their colours (`drawThread(color, …)`), the glass reads the theme in its node, and its condensation is drawn per colour. `ThemeTest` holds every theme to its contrast targets.
+- [ ] Ports for the glass and the clock, so `ui` stops reaching into the GPU adapters and the heartbeat; the glass's blur from an explicit fogginess rather than its fill's alpha.
+- [ ] The `:design-system` module, fonts included: from then on the build enforces `ui`'s rule.
+- [ ] The shaders' colours from one theme uniform buffer (`common/theme.wgsl`), ported one shader at a time. The street lights become palette slots, the clear colour and `Motion.Settle` come from the theme and the core.
+- [ ] The weather's words (`ThemeCopy`) and its sound (`AmbienceTokens`, `AmbientSound.swap`).
+- [ ] A `ThemeController` that switches themes behind the fog transition, then a winter theme to prove the design.
+- [ ] The viewport's size classes as the sizing tokens.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.

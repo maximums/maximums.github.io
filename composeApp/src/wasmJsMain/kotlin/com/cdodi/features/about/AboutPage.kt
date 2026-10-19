@@ -19,7 +19,6 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -32,15 +31,8 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.Autumn
 import com.cdodi.ui.theme.LocalViewport
-
-// DESIGN.md tokens.
-private val Night = Color(0xFF0D1013)
-private val Mist = Color(0xFFD6D2C8)
-private val Parchment = Color(0xFFEDE6D6)
-private val Fog = Color(0xFF8C9499)
-private val Lamp = Color(0xFFD8A15A)
+import com.cdodi.ui.theme.SiteTheme
 
 /**
  * The About page: the sphere (drawn by the scene behind the page, a GPU-backed widget) beside a column of text and
@@ -72,10 +64,11 @@ private fun Sphere(modifier: Modifier) {
 private fun Words(modifier: Modifier, compact: Boolean) {
     Box(modifier.padding(if (compact) 8.dp else 24.dp), contentAlignment = if (compact) Alignment.TopCenter else Alignment.CenterStart) {
         SelectionContainer {
+            val reading = SiteTheme.glass.reading
             Column(
                 Modifier
                     .widthIn(max = 560.dp)
-                    .glass(fill = { Night.copy(alpha = 0.72f) })
+                    .glass(fill = { reading })
                     .verticalScroll(rememberScrollState())
                     .padding(if (compact) 20.dp else 40.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -88,11 +81,12 @@ private fun Words(modifier: Modifier, compact: Boolean) {
 
 @Composable
 private fun ColumnScope.Content(compact: Boolean) {
-    val type = Autumn.type
-    Text(AboutContent.NAME, style = if (compact) type.title else type.display.copy(fontSize = 56.sp, lineHeight = 56.sp), color = Parchment)
-    Text(AboutContent.ROLE.uppercase(), style = type.label, color = Fog)
+    val type = SiteTheme.type
+    val colors = SiteTheme.colors
+    Text(AboutContent.NAME, style = if (compact) type.title else type.display.copy(fontSize = 56.sp, lineHeight = 56.sp), color = colors.bright)
+    Text(AboutContent.ROLE.uppercase(), style = type.label, color = colors.muted)
     for (paragraph in AboutContent.paragraphs) {
-        Text(paragraph, style = type.body, color = Mist)
+        Text(paragraph, style = type.body, color = colors.text)
     }
     Label("Work")
     for (role in AboutContent.work) {
@@ -100,23 +94,23 @@ private fun ColumnScope.Content(compact: Boolean) {
             Text(
                 buildAnnotatedString {
                     append(role.title)
-                    withStyle(SpanStyle(color = Fog)) { append(" · ${role.employer}") }
+                    withStyle(SpanStyle(color = colors.muted)) { append(" · ${role.employer}") }
                 },
                 style = type.body.copy(fontSize = 15.sp),
-                color = Mist,
+                color = colors.text,
                 modifier = Modifier.weight(1f),
             )
-            Text(role.years, style = type.readout, color = Fog)
+            Text(role.years, style = type.readout, color = colors.muted)
         }
     }
     Label("Tools")
-    Text(AboutContent.skills.joinToString("  ·  "), style = type.small.copy(lineHeight = 22.sp), color = Fog)
+    Text(AboutContent.skills.joinToString("  ·  "), style = type.small.copy(lineHeight = 22.sp), color = colors.muted)
     Label("Elsewhere")
     FlowRow(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (link in AboutContent.links) {
             Text(
                 buildAnnotatedString {
-                    withLink(LinkAnnotation.Url(link.url, TextLinkStyles(SpanStyle(color = Lamp, textDecoration = TextDecoration.Underline)))) {
+                    withLink(LinkAnnotation.Url(link.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
                         append(link.label)
                     }
                 },
@@ -124,22 +118,22 @@ private fun ColumnScope.Content(compact: Boolean) {
             )
         }
     }
-    Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = Fog, modifier = Modifier.padding(top = 10.dp))
+    Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = colors.muted, modifier = Modifier.padding(top = 10.dp))
     Text(
         buildAnnotatedString {
             append("The rain you can turn on is ")
-            withLink(LinkAnnotation.Url(AboutContent.rainCredit.url, TextLinkStyles(SpanStyle(color = Lamp, textDecoration = TextDecoration.Underline)))) {
+            withLink(LinkAnnotation.Url(AboutContent.rainCredit.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
                 append(AboutContent.rainCredit.label)
             }
             append(", from Freesound (CC0).")
         },
         style = type.small,
-        color = Fog,
+        color = colors.muted,
     )
 }
 
-/** A label over a group (DESIGN.md's Label), in Parchment to head a section. */
+/** A label over a group (DESIGN.md's Label), bright, to head a section. */
 @Composable
 private fun Label(text: String) {
-    com.cdodi.ui.components.Label(text, Modifier.padding(top = 14.dp), color = Parchment)
+    com.cdodi.ui.components.Label(text, Modifier.padding(top = 14.dp), color = SiteTheme.colors.bright)
 }

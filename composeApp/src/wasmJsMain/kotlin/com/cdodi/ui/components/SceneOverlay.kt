@@ -31,8 +31,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.LocalViewport
+import com.cdodi.ui.theme.SiteTheme
 
 /** Where a scene page's panel of controls sits; its GPU readout takes the opposite corner. */
 enum class PanelCorner { TopEnd, BottomStart }
@@ -122,10 +122,11 @@ private fun ScenePanel(width: Dp, spacing: Dp, folded: Boolean, modifier: Modifi
         QuietButton(if (open) "Close" else "Controls", { open = !open }, Modifier.align(Alignment.End))
         if (open) {
             val scroll = rememberScrollState()
+            val fill = SiteTheme.glass.folded
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .glass(fill = { AutumnColors.Night.copy(alpha = 0.82f) })
+                    .glass(fill = { fill })
                     .fadingEdges(scroll)
                     .verticalScroll(scroll)
                     .padding(20.dp),

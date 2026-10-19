@@ -1,9 +1,5 @@
 package com.cdodi.shell
 
-import com.cdodi.ui.theme.AutumnTheme
-import com.cdodi.ui.theme.LocalViewport
-import com.cdodi.ui.theme.rememberAutumnFonts
-import com.cdodi.ui.theme.windowViewport
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import com.cdodi.ui.theme.AutumnTheme
+import com.cdodi.ui.theme.LocalViewport
+import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.ui.theme.rememberAutumnFonts
+import com.cdodi.ui.theme.windowViewport
 import kotlinx.browser.document
 import kotlinx.coroutines.delay
 
@@ -47,7 +48,7 @@ fun AppRoot(content: @Composable BoxScope.() -> Unit) {
     Box(modifier = Modifier.fillMaxSize().drawBehind { drawRect(Color.Transparent, blendMode = BlendMode.Clear) }) {
         if (fonts != null) {
             CompositionLocalProvider(LocalViewport provides viewport, LocalMenuLayout provides layout) {
-                AutumnTheme(fonts) { content() }
+                SiteTheme(AutumnTheme, fonts) { content() }
             }
         }
     }

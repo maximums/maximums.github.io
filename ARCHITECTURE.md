@@ -246,7 +246,9 @@ com.cdodi
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 ├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
-│   theme/       AutumnColors · AutumnType + bundled fonts · AutumnTheme · Motion (Settle, settling() on the heartbeat)
+│   theme/       Theme (ColorRoles · GlassTokens · SceneTokens) · LocalTheme · SiteTheme (the provider, and
+│                SiteTheme.colors/.glass/.scene/.type) · AutumnTheme (DESIGN.md's swatches, as roles) · TypeRoles +
+│                bundled fonts · Motion (Settle, settling() on the heartbeat)
 │                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport
 │   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label · CornerHint
 │                glass (the fog pane: Compose's fog + the pane's outline reported to the GPU's blur) · glow ·
@@ -310,6 +312,8 @@ flowchart TB
 - `adapters` → `ui`, `core`, `webgpu`. Never `features` or `shell`.
 - `ui` → Compose only. No `core`, no GPU, no app state.
 - `core` → nothing in the project.
+
+Colours have a rule of their own: they come from the theme. `checkThemeTokens` fails on a colour written anywhere outside `ui/theme` (`Color(0x…)`, `Color(r, g, b)`).
 
 Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than these four appears. `ui` still reaches the GPU adapters and the clock in two files, `Glass` and `Motion`; they're named in the check until the design system's ports remove them. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
 

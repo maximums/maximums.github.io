@@ -22,7 +22,6 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
@@ -36,26 +35,21 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors.Fog
-import com.cdodi.ui.theme.AutumnColors.Lamp
-import com.cdodi.ui.theme.AutumnColors.Mist
-import com.cdodi.ui.theme.AutumnColors.Parchment
-import com.cdodi.ui.theme.AutumnColors.Rain
-import com.cdodi.ui.theme.AutumnColors.WetStone
+import androidx.compose.ui.unit.sp
+import com.cdodi.ui.theme.ColorRoles
 import com.cdodi.ui.theme.Motion
+import com.cdodi.ui.theme.SiteTheme
 import com.cdodi.ui.theme.settling
 import kotlin.math.roundToInt
 
@@ -75,6 +69,7 @@ fun DripSlider(
     steps: Int = 100,
     onChangeFinished: () -> Unit = {},
 ) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction)
     val currentOnChange by rememberUpdatedState(onChange)
@@ -84,8 +79,8 @@ fun DripSlider(
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            Text(label, style = Autumn.type.small, color = Mist, modifier = Modifier.weight(1f))
-            Text(valueText, style = Autumn.type.readout, color = Fog)
+            Text(label, style = SiteTheme.type.small, color = colors.text, modifier = Modifier.weight(1f))
+            Text(valueText, style = SiteTheme.type.readout, color = colors.muted)
         }
         Box(
             Modifier
@@ -126,24 +121,24 @@ fun DripSlider(
                     val y = size.height / 2
                     val x = size.width * fraction
                     val thread = 1.dp.toPx()
-                    drawLine(WetStone, Offset(x, y), Offset(size.width, y), thread)
-                    drawLine(Lamp, Offset(0f, y), Offset(x, y), thread)
-                    drawDrop(Offset(x, y), 0.55f + 0.45f * warm)
+                    drawLine(colors.stroke, Offset(x, y), Offset(size.width, y), thread)
+                    drawLine(colors.accent, Offset(0f, y), Offset(x, y), thread)
+                    drawDrop(Offset(x, y), 0.55f + 0.45f * warm, colors)
                 },
         )
     }
 }
 
-/** The slider's thumb: a Parchment teardrop, its point up, as if it were falling, with a lamp glow. */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDrop(centre: Offset, glow: Float) {
+/** The slider's thumb: a bright teardrop, its point up, as if it were falling, with a glow of the accent. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDrop(centre: Offset, glow: Float, colors: ColorRoles) {
     val side = 12.dp.toPx()
     // A square with three round corners, turned 45° so the sharp one points up: a drop.
     val shape = RoundedCornerShape(topStartPercent = 50, topEndPercent = 0, bottomEndPercent = 50, bottomStartPercent = 50)
     translate(centre.x - side / 2, centre.y - side / 2) {
         rotate(-45f, pivot = Offset(side / 2, side / 2)) {
-            drawSoft(shape, Offset(-3.dp.toPx(), -3.dp.toPx()), Size(side + 6.dp.toPx(), side + 6.dp.toPx()), Lamp.copy(alpha = 0.55f * glow), 14.dp.toPx())
+            drawSoft(shape, Offset(-3.dp.toPx(), -3.dp.toPx()), Size(side + 6.dp.toPx(), side + 6.dp.toPx()), colors.accent.copy(alpha = 0.55f * glow), 14.dp.toPx())
             val outline = shape.createOutline(Size(side, side), layoutDirection, this)
-            drawPath(Path().apply { addOutline(outline) }, Parchment)
+            drawPath(Path().apply { addOutline(outline) }, colors.bright)
         }
     }
 }
@@ -153,10 +148,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDrop(centre: Of
  */
 @Composable
 fun <T> Choice(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier, textSize: TextUnit = 19.sp) {
+    val colors = SiteTheme.colors
     Row(
         modifier
             .fillMaxWidth()
-            .drawBehind { drawLine(Parchment.copy(alpha = 0.1f), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx()) },
+            .drawBehind { drawLine(colors.hairline, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1.dp.toPx()) },
     ) {
         for ((name, option) in options) {
             val interaction = remember { MutableInteractionSource() }
@@ -171,14 +167,14 @@ fun <T> Choice(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Uni
                     .clickable(interaction, indication = null, role = Role.Tab) { onSelect(option) }
                     .drawBehind {
                         val y = size.height - 0.5f
-                        drawThread(Offset(size.width * 0.25f, y), Offset(size.width * 0.75f, y), alpha = chosen)
+                        drawThread(colors.accent, Offset(size.width * 0.25f, y), Offset(size.width * 0.75f, y), alpha = chosen)
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     name,
-                    style = Autumn.type.nav.copy(fontSize = textSize),
-                    color = if (on) Parchment else lerp(Fog, Mist, warm),
+                    style = SiteTheme.type.nav.copy(fontSize = textSize),
+                    color = if (on) colors.bright else lerp(colors.muted, colors.text, warm),
                     textAlign = TextAlign.Center,
                     maxLines = 1,
                 )
@@ -190,6 +186,7 @@ fun <T> Choice(options: List<Pair<String, T>>, selected: T, onSelect: (T) -> Uni
 /** DESIGN.md §6, Toggle: a row with a 40×20 outline pill whose knob glows when on. */
 @Composable
 fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val knob by settling(on, Motion.SHORT_SECONDS)
     Row(
@@ -200,18 +197,18 @@ fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit, modifier:
             .clickable(interaction, indication = null, role = Role.Switch) { onChange(!on) },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = Autumn.type.small, color = Mist, modifier = Modifier.weight(1f))
+        Text(label, style = SiteTheme.type.small, color = colors.text, modifier = Modifier.weight(1f))
         val pill = RoundedCornerShape(10.dp)
         Box(
             Modifier
                 .size(40.dp, 20.dp)
-                .border(1.dp, lerp(Parchment.copy(alpha = 0.2f), Lamp.copy(alpha = 0.6f), knob), pill)
+                .border(1.dp, lerp(colors.bright.copy(alpha = 0.2f), colors.accent.copy(alpha = 0.6f), knob), pill)
                 .drawBehind {
                     val r = 6.dp.toPx()
                     val x = 3.dp.toPx() + r + knob * 20.dp.toPx()
                     val centre = Offset(x, size.height / 2)
-                    if (knob > 0f) drawSoft(androidx.compose.foundation.shape.CircleShape, centre - Offset(r * 1.6f, r * 1.6f), Size(r * 3.2f, r * 3.2f), Lamp.copy(alpha = 0.7f * knob), 12.dp.toPx())
-                    drawCircle(lerp(Fog, Parchment, knob), r, centre)
+                    if (knob > 0f) drawSoft(androidx.compose.foundation.shape.CircleShape, centre - Offset(r * 1.6f, r * 1.6f), Size(r * 3.2f, r * 3.2f), colors.accent.copy(alpha = 0.7f * knob), 12.dp.toPx())
+                    drawCircle(lerp(colors.muted, colors.bright, knob), r, centre)
                 },
         )
     }
@@ -223,9 +220,10 @@ fun ToggleRow(label: String, on: Boolean, onChange: (Boolean) -> Unit, modifier:
  */
 @Composable
 fun ReadoutRow(name: String, value: String, share: Float, dominant: Boolean, modifier: Modifier = Modifier, barWidth: Dp = 160.dp) {
-    val colour = if (dominant) Lamp else Rain
+    val colors = SiteTheme.colors
+    val colour = if (dominant) colors.accent else colors.cold
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(name, style = Autumn.type.readout, color = Fog, modifier = Modifier.size(width = 88.dp, height = 18.dp))
+        Text(name, style = SiteTheme.type.readout, color = colors.muted, modifier = Modifier.size(width = 88.dp, height = 18.dp))
         Box(
             Modifier
                 .weight(1f)
@@ -237,7 +235,7 @@ fun ReadoutRow(name: String, value: String, share: Float, dominant: Boolean, mod
                     drawLine(colour.copy(alpha = 0.9f), Offset(0f, y), Offset(length, y), 1.dp.toPx())
                 },
         )
-        Text(value, style = Autumn.type.readout, color = Fog, textAlign = TextAlign.End, modifier = Modifier.size(width = 64.dp, height = 18.dp))
+        Text(value, style = SiteTheme.type.readout, color = colors.muted, textAlign = TextAlign.End, modifier = Modifier.size(width = 64.dp, height = 18.dp))
     }
 }
 

@@ -32,35 +32,32 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors.Hairline
-import com.cdodi.ui.theme.AutumnColors.Lamp
-import com.cdodi.ui.theme.AutumnColors.Mist
-import com.cdodi.ui.theme.AutumnColors.Parchment
+import com.cdodi.ui.theme.SiteTheme
 
 private val Pill = RoundedCornerShape(24.dp)
 
 /** DESIGN.md §6, Lamp button: the one action that matters. A pill with a lamp border, a faint lamp fill and a glow. */
 @Composable
 fun LampButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction)
     Row(
         modifier = modifier
             .alpha(if (enabled) 1f else 0.4f)
             .heightIn(min = 48.dp)
-            .glow(Lamp.copy(alpha = 0.6f), radius = 24.dp, shape = Pill, spread = (-4).dp) { 0.6f + 0.4f * warm }
+            .glow(colors.accent.copy(alpha = 0.6f), radius = 24.dp, shape = Pill, spread = (-4).dp) { 0.6f + 0.4f * warm }
             .focusRing(interaction, Pill)
             .clip(Pill)
-            .drawBehind { drawRect(Lamp.copy(alpha = 0.08f + 0.08f * warm)) }
-            .border(1.dp, Lamp.copy(alpha = 0.5f), Pill)
+            .drawBehind { drawRect(colors.accent.copy(alpha = 0.08f + 0.08f * warm)) }
+            .border(1.dp, colors.accent.copy(alpha = 0.5f), Pill)
             .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (icon != null) Icon(icon, contentDescription = null, tint = Parchment, modifier = Modifier.size(16.dp))
-        Text(text, style = Autumn.type.small.copy(fontWeight = FontWeight.Medium), color = Parchment)
+        if (icon != null) Icon(icon, contentDescription = null, tint = colors.bright, modifier = Modifier.size(16.dp))
+        Text(text, style = SiteTheme.type.small.copy(fontWeight = FontWeight.Medium), color = colors.bright)
     }
 }
 
@@ -78,6 +75,7 @@ fun QuietButton(
     enabled: Boolean = true,
     selected: Boolean = false,
 ) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction, alsoWhen = selected)
     val shape: Shape = if (text == null) CircleShape else Pill
@@ -88,49 +86,50 @@ fun QuietButton(
             .widthIn(min = 48.dp)
             .focusRing(interaction, shape)
             .clip(shape)
-            .drawBehind { if (selected) drawRect(Parchment.copy(alpha = 0.06f)) }
-            .border(1.dp, lerp(Hairline.copy(alpha = 0.14f), Parchment.copy(alpha = 0.35f), warm), shape)
+            .drawBehind { if (selected) drawRect(colors.bright.copy(alpha = 0.06f)) }
+            .border(1.dp, lerp(colors.bright.copy(alpha = 0.14f), colors.bright.copy(alpha = 0.35f), warm), shape)
             .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
             .padding(horizontal = if (text == null) 0.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
-        val colour = lerp(Mist, Parchment, warm)
+        val colour = lerp(colors.text, colors.bright, warm)
         if (icon != null) Icon(icon, contentDescription = null, tint = colour, modifier = Modifier.size(16.dp))
-        if (text != null) Text(text, style = Autumn.type.small, color = colour)
+        if (text != null) Text(text, style = SiteTheme.type.small, color = colour)
     }
 }
 
 /** DESIGN.md §6, Round button: a 48 px lamp circle with a stroke icon (play, pause). */
 @Composable
 fun RoundButton(icon: ImageVector, description: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = SiteTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val warm by warmth(interaction)
     Box(
         modifier = modifier
             .size(48.dp)
-            .glow(Lamp.copy(alpha = 0.6f), radius = 22.dp, shape = CircleShape, spread = (-2).dp) { 0.65f + 0.35f * warm }
+            .glow(colors.accent.copy(alpha = 0.6f), radius = 22.dp, shape = CircleShape, spread = (-2).dp) { 0.65f + 0.35f * warm }
             .focusRing(interaction, CircleShape)
             .clip(CircleShape)
-            .drawBehind { drawRect(Lamp.copy(alpha = 0.08f + 0.08f * warm)) }
-            .border(1.dp, Lamp.copy(alpha = 0.5f), CircleShape)
+            .drawBehind { drawRect(colors.accent.copy(alpha = 0.08f + 0.08f * warm)) }
+            .border(1.dp, colors.accent.copy(alpha = 0.5f), CircleShape)
             .clickable(interaction, indication = null, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = Parchment, modifier = Modifier.size(16.dp))
+        Icon(icon, contentDescription = null, tint = colors.bright, modifier = Modifier.size(16.dp))
     }
 }
 
 /** DESIGN.md §6, Label: a small upper-case sans heading over a group. */
 @Composable
-fun Label(text: String, modifier: Modifier = Modifier, color: Color = com.cdodi.ui.theme.AutumnColors.Fog) {
-    Text(text.uppercase(), style = Autumn.type.label, color = color, maxLines = 1, modifier = modifier)
+fun Label(text: String, modifier: Modifier = Modifier, color: Color = SiteTheme.colors.muted) {
+    Text(text.uppercase(), style = SiteTheme.type.label, color = color, maxLines = 1, modifier = modifier)
 }
 
 /** A hint in a corner: spaced-out mono capitals (DESIGN.md §8). Where it wraps, its lines keep to [textAlign]. */
 @Composable
 fun CornerHint(text: String, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
-    Text(text.uppercase(), style = Autumn.type.hint, color = com.cdodi.ui.theme.AutumnColors.Fog, textAlign = textAlign, modifier = modifier)
+    Text(text.uppercase(), style = SiteTheme.type.hint, color = SiteTheme.colors.muted, textAlign = textAlign, modifier = modifier)
 }

@@ -22,8 +22,7 @@ import com.cdodi.core.time.Heartbeat
 import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.ReadoutRow
 import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 
@@ -33,10 +32,11 @@ val ProfilingHudWidth = 360.dp
 /**
  * Where the GPU's time goes (DESIGN.md §6, Readout; the Boids mockup): an outline pane, so it hides as little of the
  * scene as possible. A line with [title] (what's being simulated), the frame rate and the GPU total, then a row per
- * pass from `timestamp-query`, the slowest in Lamp. [timings] is null when the browser can't time GPU passes.
+ * pass from `timestamp-query`, the slowest in the accent. [timings] is null when the browser can't time GPU passes.
  */
 @Composable
 fun ProfilingHud(timings: StateFlow<List<PassTiming>?>, title: String, modifier: Modifier = Modifier) {
+    val colors = SiteTheme.colors
     val passes by timings.collectEachFrame()
     val fps by rememberFramesPerSecond()
     val measured = passes
@@ -44,23 +44,23 @@ fun ProfilingHud(timings: StateFlow<List<PassTiming>?>, title: String, modifier:
     Column(
         modifier = modifier
             .width(ProfilingHudWidth)
-            .border(1.dp, AutumnColors.Parchment.copy(alpha = 0.1f), GlassShape)
+            .border(1.dp, colors.hairline, GlassShape)
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         // In a narrow place (a phone's panel), the frame rate goes under the title rather than cut it short.
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(title, style = Autumn.type.readout, color = AutumnColors.Mist, maxLines = 1, modifier = Modifier.padding(end = 16.dp))
+            Text(title, style = SiteTheme.type.readout, color = colors.text, maxLines = 1, modifier = Modifier.padding(end = 16.dp))
             val total = measured?.sumOf { it.milliseconds }
             Text(
                 "${fps.roundToInt()} fps" + (total?.let { " · ${formatDecimal(it, 2)} ms gpu" } ?: ""),
-                style = Autumn.type.readout,
-                color = AutumnColors.Mist,
+                style = SiteTheme.type.readout,
+                color = colors.text,
                 maxLines = 1,
             )
         }
         if (measured == null) {
-            Text("this browser doesn't time GPU passes", style = Autumn.type.readout, color = AutumnColors.Fog)
+            Text("this browser doesn't time GPU passes", style = SiteTheme.type.readout, color = colors.muted)
         } else {
             val slowest = measured.maxOfOrNull { it.milliseconds } ?: 0.0
             for (pass in measured) {

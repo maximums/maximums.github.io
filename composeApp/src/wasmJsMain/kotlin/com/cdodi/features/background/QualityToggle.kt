@@ -13,8 +13,7 @@ import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.ui.components.HintOption
 import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
+import com.cdodi.ui.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -28,10 +27,10 @@ fun QualityToggle(settings: BackgroundSettings, gpuTimings: StateFlow<List<PassT
     val cost = timings?.firstOrNull { it.name == "background" }?.milliseconds
 
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("BACKGROUND", style = Autumn.type.hint, color = AutumnColors.Fog, modifier = Modifier.padding(end = 6.dp))
+        Text("BACKGROUND", style = SiteTheme.type.hint, color = SiteTheme.colors.muted, modifier = Modifier.padding(end = 6.dp))
         for (option in BackgroundQuality.entries) {
             HintOption(option.label, option == quality, "Background quality ${option.label}", onClick = { settings.setQuality(option) })
         }
-        if (cost != null) Text("${formatDecimal(cost, 2)} MS", style = Autumn.type.hint, color = AutumnColors.Fog, modifier = Modifier.padding(start = 6.dp))
+        if (cost != null) Text("${formatDecimal(cost, 2)} MS", style = SiteTheme.type.hint, color = SiteTheme.colors.muted, modifier = Modifier.padding(start = 6.dp))
     }
 }

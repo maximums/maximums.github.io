@@ -5,11 +5,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -20,9 +18,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.LookaheadScope
@@ -57,13 +52,9 @@ import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.notes.NotesDestination
 import com.cdodi.features.notes.NotesPage
 import com.cdodi.ui.components.CornerHint
-import com.cdodi.ui.components.drawThread
+import com.cdodi.ui.components.Thread
 import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
-
-/** The Welcome rhombus's fog (the Home mockup): a little thicker than a fog pane. */
-private val WelcomeFog = Color(16, 20, 24).copy(alpha = 0.62f)
+import com.cdodi.ui.theme.SiteTheme
 
 @Composable
 fun App(runtime: AppRuntime) {
@@ -87,8 +78,10 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
     val morph = remember(navState) { MorphSource { navState.value.morph(UiEffectIds.MENU_MORPH) } }
     // How much of Home is on the glass: its window dissolves as the top bar condenses, and back.
     val homeness = remember(navState) { { navState.value.homeness() } }
-    val pageFog = if (gpu is GpuStatus.Running) AutumnColors.ClearedPane else AutumnColors.FogPane
-    val paneFill = remember(homeness, pageFog) { { lerp(pageFog, WelcomeFog, homeness()) } }
+    // The page's glass is cleared over a GPU scene, fogged over the still one; Home's rhombus is a little thicker.
+    val glass = SiteTheme.glass
+    val pageFog = if (gpu is GpuStatus.Running) glass.cleared else glass.fogged
+    val paneFill = remember(homeness, pageFog, glass.welcome) { { lerp(pageFog, glass.welcome, homeness()) } }
     val pageEffects = rememberPageEffects()
     val paneEffects = remember(navState) { navState.paneEffects() }
 
@@ -202,7 +195,7 @@ fun Caption(text: String, alpha: () -> Float, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text, style = Autumn.type.verse.copy(fontSize = 24.sp), color = AutumnColors.Parchment)
-        Box(Modifier.width(56.dp).height(1.dp).drawBehind { drawThread(Offset(0f, 0.5f), Offset(size.width, 0.5f)) })
+        Text(text, style = SiteTheme.type.verse.copy(fontSize = 24.sp), color = SiteTheme.colors.bright)
+        Thread(56.dp)
     }
 }

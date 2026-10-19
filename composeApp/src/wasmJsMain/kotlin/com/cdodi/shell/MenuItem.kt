@@ -32,9 +32,8 @@ import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.drawThread
 import com.cdodi.ui.components.focusRing
 import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.Autumn
-import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.Motion
+import com.cdodi.ui.theme.SiteTheme
 import com.cdodi.ui.theme.settling
 
 /** A corner of Home's window, where a pane sits, and where its label grows from. */
@@ -77,22 +76,24 @@ fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onC
     val currentOnClick by rememberUpdatedState(onClick)
     return remember(item, interaction) {
         movableContentWithReceiverOf { modifier, atHome, active ->
+            // Read in here, not around the remember: the word is made once, and must follow a change of theme.
+            val colors = SiteTheme.colors
             val layout = LocalMenuLayout.current
             val hover by warmth(interaction)
             val warm = maxOf(hover, LocalPaneEffects.current.glow(item))
             val current by settling(active && !atHome, Motion.SHORT_SECONDS)
             val homeScale = layout.home.label.value / layout.navLabel.value * layout.textScale
             val colour = when {
-                atHome -> lerp(AutumnColors.Mist, AutumnColors.Parchment, warm)
-                active -> AutumnColors.Parchment
-                else -> lerp(AutumnColors.Fog, AutumnColors.Parchment, warm)
+                atHome -> lerp(colors.text, colors.bright, warm)
+                active -> colors.bright
+                else -> lerp(colors.muted, colors.bright, warm)
             }
             Text(
                 text = item.label,
-                style = Autumn.type.nav.copy(
+                style = SiteTheme.type.nav.copy(
                     fontSize = layout.navLabel,
                     lineHeight = layout.navLabel * WORD_LINE,
-                    shadow = Shadow(AutumnColors.Lamp.copy(alpha = (if (atHome) 0.65f else 0.45f) * warm), blurRadius = if (atHome) 28f else 22f),
+                    shadow = Shadow(colors.accent.copy(alpha = (if (atHome) 0.65f else 0.45f) * warm), blurRadius = if (atHome) 28f else 22f),
                 ),
                 color = colour,
                 maxLines = 1,
@@ -103,7 +104,7 @@ fun rememberMenuLabel(item: MenuItem, interaction: MutableInteractionSource, onC
                     .clickable(interaction, indication = null, role = Role.Button, onClick = currentOnClick)
                     .drawBehind {
                         val y = size.height + 8.dp.toPx()
-                        drawThread(Offset(size.width * 0.15f, y), Offset(size.width * 0.85f, y), alpha = current)
+                        drawThread(colors.accent, Offset(size.width * 0.15f, y), Offset(size.width * 0.85f, y), alpha = current)
                     },
             )
         }
