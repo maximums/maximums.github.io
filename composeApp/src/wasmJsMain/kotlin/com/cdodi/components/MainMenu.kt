@@ -8,6 +8,7 @@ import androidx.compose.runtime.MovableContent
 import androidx.compose.runtime.currentComposer
 import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -31,7 +32,7 @@ fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Bool
             val paneFill = LocalPaneFill.current
             val quad = remember { MorphingQuad() }
             Box(
-                contentAlignment = targetShape.contentAlignment,
+                contentAlignment = Alignment.Center,
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape, quad)

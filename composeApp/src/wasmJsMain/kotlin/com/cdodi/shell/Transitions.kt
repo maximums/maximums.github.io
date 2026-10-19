@@ -31,8 +31,8 @@ object Transitions {
     val fade = transition(after(1400.milliseconds, Easing.Settle)) { play(AnimatedEffect(UiEffectIds.FADE)) }
 
     /**
-     * The menu moves between the centre of Home and the top bar. The menu's modifiers still animate on their own when
-     * the layout changes (1500 ms, FastOutSlowIn); this segment gives the model the same timing.
+     * The menu moves between the centre of Home and the top bar: its words fly and scale, and the rhombus becomes the
+     * page's glass, each following this segment's progress ([LocalMorph][com.cdodi.adapters.compose.effects.LocalMorph]).
      */
     val menuMorph = transition(after(1500.milliseconds, Easing.FastOutSlowIn)) { play(AnimatedEffect(UiEffectIds.MENU_MORPH)) }
 

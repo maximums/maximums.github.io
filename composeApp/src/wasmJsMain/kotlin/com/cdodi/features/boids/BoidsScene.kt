@@ -145,7 +145,6 @@ class BoidsScene(
 
     override fun encode(encoder: GPUCommandEncoder, target: GPUTextureView) {
         if (dt > 0f) simulation.encodeGridStep(encoder, params, dt, profiler)
-        controller.reportGrid(simulation.grid)
 
         view[0] = width.toFloat()
         view[1] = height.toFloat()

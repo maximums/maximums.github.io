@@ -33,8 +33,6 @@ class LifeController(private val clock: Clock) {
     internal var scatterRequested = false
     internal var fitRequested = false
 
-    val rule: LifeRule get() = status.value.rule
-
     fun setRule(rule: LifeRule) = mutableStatus.update { it.copy(rule = rule) }
 
     fun setWrap(wrap: Boolean) = mutableStatus.update { it.copy(wrap = wrap) }

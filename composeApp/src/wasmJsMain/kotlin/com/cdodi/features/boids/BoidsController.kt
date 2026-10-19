@@ -11,8 +11,6 @@ data class BoidsStatus(
     val count: Int = BoidsController.DEFAULT_COUNT,
     val isPaused: Boolean = false,
     val params: BoidsParams = BoidsParams(),
-    /** The grid of the last step, across and down. */
-    val grid: Pair<Int, Int> = 0 to 0,
 )
 
 /**
@@ -41,10 +39,6 @@ class BoidsController(private val clock: Clock, initialCount: Int = DEFAULT_COUN
     /** A new flock, scattered at random. */
     fun scatter() {
         scatterRequested = true
-    }
-
-    internal fun reportGrid(grid: Pair<Int, Int>) {
-        if (status.value.grid != grid) mutableStatus.update { it.copy(grid = grid) }
     }
 
     companion object {
