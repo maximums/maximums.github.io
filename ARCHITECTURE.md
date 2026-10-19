@@ -92,6 +92,7 @@ maximums.github.io/
 ├── webgpu/                         :webgpu — generated bindings + idiomatic layer
 │   └── idl/webgpu.idl              committed, pinned @webref/idl version
 ├── composeApp/                     :composeApp — the site
+├── tools/sounds/master-rain.sh     masters the rain's files from the recording (ffmpeg; run by hand, output committed)
 ├── gradle/libs.versions.toml       single source of versions
 ├── .github/workflows/              CI + Pages deploy
 └── README.md · ARCHITECTURE.md · DESIGN.md · PLAN.md · REVIEW.md
@@ -268,7 +269,7 @@ composeResources/files/
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
 composeResources/font/       Cormorant Garamond · Manrope · JetBrains Mono (OFL; licences in files/licenses)
-wasmJsMain/resources/sounds/ rain.mp3 (BonnyOrbit, CC0)
+wasmJsMain/resources/sounds/ rain.webm (Opus) · rain.m4a (AAC fallback): BonnyOrbit, CC0, mastered by tools/sounds
 wasmJsMain/resources/        index.html (two layers + loading state; a plain-HTML summary for screen readers, search
                              engines and browsers without WasmGC; Open Graph tags) · styles.css · og.png · favicon.svg
 build/generated/notesSite/   generateNotesSite: notes/<slug>.html · notes/index.html · sitemap.xml · robots.txt

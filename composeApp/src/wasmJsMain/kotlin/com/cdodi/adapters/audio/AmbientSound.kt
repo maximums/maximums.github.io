@@ -8,6 +8,7 @@ import com.cdodi.webaudio.bindings.BiquadFilterType
 import com.cdodi.webaudio.bindings.GainNode
 import com.cdodi.webaudio.bindings.decodeAudioDataSuspend
 import com.cdodi.webaudio.bindings.lowpass
+import com.cdodi.webidl.runtime.JsPromiseRejection
 import com.cdodi.webidl.runtime.await
 import kotlinx.browser.window
 import kotlinx.coroutines.CoroutineScope
@@ -21,13 +22,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.khronos.webgl.ArrayBuffer
-import org.khronos.webgl.get
 import org.w3c.fetch.Response
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
-import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
@@ -35,6 +34,8 @@ import kotlin.random.Random
  * rain recorded from an open window onto a city street at night. It plays while the viewer has it on and the page is
  * active (visible and focused), through the Web Audio bindings the WebIDL compiler generates from the spec.
  *
+ * - **Mastered once, not corrected here.** `tools/sounds/master-rain.sh` brings the recording to −30 LUFS as Opus
+ *   (`rain.webm`, about 1 MB) and AAC (`rain.m4a`, for browsers without Opus). [sources] are tried in order.
  * - **Off until asked**, and remembered in this browser. Browsers only let a page start sound from a click or a key,
  *   so a remembered "on" waits for the viewer's first one.
  * - **No seam.** The recording plays over and over, each pass starting [CROSSFADE] seconds before the last one ends,
@@ -48,7 +49,7 @@ import kotlin.random.Random
 class AmbientSound(
     private val lifecycle: LifecycleBus,
     private val scope: CoroutineScope,
-    private val url: String = "sounds/rain.mp3",
+    private val sources: List<String> = listOf("sounds/rain.webm", "sounds/rain.m4a"),
 ) {
     private val enabledState = MutableStateFlow(load())
 
@@ -59,7 +60,6 @@ class AmbientSound(
     private var filter: BiquadFilterNode? = null
     private var master: GainNode? = null
     private var buffer: AudioBuffer? = null
-    private var level = BASE_LEVEL
     private var openness = 0f
     private var nextPass = -1.0
     private var scheduler: Job? = null
@@ -99,7 +99,7 @@ class AmbientSound(
         context.resume()
         val master = master ?: return
         master.gain.cancelScheduledValues(context.currentTime)
-        master.gain.setTargetAtTime(level, context.currentTime, 0.8f)
+        master.gain.setTargetAtTime(LEVEL, context.currentTime, 0.8f)
         if (scheduler?.isActive != true) {
             scheduler = scope.launch {
                 while (isActive) {
@@ -130,7 +130,7 @@ class AmbientSound(
         val context = AudioContext()
         val filter = context.createBiquadFilter().apply {
             type = BiquadFilterType.lowpass
-            Q.value = 0.7f
+            Q.value = BUTTERWORTH_Q
             frequency.value = cutoff(openness)
         }
         val master = context.createGain().apply { gain.value = 0f }
@@ -141,16 +141,27 @@ class AmbientSound(
         this.master = master
         scope.launch {
             try {
-                val bytes = window.fetch(url).await<Response>().arrayBuffer().await<ArrayBuffer>()
-                val decoded = context.decodeAudioDataSuspend(bytes)
-                level = BASE_LEVEL * loudnessCorrection(decoded)
-                buffer = decoded
+                buffer = decodeFirst(context)
                 update()
             } catch (e: Throwable) {
                 println("The rain couldn't load: ${e.message}")
             }
         }
         return context
+    }
+
+    /** The first of [sources] this browser decodes. A format it can't decode (or a missing file) rejects, so the next is tried. */
+    private suspend fun decodeFirst(context: AudioContext): AudioBuffer {
+        var failure: JsPromiseRejection? = null
+        for (source in sources) {
+            try {
+                val bytes = window.fetch(source).await<Response>().arrayBuffer().await<ArrayBuffer>()
+                return context.decodeAudioDataSuspend(bytes)
+            } catch (e: JsPromiseRejection) {
+                failure = e
+            }
+        }
+        throw failure ?: IllegalStateException("No sources")
     }
 
     /** Keeps passes queued [LOOKAHEAD] seconds ahead of the context's clock, which stands still while suspended. */
@@ -217,30 +228,17 @@ class AmbientSound(
         /** Seconds of passes queued ahead. */
         const val LOOKAHEAD = 12.0
 
-        /** The master level for a recording at [TARGET_RMS]: a background, under anything else playing. */
-        const val BASE_LEVEL = 0.6f
+        /** The master level. The files are mastered to −30 LUFS, a background under anything else playing; turn it down here. */
+        const val LEVEL = 1f
 
-        /** The loudness the recording is brought to (about −28 dBFS RMS). */
-        const val TARGET_RMS = 0.04
+        /**
+         * A flat roll-off, no bump at the cut-off: Web Audio reads a low-pass filter's Q in decibels, and −3.01 dB is
+         * 1/√2, the Butterworth response. (A plain 0.7 would be +0.7 dB, a small resonance right where hearing is keenest.)
+         */
+        const val BUTTERWORTH_Q = -3.01f
 
         /** The low-pass cut-off: 2.4 kHz through fogged glass, 9 kHz through cleared, evenly in pitch between. */
         fun cutoff(openness: Float): Float = 2_400f * (9_000f / 2_400f).pow(openness)
-
-        /** A gain that brings [buffer] to [TARGET_RMS], measured on every 32nd sample of its first channel. */
-        fun loudnessCorrection(buffer: AudioBuffer): Float {
-            val samples = buffer.getChannelData(0)
-            var sum = 0.0
-            var count = 0
-            var i = 0
-            while (i < samples.length) {
-                val sample = samples[i].toDouble()
-                sum += sample * sample
-                count++
-                i += 32
-            }
-            val rms = sqrt(sum / count.coerceAtLeast(1))
-            return if (rms > 0) (TARGET_RMS / rms).toFloat().coerceIn(0.1f, 2f) else 1f
-        }
 
         /** sin/cos quarter waves: the gains of two uncorrelated sounds crossfaded at equal power. */
         fun equalPowerCurve(rising: Boolean): JsArray<JsNumber> = List(64) { i ->

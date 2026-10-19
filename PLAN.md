@@ -573,8 +573,13 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 - [x] It's heard through the glass: a low-pass filter at 2.4 kHz behind Home's fogged window, opening to 9 kHz on the pages as the window dissolves.
 
 > **Notes.**
-> - **No seam without an editor.** No audio tools were at hand, so the recording isn't edited into a loop. Instead `AmbientSound` plays it over and over, each pass overlapping the last by 8 s with an equal-power crossfade, which can't be heard on rain. The first pass starts at a random point.
-> - **Loudness.** The level is set from the recording's own RMS, measured once it's decoded.
+> - **No edited loop.** `AmbientSound` plays the recording over and over, each pass overlapping the last by 8 s with an equal-power crossfade. The first pass starts at a random point, so no two visits begin alike.
+> - **Mastered with ffmpeg, measured instead of heard.** `tools/sounds/master-rain.sh` makes the files; its output is committed.
+>   - The recording is steady: −34.7 LUFS integrated, a loudness range of 0.8 LU, passing traffic as low rumble at 0–5 s, 47–65 s and 92–104 s. Its two peaks, at 18 s and 103 s, are drops landing near the microphone, not faults, so they stay.
+>   - It gets a 30 Hz high-pass and a plain gain of +4.7 dB to −30 LUFS, peaking at −4.3 dBFS, so nothing needs limiting.
+>   - It's encoded as Opus at 80 kbps (0.99 MB, down from the 2.4 MB preview) with AAC at 128 kbps as a fallback. The player decodes the first one the browser can.
+>   - The seam, simulated by crossfading the file into itself: short-term loudness across the join stays within 0.2 LU of an equal-power mix of the two ends. The ends are unrelated (r = −0.01), so the overlap can't swell.
+>   - Muffling costs only 1.4 LU, so Home and the pages sound about as loud. The measurement also caught a bug before it shipped: Web Audio reads a low-pass filter's Q in decibels, so `Q = 0.7` put a +0.7 dB bump at the cut-off. It's −3.01 dB (Butterworth) now.
 > - **Typed Web Audio.** The player uses bindings generated from the Web Audio spec by the WebIDL compiler (Phase 9, "make the compiler general"), not hand-written JavaScript.
 > - **Checked in headless Chrome**, with the Web Audio objects instrumented:
 >   - nothing loads before the toggle;
@@ -582,7 +587,8 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 >   - a blur suspends the context and freezes its clock, and focus resumes it;
 >   - the cut-off moves from 2.4 kHz to about 9 kHz on the way to Boids;
 >   - a remembered "on" starts at the first click.
-> - The file is Freesound's HQ preview (MP3, 128 kbps, 2.4 MB). It's fetched only when the rain is turned on.
+> - Also checked in headless Chrome: Opus is what loads, the AAC file loads when WebM is refused, and the filter measures −3.01 dB at its cut-off.
+> - The files are fetched only when the rain is turned on.
 
 ## Phase 9 — Stretch goals (pick any)
 
