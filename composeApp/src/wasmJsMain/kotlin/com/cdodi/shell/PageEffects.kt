@@ -20,5 +20,5 @@ fun rememberPageEffects(): List<PageEffect> {
 }
 
 /** The page melts towards the left when the next one comes later in the menu. */
-private fun meltDirection(from: Destination, to: Destination): Float =
+internal fun meltDirection(from: Destination, to: Destination): Float =
     if (menuOrder.indexOf(to.route) > menuOrder.indexOf(from.route)) -1f else 1f

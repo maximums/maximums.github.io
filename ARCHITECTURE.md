@@ -217,17 +217,24 @@ com.cdodi
 │            the frame's layout, once)
 │   Bootstrap (heartbeat, buses, navigator, history; runs the GPU layer, restarts it once, falls back)
 │   AppGraph (the site's nav graph, siteEffects) · Transitions (the site's reusable transition values)
-│   PageEffects (the page effects the site plays) · FeatureRegistry (later)
+│   PageEffects (the page effects the site plays; pages melt in the menu's order) · FeatureRegistry (later)
+│   AppContent (App: what's on the glass for where navigation is: Home's window or a page under the top bar, the
+│               caption, the toggles) · NavProjections (what it reads off the navigation state, tested alone)
 │   Layout (MenuLayout: the frame's sizes from the Viewport; HomeDesign, Home's window as designed, large or small,
-│           scaled by density between 0.75 and 1.5 of it, AtDesignScale/AtPageScale in Menu)
-│   Menu (MenuItem · the menu words that fly between Home and the top bar · HomeWindow · TopBar)
+│           scaled by density between 0.75 and 1.5 of it)
+│   MenuItem (the four panes, each with the destination it opens · the menu words that fly between Home and the bar)
+│   HomeWindow (the panes, frame and drops at the design size: AtDesignScale/AtPageScale · Welcome · colophon)
+│   TopBar (brand, words and toggle; the words centred unless that would crowd the others) · BodyCard (the Welcome
+│           rhombus that becomes each page's glass)
 ├── adapters/
 │   ├── compose/             HeartbeatDriver (withFrameNanos → tick) · collectEachFrame · Clock.shaderTime
 │   │                        NavPages (pages + page effects, read inside graphics layers: no recomposition per frame)
 │   │                        ProfilingHud (GPU time per pass, frame rate) · LocalHeartbeat · LocalNavigationBus
 │   │                        Modifier.gpuBacked · LocalGpuWidgets · LocalPageVisibility
-│   │   └── effects/         UiEffects (registry) · PageEffect · FadeEffect · PixelMeltEffect (SkSL)
-│   │                        Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
+│   │   ├── effects/         UiEffects (registry) · PageEffect · FadeEffect · PixelMeltEffect (SkSL)
+│   │   │                    Morph (Settled, Waiting, Moving) · LocalMorph: what layout morphs follow
+│   │   └── morph/           the modifiers that follow it: animatePlacement · morphScale · morphingShape
+│   │                        (MorphingShape, MorphingQuad) · ProgressTween
 │   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
 │   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
 │   │                        GpuWidgets (elements the scene draws behind, and the glass panes) · draws in a microtask,
@@ -243,21 +250,20 @@ com.cdodi
 │                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport
 │   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label · CornerHint
 │                glass (the fog pane: Compose's fog + the pane's outline reported to the GPU's blur) · glow ·
-│                focusRing · drawThread
-├── components/              the menu's morph machinery: movableBodyCard (rhombus ⇄ page) · morphingShape ·
-│                            animatePlacement · morphScale · ProgressTween · SceneOverlay (a scene page's panel,
-│                            readout and hint, arranged for the window's width)
+│                focusRing · drawThread · SceneOverlay (a scene page's panel, readout and hint, for the width)
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
-    ├── about/               AboutFeature · AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
+    ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
     ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
     ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top)
     │                        StreetLights (the design study's lights, by its own seeded generator) · BackgroundSettings
     │                        QualityToggle · SoundToggle · StillScene (the same street, still and dimmed, without WebGPU)
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
-    │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls · LifeFeature (later)
-    │   └── engine/          LifeEngine (CPU reference + fallback) · rules as birth/survive masks (still in data/gameoflife)
+    │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls
+    │                        GameOfLifePage (the CPU page, without WebGPU)
+    │   └── engine/          LifeEngine (CPU reference + fallback) · LifeRule (birth/survive masks) · GameOfLifeManager
     └── boids/               BoidsDestination · BoidsParams (one set for CPU and GPU) · BoidsController · BoidsControls
+        │                    BoidsPage (what a browser without WebGPU sees)
         │                    BoidsSimulation (naive step; grid: count → scan → scatter → 3×3 neighbours)
         │                    BoidsScene (fog bank + instanced birds, 4× MSAA, pointer) · BoidsFeature (later)
         └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
@@ -305,7 +311,7 @@ flowchart TB
 - `ui` → Compose only. No `core`, no GPU, no app state.
 - `core` → nothing in the project.
 
-Inside `:composeApp` these rules are conventions. Once a rule gets broken by accident, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules, where the build enforces the rule.
+Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than these four appears. `ui` still reaches the GPU adapters and the clock in two files, `Glass` and `Motion`; they're named in the check until the design system's ports remove them. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
 
 ### 4.8 Where today's code goes
 
@@ -315,11 +321,11 @@ Inside `:composeApp` these rules are conventions. Once a rule gets broken by acc
 | `buses/AppEventBus.kt` | `core.bus.NavigationBus` |
 | `buses/AppLifecycleBus.kt` | `core.bus.LifecycleBus` + `adapters.browser.VisibilityLifecycleSource` |
 | `data/Manager.kt` | `core.time.FixedStepper` |
-| `data/gameoflife/*` | `features.life.engine` (fixed, kept as reference + fallback) |
+| `data/gameoflife/*` | `features.life.engine` (done: kept as reference + fallback) |
 | `data/boids/*` | `features.boids.reference` |
-| `pages/*Page.kt` | `features.*` (UI part) |
-| `components/MorphingShapeModifier.kt`, `PlacementModifier.kt`, `QuadVertexProgress.kt`, `UiCard.kt` | `ui.modifiers`, `ui.components` |
-| `components/MainMenu.kt` (menu + movable cards) | `features.home` + `adapters.compose.effects.MenuMorphEffect` |
+| `pages/*Page.kt` | `features.*` (done) |
+| `components/MorphingShapeModifier.kt`, `PlacementModifier.kt`, `QuadVertexProgress.kt`, `UiCard.kt` | `adapters.compose.morph` (done: they follow `LocalMorph`, so they're adapters rather than `ui`) |
+| `components/MainMenu.kt` (menu + movable cards) | `shell` (done: `MenuItem`, `HomeWindow`, `TopBar`, `BodyCard`; the menu knows every feature, so it's wiring) |
 | `components/RuntimeShaderModifier.kt`, `uniformData` in `Utils.kt` | removed (the background moves to WebGPU) |
 | `vw` / `vh`, `LocalIsSmallWindow` in `Utils.kt` | `ui.units` |
 | `Shaders.kt` (`PIXEL_MELT_SHADER`), `MY_TRY`, `SANDBOX` | `sksl/pixel_melt.sksl`; the rest removed or ported to WGSL |
