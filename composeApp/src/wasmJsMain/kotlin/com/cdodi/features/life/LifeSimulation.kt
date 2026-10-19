@@ -1,8 +1,9 @@
 package com.cdodi.features.life
 
+import androidx.compose.ui.unit.IntOffset
 import com.cdodi.adapters.gpu.GpuProfiler
-import com.cdodi.data.gameoflife.Cell
-import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.engine.Cell
+import com.cdodi.features.life.engine.LifeRule
 import com.cdodi.webgpu.bindings.GPUBindGroup
 import com.cdodi.webgpu.bindings.GPUBindGroupDescriptor
 import com.cdodi.webgpu.bindings.GPUBindGroupEntry
@@ -29,20 +30,19 @@ import com.cdodi.webgpu.bindings.readOnlyStorage
 import com.cdodi.webgpu.bindings.storage
 import com.cdodi.webgpu.bindings.uniform
 import com.cdodi.webgpu.context.GpuContext
-import com.cdodi.webgpu.resource.resourceScope
 import com.cdodi.webgpu.resource.Uint32Staging
+import com.cdodi.webgpu.resource.resourceScope
 import com.cdodi.webgpu.shader.compileShader
-import androidx.compose.ui.unit.IntOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Uint32Array
 import org.khronos.webgl.get
 import org.khronos.webgl.set
+import kotlin.random.Random
 
 /**
  * Life on the GPU, compute only. Two state buffers take turns ("ping-pong"): each generation reads one and writes the

@@ -1,6 +1,5 @@
-package com.cdodi.components
+package com.cdodi.adapters.compose.morph
 
-import com.cdodi.ui.components.GlassOutline
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.cdodi.adapters.compose.effects.LocalMorph
+import com.cdodi.ui.components.GlassOutline
 
 /**
  * Where a morphing quad is this frame, for whoever else needs its outline: the GPU, which blurs the street behind the

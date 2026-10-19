@@ -1,4 +1,4 @@
-package com.cdodi.components
+package com.cdodi.adapters.compose.morph
 
 import androidx.compose.ui.util.lerp
 

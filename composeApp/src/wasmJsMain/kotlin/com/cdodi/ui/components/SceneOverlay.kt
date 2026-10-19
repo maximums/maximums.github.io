@@ -1,4 +1,4 @@
-package com.cdodi.components
+package com.cdodi.ui.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -31,10 +31,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.adapters.compose.ProfilingHudWidth
-import com.cdodi.ui.components.CornerHint
-import com.cdodi.ui.components.QuietButton
-import com.cdodi.ui.components.glass
 import com.cdodi.ui.theme.AutumnColors
 import com.cdodi.ui.theme.LocalViewport
 
@@ -46,8 +42,8 @@ private val Gap = 24.dp
 
 /**
  * A scene page's overlay on its GPU scene (DESIGN.md §8, the Boids and Life mockups): a panel of controls [panelWidth]
- * wide in its [corner], the GPU [readout] in the opposite corner, and a [hint] in the bottom-right one, all inside the
- * viewport's gutter.
+ * wide in its [corner], the GPU [readout] ([readoutWidth] wide) in the opposite corner, and a [hint] in the bottom-right
+ * one, all inside the viewport's gutter.
  *
  * Where the window is too narrow for the panel and the readout side by side, the readout goes into the panel, at its
  * end. The hint wraps rather than run into the readout, and the panel stops short of the hint, scrolling inside when
@@ -58,6 +54,7 @@ fun SceneOverlay(
     panelWidth: Dp,
     corner: PanelCorner,
     hint: String,
+    readoutWidth: Dp,
     readout: @Composable (Modifier) -> Unit,
     panelSpacing: Dp = 20.dp,
     panel: @Composable ColumnScope.() -> Unit,
@@ -65,7 +62,7 @@ fun SceneOverlay(
     val viewport = LocalViewport.current
     val hintText = @Composable { modifier: Modifier -> CornerHint(hint, modifier.padding(top = Gap), textAlign = TextAlign.End) }
     BoxWithConstraints(Modifier.fillMaxSize().padding(viewport.gutter)) {
-        val apart = !viewport.compact && maxWidth >= panelWidth + Gap + ProfilingHudWidth
+        val apart = !viewport.compact && maxWidth >= panelWidth + Gap + readoutWidth
         when {
             !apart -> {
                 // On a phone the folded panel keeps to the top, wherever its corner.

@@ -1,4 +1,4 @@
-package com.cdodi.data.gameoflife
+package com.cdodi.features.life.engine
 
 import androidx.compose.ui.unit.IntOffset
 

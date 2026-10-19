@@ -1,7 +1,7 @@
 package com.cdodi.features.life
 
 import com.cdodi.core.time.Clock
-import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.engine.LifeRule
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

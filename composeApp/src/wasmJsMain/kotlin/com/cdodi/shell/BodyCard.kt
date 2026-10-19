@@ -1,4 +1,4 @@
-package com.cdodi.components
+package com.cdodi.shell
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
@@ -6,17 +6,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.InternalComposeApi
 import androidx.compose.runtime.MovableContent
 import androidx.compose.runtime.currentComposer
-import androidx.compose.runtime.movableContentWithReceiverOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.AutumnColors
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
+import com.cdodi.adapters.compose.morph.MorphingQuad
+import com.cdodi.adapters.compose.morph.MorphingShape
+import com.cdodi.adapters.compose.morph.animatePlacement
+import com.cdodi.adapters.compose.morph.morphingShape
+import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.AutumnColors
 
 /** The page's glass, read while drawing so it can follow a transition frame by frame: Home's fog, then the page's. */
 val LocalPaneFill = staticCompositionLocalOf<() -> Color> { { AutumnColors.FogPane } }

@@ -2,9 +2,9 @@ package com.cdodi.features.life
 
 import androidx.compose.ui.unit.IntOffset
 import blog.composeapp.generated.resources.Res
-import com.cdodi.data.gameoflife.Cell
-import com.cdodi.data.gameoflife.LifeEngine
-import com.cdodi.data.gameoflife.LifeRule
+import com.cdodi.features.life.engine.Cell
+import com.cdodi.features.life.engine.LifeEngine
+import com.cdodi.features.life.engine.LifeRule
 import com.cdodi.webgpu.context.GpuContext
 import com.cdodi.webgpu.context.requestGpuContext
 import kotlinx.coroutines.CoroutineScope

@@ -101,3 +101,40 @@ val generateNotesSite = tasks.register<JavaExec>("generateNotesSite") {
 kotlin.sourceSets.named("wasmJsMain") {
     resources.srcDir(files(notesSite).builtBy(generateNotesSite))
 }
+
+/**
+ * ARCHITECTURE.md §4.7 as a check, since inside one module the compiler can't enforce it: the app's code lives in
+ * `shell`, `features`, `adapters` and `ui` only, and each imports only what its rule allows. `ui` still reaches the GPU
+ * adapters and the clock in two files ([knownUiExceptions]); the design system's ports take those away.
+ */
+val checkPackageRules = tasks.register("checkPackageRules") {
+    group = "verification"
+    description = "Fails when the app's packages import across the rules in ARCHITECTURE.md §4.7."
+    val sources = layout.projectDirectory.dir("src/wasmJsMain/kotlin/com/cdodi")
+    inputs.dir(sources).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("sources")
+    val root = sources.asFile
+    doLast {
+        val layers = setOf("shell", "features", "adapters", "ui")
+        val knownUiExceptions = setOf("ui/components/Glass.kt", "ui/theme/Motion.kt")
+        val strays = root.listFiles().orEmpty().filter { it.isDirectory && it.name !in layers }.map { "${it.name}/ isn't one of $layers" }
+        val crossings = root.walk().filter { it.extension == "kt" }.flatMap { file ->
+            val path = file.relativeTo(root).invariantSeparatorsPath
+            val layer = path.substringBefore('/')
+            val feature = path.split('/').getOrNull(1)
+            Regex("""^import com\.cdodi\.(\w+)\.(\w+)""", RegexOption.MULTILINE).findAll(file.readText()).mapNotNull { match ->
+                val (target, sub) = match.destructured
+                val allowed = when (layer) {
+                    "features" -> target != "shell" && (target != "features" || sub == feature)
+                    "adapters" -> target != "shell" && target != "features"
+                    "ui" -> target == "ui" || path in knownUiExceptions
+                    else -> true
+                }
+                if (allowed) null else "$path imports com.cdodi.$target.$sub"
+            }
+        }.toList()
+        val broken = strays + crossings
+        if (broken.isNotEmpty()) throw GradleException("The package rules (ARCHITECTURE.md §4.7) are broken:\n" + broken.joinToString("\n"))
+    }
+}
+
+tasks.named("check") { dependsOn(checkPackageRules) }

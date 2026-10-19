@@ -52,9 +52,9 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.ambient
+import com.cdodi.adapters.compose.morph.animatePlacement
+import com.cdodi.adapters.compose.morph.morphScale
 import com.cdodi.adapters.compose.shaderTime
-import com.cdodi.components.animatePlacement
-import com.cdodi.components.morphScale
 import com.cdodi.ui.components.GlassOutline
 import com.cdodi.ui.components.GlassShape
 import com.cdodi.ui.components.drawThread

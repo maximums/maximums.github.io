@@ -1,4 +1,4 @@
-package com.cdodi.data.gameoflife
+package com.cdodi.features.life.engine
 
 /**
  * A Life-like rule in B/S notation, e.g. `B3/S23` for Conway's Game of Life.
