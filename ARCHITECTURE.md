@@ -237,6 +237,7 @@ com.cdodi
 │   ├── audio/               AmbientSound (the rain: endless by crossfaded passes, low-passed through the glass,
 │   │                        only while the page is active)
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
+│                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 ├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
 │   theme/       AutumnColors · AutumnType + bundled fonts · AutumnTheme · Motion (Settle, settling() on the heartbeat)
 │                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport

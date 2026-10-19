@@ -19,9 +19,15 @@ sealed interface Completion {
     /** Ends when [signal] is raised, or after [timeout] if given. No progress while waiting. */
     data class Whenever(val signal: Signal, val timeout: Duration? = null) : Completion
 
-    data class All(val rules: List<Completion>) : Completion
+    /** Ends when every one of [rules] has been met. Never empty: no rule would ever be the last met. */
+    data class All(val rules: List<Completion>) : Completion {
+        init { require(rules.isNotEmpty()) { "All needs a rule" } }
+    }
 
-    data class AnyOf(val rules: List<Completion>) : Completion
+    /** Ends when any of [rules] is met. Never empty: no rule would ever be met. */
+    data class AnyOf(val rules: List<Completion>) : Completion {
+        init { require(rules.isNotEmpty()) { "AnyOf needs a rule" } }
+    }
 }
 
 fun after(duration: Duration, easing: Easing = Easing.Linear): Completion = Completion.After(duration, easing)

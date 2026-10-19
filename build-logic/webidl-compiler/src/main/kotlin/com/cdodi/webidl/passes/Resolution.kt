@@ -188,24 +188,27 @@ private fun resolveTypes(definitions: IdlDefinitions): IdlDefinitions {
     )
 }
 
+/**
+ * Replaces every typedef in this type, at any depth, by its target. [visited] is the path of typedefs being unrolled on
+ * the way here: only typedefs can make a circle, so a union inside a union, or a sequence of sequences, isn't one.
+ */
 fun Descriptor.TypeDescriptor.unrollTypedefs(
     typedefs: Map<String, Descriptor.TypeDescriptor>,
-    visited: Set<String> = emptySet(),
+    visited: List<String> = emptyList(),
 ): Descriptor.TypeDescriptor {
-    check(name !in visited) { "Circular typedef detected: ${(visited + name).joinToString(" -> ")}" }
     val typedef = typedefs[name]
     if (typedef != null) {
+        check(name !in visited) { "Circular typedef detected: ${(visited + name).joinToString(" -> ")}" }
         val target = typedef.unrollTypedefs(typedefs, visited + name)
         return target.copy(isNullable = isNullable || typedef.isNullable, extendedAttributes = target.extendedAttributes + extendedAttributes)
     }
 
-    val nextVisited = visited + name
     return copy(
-        unionMembers = unionMembers.map { it.unrollTypedefs(typedefs, nextVisited) },
-        sequenceOf = sequenceOf?.unrollTypedefs(typedefs, nextVisited),
-        promiseOf = promiseOf?.unrollTypedefs(typedefs, nextVisited),
+        unionMembers = unionMembers.map { it.unrollTypedefs(typedefs, visited) },
+        sequenceOf = sequenceOf?.unrollTypedefs(typedefs, visited),
+        promiseOf = promiseOf?.unrollTypedefs(typedefs, visited),
         record = record?.entries?.associate {
-            it.key.unrollTypedefs(typedefs, nextVisited) to it.value.unrollTypedefs(typedefs, nextVisited)
+            it.key.unrollTypedefs(typedefs, visited) to it.value.unrollTypedefs(typedefs, visited)
         }
     )
 }

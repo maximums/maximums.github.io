@@ -177,12 +177,10 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                         when (destination) {
                             AboutDestination -> AboutPage()
                             is NotesDestination -> NotesPage(destination.slug) { open(it) }
-                            BoidsDestination -> if (gpu is GpuStatus.Running) BoidsControls(runtime.boids, runtime.gpuTimings) else BoidsPage()
+                            BoidsDestination -> ScenePage(gpu, fallback = { BoidsPage() }) { BoidsControls(runtime.boids, runtime.gpuTimings) }
                             // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.
-                            is LifeDestination -> if (gpu is GpuStatus.Running) {
+                            is LifeDestination -> ScenePage(gpu, fallback = { GameOfLifePage(destination.rule) }) {
                                 LifeControls(runtime.life, destination.rule, runtime.gpuTimings) { rule -> open(LifeDestination(rule)) }
-                            } else {
-                                GameOfLifePage(destination.rule)
                             }
                             else -> Unit
                         }
@@ -198,16 +196,30 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                 }
             }
 
-            val caption = captionFor(navState.value)
-            if (caption != null) {
+            val caption by remember(navState) { derivedStateOf { captionFor(navState.value) } }
+            // Derived, so the screen recomposes when the caption changes, not on every frame of the transition.
+            caption?.let {
                 // It fades in while the fog holds, and out as the page arrives.
-                Caption(caption, alpha = { navState.value.captionAlpha() }, modifier = Modifier.align(Alignment.Center))
+                Caption(it, alpha = { navState.value.captionAlpha() }, modifier = Modifier.align(Alignment.Center))
             }
 
             if (gpu is GpuStatus.Running && atHome) {
                 QualityToggle(runtime.background, runtime.gpuTimings, Modifier.align(Alignment.BottomEnd).padding(end = layout.margin, bottom = layout.toggleBottom))
             }
         }
+    }
+}
+
+/**
+ * A scene page: its [controls] over the GPU scene, or the [fallback] page in a browser without WebGPU. While the GPU
+ * starts (or starts again after losing its device), nothing: the scene is on its way, and the fallback would flash.
+ */
+@Composable
+private fun ScenePage(gpu: GpuStatus, fallback: @Composable () -> Unit, controls: @Composable () -> Unit) {
+    when (gpu) {
+        GpuStatus.Running -> controls()
+        is GpuStatus.Unavailable -> fallback()
+        GpuStatus.Starting -> Unit
     }
 }
 
@@ -246,9 +258,9 @@ private fun NavState.captionAlpha(): Float {
 private fun captionFor(nav: NavState): String? {
     if (nav !is NavState.Transitioning) return null
     val scene = if (nav.from == HomeDestination) nav.to else if (nav.to == HomeDestination) nav.from else return null
-    return when {
-        scene == BoidsDestination -> "the flock is gathering"
-        scene is LifeDestination -> "the embers are catching"
+    return when (scene) {
+        BoidsDestination -> "the flock is gathering"
+        is LifeDestination -> "the embers are catching"
         else -> null
     }
 }

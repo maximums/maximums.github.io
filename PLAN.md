@@ -615,6 +615,23 @@ Then, after a code review of the first pass (four reviewers, without its context
 
 > **Notes.** Checked in headless Chrome against the review's estimates, before and after: Home, Boids and Life at 1024×640, 900×700, 768×1024 and 844×390; Home hovered at 844×390, 667×375 and 1024×640; Home on a 390×844 phone; the three pages at 1440×900, unchanged; and the flight to About and back at 1024×640.
 
+### 8f — Bug sweep (from the code review)
+
+- [x] **A remembered "rain on" starts from a tap.** On a touch screen `pointerdown` carries no user activation; `pointerup` and `touchend` do. The player listened for `pointerdown` and `keydown` only, so on a phone the rain never started. Each try also left a listener behind. `awaitUserActivation` listens for every event that can grant activation and removes all its listeners with one abort. The audio's time constants are named, and the context sleeps once the fade out has reached silence.
+- [x] **Boids and Life wait for the GPU** instead of showing the no-WebGPU page while it starts, or starts again after losing its device ("The murmuration needs WebGPU…", or the CPU Life for a moment).
+- [x] **A transition no longer recomposes the screen every frame.** The caption was read from the navigation state in composition; it's a derived state now. That's 5 recompositions in a 4-second window with a transition, down from 451.
+- [x] **A pane doesn't stay lit after an interrupted transition** (back pressed while it plays, the pointer elsewhere). The hover loop ends with an Exit when it's cancelled.
+- [x] **The GPU layer's restart is clean.** `SceneHost` runs its work in its own child scope, cancelled when it closes. A scene that finishes preparing after its host closed isn't announced or stepped. The `sceneReady` signals a host raised are lowered when it closes, so the next one is waited for.
+- [x] **The WebIDL compiler accepts nested unions and sequences.** It used to stop with "Circular typedef detected: union -> union". Its circle check now tracks typedef names only, and the error names the whole circle.
+- [x] **The compiler keeps no global cache.** Which interfaces become classes is worked out once per compilation instead of in a static `WeakHashMap`, which two builds in one Gradle daemon could share.
+- [x] **Composites of nothing are rejected when they're built.** Played, an empty race, parallel, `All` or `AnyOf` would never end or would throw.
+
+> **Notes.** Tests: `UserActivationTest`, `SceneHostTest` (on a real device, with a scene that finishes preparing late; both its tests fail without the fix), fixtures `nested-types` and `circular-typedef`, and the composite check in `TransitionTest`. Checked in headless Chrome, before and after where the old code could be run:
+> - The touch events' activation, and the rain starting from one tap on an emulated phone and one click on a computer.
+> - Boids with the adapter request held back by 5 s.
+> - The recompositions, counted during a transition.
+> - The interrupted transition's pane.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.

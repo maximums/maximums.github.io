@@ -1,5 +1,7 @@
 package com.cdodi.adapters.audio
 
+import com.cdodi.adapters.browser.awaitUserActivation
+import com.cdodi.adapters.browser.hasUserActivation
 import com.cdodi.core.bus.LifecycleBus
 import com.cdodi.webaudio.bindings.AudioBuffer
 import com.cdodi.webaudio.bindings.AudioContext
@@ -26,6 +28,7 @@ import org.w3c.fetch.Response
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.roundToLong
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -36,8 +39,8 @@ import kotlin.random.Random
  *
  * - **Mastered once, not corrected here.** `tools/sounds/master-rain.sh` brings the recording to −30 LUFS as Opus
  *   (`rain.webm`, about 1 MB) and AAC (`rain.m4a`, for browsers without Opus). [sources] are tried in order.
- * - **Off until asked**, and remembered in this browser. Browsers only let a page start sound from a click or a key,
- *   so a remembered "on" waits for the viewer's first one.
+ * - **Off until asked**, and remembered in this browser. Browsers only let a page start sound from a click, a tap or a
+ *   key, so a remembered "on" waits for the viewer's first one ([awaitUserActivation]).
  * - **No seam.** The recording plays over and over, each pass starting [CROSSFADE] seconds before the last one ends,
  *   with an equal-power crossfade (rain is noise: two passes overlapping don't dip or swell). The first pass starts
  *   somewhere random, so no two visits begin alike.
@@ -64,7 +67,7 @@ class AmbientSound(
     private var nextPass = -1.0
     private var scheduler: Job? = null
     private var suspender: Job? = null
-    private var waitingForGesture = false
+    private var activationWait: AutoCloseable? = null
 
     private val fadeIn = equalPowerCurve(rising = true)
     private val fadeOut = equalPowerCurve(rising = false)
@@ -86,7 +89,7 @@ class AmbientSound(
         if (kotlin.math.abs(target - openness) < 0.01f) return
         openness = target
         val context = context ?: return
-        filter?.frequency?.setTargetAtTime(cutoff(openness), context.currentTime, 0.6f)
+        filter?.frequency?.setTargetAtTime(cutoff(openness), context.currentTime, GLASS_SECONDS)
     }
 
     private fun update() {
@@ -94,33 +97,35 @@ class AmbientSound(
     }
 
     private fun play() {
-        val context = context ?: if (hasUserActivation()) build() else return waitForGesture()
+        val context = context ?: if (hasUserActivation()) build() else return waitForActivation()
         suspender?.cancel()
         context.resume()
         val master = master ?: return
         master.gain.cancelScheduledValues(context.currentTime)
-        master.gain.setTargetAtTime(LEVEL, context.currentTime, 0.8f)
+        master.gain.setTargetAtTime(LEVEL, context.currentTime, FADE_IN_SECONDS)
         if (scheduler?.isActive != true) {
             scheduler = scope.launch {
                 while (isActive) {
                     schedulePasses()
-                    delay(2_000)
+                    delay(SCHEDULE_EVERY_MS)
                 }
             }
         }
     }
 
     private fun quieten() {
+        activationWait?.close()
+        activationWait = null
         val context = context ?: return
         master?.gain?.let {
             it.cancelScheduledValues(context.currentTime)
-            it.setTargetAtTime(0f, context.currentTime, 0.35f)
+            it.setTargetAtTime(0f, context.currentTime, FADE_OUT_SECONDS)
         }
         scheduler?.cancel()
         suspender?.cancel()
         // Once it's silent, the context sleeps: nothing is computed while the page is away.
         suspender = scope.launch {
-            delay(1_800)
+            delay(SILENT_AFTER_MS)
             context.suspend()
         }
     }
@@ -172,9 +177,9 @@ class AmbientSound(
         if (nextPass < 0) {
             // The first pass starts somewhere random in the recording and fades in like any other.
             val offset = Random.nextDouble(0.0, buffer.duration - CROSSFADE * 3)
-            pass(context, buffer, now + 0.05, offset)
+            pass(context, buffer, now + LEAD, offset)
         }
-        while (nextPass < now + LOOKAHEAD) pass(context, buffer, maxOf(nextPass, now + 0.05), 0.0)
+        while (nextPass < now + LOOKAHEAD) pass(context, buffer, maxOf(nextPass, now + LEAD), 0.0)
     }
 
     /** One pass of the recording from [offset], starting at [at], crossfading in and out over [CROSSFADE]. */
@@ -193,16 +198,13 @@ class AmbientSound(
         nextPass = at + length - CROSSFADE
     }
 
-    /** Waits for the viewer's first click or key, then tries again: the only moment a browser lets sound start. */
-    private fun waitForGesture() {
-        if (waitingForGesture) return
-        waitingForGesture = true
-        val onGesture: (org.w3c.dom.events.Event) -> Unit = {
-            waitingForGesture = false
+    /** Waits for the viewer's first click, tap or key, then tries again: the only moment a browser lets sound start. */
+    private fun waitForActivation() {
+        if (activationWait != null) return
+        activationWait = awaitUserActivation {
+            activationWait = null
             update()
         }
-        window.addEventListener("pointerdown", onGesture, onceOptions())
-        window.addEventListener("keydown", onGesture, onceOptions())
     }
 
     private fun load(): Boolean = try {
@@ -228,6 +230,23 @@ class AmbientSound(
         /** Seconds of passes queued ahead. */
         const val LOOKAHEAD = 12.0
 
+        /** How often the queue is topped up, in milliseconds: well inside [LOOKAHEAD]. */
+        const val SCHEDULE_EVERY_MS = 2_000L
+
+        /** Seconds ahead a pass is started, so it starts on time rather than late. */
+        const val LEAD = 0.05
+
+        /**
+         * The fades' and the glass's time constants, in seconds: each approaches its target exponentially, two thirds
+         * of the way in one time constant and within 1 % in five.
+         */
+        const val FADE_IN_SECONDS = 0.8f
+        const val FADE_OUT_SECONDS = 0.35f
+        const val GLASS_SECONDS = 0.6f
+
+        /** When the fade out has reached silence (five time constants), in milliseconds. */
+        val SILENT_AFTER_MS = (FADE_OUT_SECONDS * 5_000).roundToLong()
+
         /** The master level. The files are mastered to −30 LUFS, a background under anything else playing; turn it down here. */
         const val LEVEL = 1f
 
@@ -247,8 +266,3 @@ class AmbientSound(
         }.toJsArray()
     }
 }
-
-/** Whether a click or key is being handled right now (`navigator.userActivation`; true where it's unknown). */
-private fun hasUserActivation(): Boolean = js("navigator.userActivation ? navigator.userActivation.isActive : true")
-
-private fun onceOptions(): org.w3c.dom.AddEventListenerOptions = js("({ once: true, passive: true })")

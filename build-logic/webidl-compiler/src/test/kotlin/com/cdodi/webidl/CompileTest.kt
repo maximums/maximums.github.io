@@ -90,7 +90,7 @@ class CompileTest {
 
     private companion object {
         /** Fixtures the WebIDL compiler itself rejects (their golden is ERROR.txt); there is nothing to compile. */
-        val REJECTED_BY_COMPILER = setOf("unknown-types")
+        val REJECTED_BY_COMPILER = setOf("unknown-types", "circular-typedef")
 
         /** Fixtures whose generated code does not compile yet. Each entry is a known bug; remove it with the fix. */
         val KNOWN_NOT_COMPILING = setOf<String>()

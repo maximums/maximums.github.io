@@ -1,0 +1,1 @@
+IllegalStateException: Circular typedef detected: GPUFirst -> GPUSecond -> GPUFirst

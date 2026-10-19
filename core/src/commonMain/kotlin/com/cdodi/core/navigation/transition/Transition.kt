@@ -31,11 +31,20 @@ sealed interface Transition {
         val reversed: Boolean = false,
     ) : Transition
 
-    data class Sequence(val parts: List<Transition>) : Transition
+    // A composite of no parts has nothing to complete on: a race would never end and a parallel would fail on its first
+    // frame. [None] is the transition that does nothing.
 
-    data class Parallel(val parts: List<Transition>) : Transition
+    data class Sequence(val parts: List<Transition>) : Transition {
+        init { require(parts.isNotEmpty()) { "A sequence needs a part; for nothing, use Transition.None" } }
+    }
 
-    data class Race(val parts: List<Transition>) : Transition
+    data class Parallel(val parts: List<Transition>) : Transition {
+        init { require(parts.isNotEmpty()) { "A parallel transition needs a part; for nothing, use Transition.None" } }
+    }
+
+    data class Race(val parts: List<Transition>) : Transition {
+        init { require(parts.isNotEmpty()) { "A race needs a part; for nothing, use Transition.None" } }
+    }
 
     /** Plays [inner] again and again; ends when [signal] is raised at the end of a round. */
     data class RepeatUntil(val inner: Transition, val signal: Signal) : Transition

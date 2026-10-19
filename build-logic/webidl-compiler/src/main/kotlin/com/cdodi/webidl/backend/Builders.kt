@@ -23,21 +23,18 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.UNIT
 
 /**
- * An IDL interface becomes an external class (open with a constructor, abstract without) when:
+ * The interfaces generated as external classes (open with a constructor, abstract without). An IDL interface becomes
+ * one when:
  *
  * - it has a constructor, so Kotlin can construct it (`AudioContext()`);
  * - it extends a class (an external one such as EventTarget, or a generated one): a Kotlin interface can't;
  * - a class extends it. A concrete class implementing an interface would have to implement its members, and IDL
  *   inheritance is single, so the parent simply becomes a class too (`GPUError` under `GPUValidationError`).
  *
- * Otherwise it's an external interface. Union markers stay interfaces: several types implement them.
+ * The rules are applied until nothing changes. Every other interface is an external interface; union markers stay
+ * interfaces, since several types implement them. Worked out once per compilation ([generateKotlin]).
  */
-fun Descriptor.InterfaceDescriptor.isGeneratedAsClass(context: BindingContext): Boolean = name in generatedClasses(context)
-
-private val classesByContext = java.util.WeakHashMap<BindingContext, Set<String>>()
-
-/** The interfaces generated as classes ([isGeneratedAsClass]): the rules above, applied until nothing changes. */
-private fun generatedClasses(context: BindingContext): Set<String> = classesByContext.getOrPut(context) {
+fun generatedClasses(context: BindingContext): Set<String> {
     val interfaces = context[BindingSlices.INTERFACE].orEmpty().filterValues { it.unionOf.isEmpty() }
     val classes = interfaces.values.filter { descriptor ->
         descriptor.hasConstructor || descriptor.superTypes.any { context[BindingSlices.EXTERNAL_TYPE, it]?.kind == ExternalType.Kind.Class }
@@ -50,11 +47,12 @@ private fun generatedClasses(context: BindingContext): Set<String> = classesByCo
             if (descriptor.name in classes) parents.forEach { changed = classes.add(it) || changed }
         }
     } while (changed)
-    classes
+    return classes
 }
 
-fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, generatedPackageName: String, docs: Docs): TypeSpec {
-    val interfaceBuilder = if (isGeneratedAsClass(context)) {
+/** The interface as Kotlin: an external class if it's one of [classes] ([generatedClasses]), else an external interface. */
+fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, classes: Set<String>, generatedPackageName: String, docs: Docs): TypeSpec {
+    val interfaceBuilder = if (name in classes) {
         // With a constructor, `open` so it can be constructed (`AudioContext()`) and still extended; without one,
         // abstract: only the browser makes them.
         TypeSpec.classBuilder(name).addModifiers(if (hasConstructor) KModifier.OPEN else KModifier.ABSTRACT)
@@ -71,7 +69,7 @@ fun Descriptor.InterfaceDescriptor.asInterfacePoet(context: BindingContext, gene
             superName == "JsAny" -> interfaceBuilder.addSuperinterface(ClassName("kotlin.js", "JsAny"))
             external?.kind == ExternalType.Kind.Class -> interfaceBuilder.superclass(ClassName.bestGuess(external.kotlinName))
             external != null -> interfaceBuilder.addSuperinterface(ClassName.bestGuess(external.kotlinName))
-            generated?.isGeneratedAsClass(context) == true -> interfaceBuilder.superclass(ClassName(generatedPackageName, superName))
+            generated != null && superName in classes -> interfaceBuilder.superclass(ClassName(generatedPackageName, superName))
             else -> interfaceBuilder.addSuperinterface(ClassName(generatedPackageName, superName))
         }
     }
