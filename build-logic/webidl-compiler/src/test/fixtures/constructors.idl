@@ -1,4 +1,6 @@
-// An interface with a constructor becomes a class.
+// An interface with a constructor becomes a class: open, so Kotlin can construct it. A class extends its parent, so
+// the parent becomes a class too (abstract: it has no constructor), rather than an interface whose members the open
+// class would have to implement.
 interface GPUError {
     readonly attribute DOMString message;
 };

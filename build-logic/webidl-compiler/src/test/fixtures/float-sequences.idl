@@ -1,0 +1,7 @@
+// A dictionary member that is a sequence of floats (Web Audio's PeriodicWaveOptions.real, WaveShaperOptions.curve).
+// Target: the factory widens each Float to a Double before toJsNumber(), which Float doesn't have.
+dictionary PeriodicWaveOptions {
+    sequence<float> real;
+    sequence<unrestricted float> imag;
+    boolean disableNormalization = false;
+};

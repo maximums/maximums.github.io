@@ -1,0 +1,8 @@
+// A promise-returning operation with a union parameter that has no marker (Web Audio's AudioContext.setSinkId).
+// Target: one declaration per union member, and a suspend wrapper for each of them, not one taking JsAny.
+dictionary AudioSinkOptions {
+    required DOMString type;
+};
+interface AudioContext {
+    Promise<undefined> setSinkId((DOMString or AudioSinkOptions) sinkId);
+};

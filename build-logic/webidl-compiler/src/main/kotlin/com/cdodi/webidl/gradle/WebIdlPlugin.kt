@@ -12,7 +12,9 @@ class WebIdlPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         val extension = extensions.create<WebIdlExtension>("webIdl").apply {
             fileNamePrefix.convention("")
-            externalTypes.convention(ExternalType.DEFAULTS)
+            // Empty, not the defaults: a MapProperty drops its convention at the first put(), and a module that maps
+            // one type of its own would lose every default. The defaults are added when the task reads it.
+            externalTypes.convention(emptyMap())
         }
 
         val transpileTask = tasks.register<TranspileWebIdlTask>("transpileWebIdl") {
@@ -23,7 +25,7 @@ class WebIdlPlugin : Plugin<Project> {
             runtimePackage = extension.runtimePackage
             fileNamePrefix = extension.fileNamePrefix
             specUrl = extension.specUrl
-            externalTypes = extension.externalTypes
+            externalTypes = extension.externalTypes.map { ExternalType.DEFAULTS + it }
             outputDirectory = layout.buildDirectory.dir("generated/webidl/kotlin")
         }
 

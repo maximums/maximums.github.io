@@ -10,7 +10,7 @@ import kotlin.js.JsAny
 /**
  * See the [specification](https://gpuweb.github.io/gpuweb/#gpuerror).
  */
-public external interface GPUError : JsAny {
+public abstract external class GPUError : JsAny {
   /**
    * See the [specification](https://gpuweb.github.io/gpuweb/#dom-gpuerror-message).
    */
@@ -21,6 +21,6 @@ public external interface GPUError : JsAny {
  * See the [specification](https://gpuweb.github.io/gpuweb/#gpuvalidationerror).
  * Exposed to: Window, Worker.
  */
-public abstract external class GPUValidationError : GPUError {
+public open external class GPUValidationError : GPUError {
   public constructor(message: String)
 }
