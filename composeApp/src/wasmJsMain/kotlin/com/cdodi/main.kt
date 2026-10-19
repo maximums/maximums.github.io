@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -37,11 +38,13 @@ import com.cdodi.components.MorphingShape
 import com.cdodi.components.movableBodyCard
 import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.NavState
+import com.cdodi.core.time.FramePhase
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.features.about.AboutContent
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.background.FallbackPane
 import com.cdodi.features.background.QualityToggle
+import com.cdodi.features.background.SoundToggle
 import com.cdodi.features.background.StillScene
 import com.cdodi.features.boids.BoidsControls
 import com.cdodi.features.boids.BoidsDestination
@@ -129,6 +132,13 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
     val labels = MenuItem.entries.associateWith { item -> rememberMenuLabel(item, interactions.getValue(item)) { open(item.destination()) } }
     val bodyCard = movableBodyCard()
 
+    // The rain is heard through the glass: muffled behind Home's fogged window, clearer on the pages.
+    val heartbeat = LocalHeartbeat.current
+    DisposableEffect(runtime.sound, heartbeat) {
+        val subscription = heartbeat.subscribe(FramePhase.Ui) { runtime.sound.setOpenness(1f - navState.value.homeness()) }
+        onDispose(subscription::close)
+    }
+
     CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill, LocalPaneEffects provides paneEffects) {
         Box(Modifier.fillMaxSize()) {
             if (atHome && gpu is GpuStatus.Unavailable) {
@@ -156,6 +166,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
             }
 
             if (atHome) {
+                SoundToggle(runtime.sound, Modifier.align(Alignment.TopEnd).padding(top = if (layout.compact) 8.dp else 24.dp, end = layout.margin))
                 if (gpu !is GpuStatus.Unavailable) {
                     CornerHint("Choose a pane", Modifier.align(Alignment.Center).offset(y = layout.window / 2 + 60.dp))
                 }
@@ -177,7 +188,12 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                         }
                     }
                 }
-                TopBar(layout, AboutContent.NAME, onHome = { open(HomeDestination) }, solid = { navState.value.barSolidity() }) {
+                TopBar(
+                    layout, AboutContent.NAME,
+                    onHome = { open(HomeDestination) },
+                    solid = { navState.value.barSolidity() },
+                    end = { SoundToggle(runtime.sound, compact = layout.compact) },
+                ) {
                     for (item in MenuItem.entries) labels.getValue(item)(Modifier, false, item.isAt(target))
                 }
             }

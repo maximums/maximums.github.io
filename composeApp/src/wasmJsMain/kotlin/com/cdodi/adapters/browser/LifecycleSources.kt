@@ -15,6 +15,16 @@ fun followVisibility(lifecycle: LifecycleBus) {
     report()
 }
 
+/** Not in kotlinx-browser's `Document`. */
+private fun documentHasFocus(): Boolean = js("document.hasFocus()")
+
+/** Reports whether the page has the focus now, and whenever its window gains or loses it. */
+fun followFocus(lifecycle: LifecycleBus) {
+    window.addEventListener("focus", { lifecycle.send(LifecycleEvent.FocusChanged(focused = true)) })
+    window.addEventListener("blur", { lifecycle.send(LifecycleEvent.FocusChanged(focused = false)) })
+    lifecycle.send(LifecycleEvent.FocusChanged(focused = documentHasFocus()))
+}
+
 /** Reports `prefers-reduced-motion` now and whenever the user changes it. */
 fun followReducedMotion(lifecycle: LifecycleBus) {
     val query = window.matchMedia("(prefers-reduced-motion: reduce)")

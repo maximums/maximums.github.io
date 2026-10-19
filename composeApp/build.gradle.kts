@@ -49,6 +49,7 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
             implementation(projects.webgpu)
+            implementation(projects.webaudio)
         }
 
         wasmJsTest.dependencies {

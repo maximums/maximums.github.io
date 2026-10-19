@@ -31,6 +31,9 @@ object AboutContent {
         "Detekt", "Android Lint", "Robolectric", "AGSL", "GitHub Actions",
     )
 
+    /** Credits for what the site borrows; the rain's recording is CC0, so this is courtesy, not a condition. */
+    val rainCredit = ContactLink("“Light rain on street” by BonnyOrbit", "https://freesound.org/s/380651/")
+
     val links = listOf(
         ContactLink("GitHub", "https://github.com/maximums"),
         ContactLink("LinkedIn", "https://www.linkedin.com/in/cristian-dodi-4249831b5/"),

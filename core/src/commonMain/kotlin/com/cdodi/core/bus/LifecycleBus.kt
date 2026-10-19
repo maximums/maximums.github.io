@@ -8,8 +8,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/** The page as the platform reports it. */
-data class Lifecycle(val isVisible: Boolean = true, val prefersReducedMotion: Boolean = false)
+/**
+ * The page as the platform reports it. [isFocused]: the page has the keyboard focus (its window is the active one); a
+ * visible page can be unfocused, behind another window or with the focus in the address bar.
+ */
+data class Lifecycle(val isVisible: Boolean = true, val prefersReducedMotion: Boolean = false, val isFocused: Boolean = true) {
+    /** In front of the person, and theirs: visible and focused. The rain outside only falls then. */
+    val isActive: Boolean get() = isVisible && isFocused
+}
 
 sealed interface LifecycleEvent {
     data object Foreground : LifecycleEvent
@@ -17,9 +23,14 @@ sealed interface LifecycleEvent {
     data object Background : LifecycleEvent
 
     data class ReducedMotionChanged(val reduced: Boolean) : LifecycleEvent
+
+    data class FocusChanged(val focused: Boolean) : LifecycleEvent
 }
 
-/** Platform adapters (visibility, `prefers-reduced-motion`) send events; the heartbeat, scenes and navigation read the state. */
+/**
+ * Platform adapters (visibility, focus, `prefers-reduced-motion`) send events; the heartbeat, scenes, navigation and
+ * sound read the state.
+ */
 interface LifecycleBus {
     val state: StateFlow<Lifecycle>
 
@@ -37,6 +48,7 @@ class DefaultLifecycleBus(initial: Lifecycle = Lifecycle()) : LifecycleBus {
                 LifecycleEvent.Foreground -> it.copy(isVisible = true)
                 LifecycleEvent.Background -> it.copy(isVisible = false)
                 is LifecycleEvent.ReducedMotionChanged -> it.copy(prefersReducedMotion = event.reduced)
+                is LifecycleEvent.FocusChanged -> it.copy(isFocused = event.focused)
             }
         }
     }

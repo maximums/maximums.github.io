@@ -74,4 +74,18 @@ class LifecycleBusTest {
         assertEquals(0.0, ambient.elapsed)
         assertEquals(0.10, transitions.elapsed, 1e-9)
     }
+
+    @Test
+    fun activeMeansVisibleAndFocused() {
+        val lifecycle = DefaultLifecycleBus()
+        assertTrue(lifecycle.state.value.isActive)
+
+        lifecycle.send(LifecycleEvent.FocusChanged(focused = false))
+        assertEquals(Lifecycle(isFocused = false), lifecycle.state.value)
+        assertFalse(lifecycle.state.value.isActive, "visible but behind another window")
+
+        lifecycle.send(LifecycleEvent.FocusChanged(focused = true))
+        lifecycle.send(LifecycleEvent.Background)
+        assertFalse(lifecycle.state.value.isActive, "focused but hidden")
+    }
 }

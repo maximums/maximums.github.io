@@ -126,6 +126,17 @@ private fun ColumnScope.Content(compact: Boolean) {
         }
     }
     Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = Fog, modifier = Modifier.padding(top = 10.dp))
+    Text(
+        buildAnnotatedString {
+            append("The rain you can turn on is ")
+            withLink(LinkAnnotation.Url(AboutContent.rainCredit.url, TextLinkStyles(SpanStyle(color = Lamp, textDecoration = TextDecoration.Underline)))) {
+                append(AboutContent.rainCredit.label)
+            }
+            append(", from Freesound (CC0).")
+        },
+        style = type.small,
+        color = Fog,
+    )
 }
 
 /** A label over a group (DESIGN.md's Label), in Parchment to head a section. */
