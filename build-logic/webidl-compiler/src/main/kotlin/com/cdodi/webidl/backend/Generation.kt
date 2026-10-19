@@ -50,8 +50,9 @@ fun generateKotlin(
         enumDesc.enumValues(generatedPackageName).forEach(enums::addProperty)
     }
 
+    val classes = generatedClasses(context)
     context[BindingSlices.INTERFACE]?.values?.forEach { interfaceDesc ->
-        interfaces.addType(interfaceDesc.asInterfacePoet(context, generatedPackageName, docs))
+        interfaces.addType(interfaceDesc.asInterfacePoet(context, classes, generatedPackageName, docs))
         interfaceDesc.suspendWrappers(context, generatedPackageName, runtimePackage).forEach(suspendWrappers::addFunction)
     }
 

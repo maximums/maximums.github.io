@@ -21,7 +21,11 @@ import com.cdodi.webgpu.bindings.GPUTextureUsage
 import com.cdodi.webgpu.bindings.GPUTextureView
 import com.cdodi.webgpu.context.GpuContext
 import kotlinx.browser.window
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
@@ -46,6 +50,9 @@ import kotlinx.coroutines.launch
  * [glass] compositor on its way to the canvas.
  *
  * A failure while drawing closes the host and is reported to [onFailure] instead of propagating.
+ *
+ * Closing it ends everything it started: the scenes, effects and glass still preparing (in its own child of [scope]),
+ * and the `sceneReady` signals it raised, so a host started after it (a new device) is waited for again.
  */
 class SceneHost(
     private val gpu: GpuContext,
@@ -56,7 +63,7 @@ class SceneHost(
     private val scenes: SceneRegistry,
     private val effects: List<GpuEffectRenderer>,
     private val input: InputState,
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
     private val profiler: GpuProfiler?,
     private val glass: GlassCompositor,
     private val onFailure: (Throwable) -> Unit,
@@ -67,7 +74,10 @@ class SceneHost(
     private val readyEffects = mutableSetOf<GpuEffectRenderer>()
     private val encodedThisFrame = mutableSetOf<Scene>()
     private val sceneSubscriptions = mutableListOf<Subscription>()
+    private val raised = mutableSetOf<Signal>()
     private var offscreen: Offscreen? = null
+    private val job = SupervisorJob(scope.coroutineContext[Job])
+    private val work = CoroutineScope(scope.coroutineContext + job)
 
     private var isClosed = false
     private val renderSubscription = heartbeat.subscribe(FramePhase.Render) { frame ->
@@ -83,13 +93,15 @@ class SceneHost(
     }
 
     init {
-        scope.launch {
+        work.launch {
             glass.prepare(gpu, canvas.format)
+            ensureActive()
             glass.resize(canvas.width, canvas.height, blurLevels())
         }
         for (effect in effects) {
-            scope.launch {
+            work.launch {
                 effect.prepare(gpu, canvas.format)
+                ensureActive()
                 effect.resize(canvas.width, canvas.height)
                 readyEffects += effect
             }
@@ -161,20 +173,27 @@ class SceneHost(
         }
     }
 
-    private fun prepare(scene: Scene) = scope.launch {
+    private fun prepare(scene: Scene) = work.launch {
         try {
             scene.prepare(gpu, canvas.format)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             // The scene stays Night; edges waiting on it give up at their timeout.
             println("Scene ${scenes.routesOf(scene)} failed to prepare: ${e.message}")
             return@launch
         }
+        ensureActive()
         scene.resize(canvas.width, canvas.height)
         ready += scene
         sceneSubscriptions += scene.clock.subscribe(FramePhase.Simulation) { frame ->
             if (isVisible(scene)) scene.update(frame, input)
         }
-        scenes.routesOf(scene).forEach { signals.raise(Signal.sceneReady(it)) }
+        for (route in scenes.routesOf(scene)) {
+            val signal = Signal.sceneReady(route)
+            raised += signal
+            signals.raise(signal)
+        }
     }
 
     private fun isVisible(scene: Scene): Boolean = when (val nav = navigation.value) {
@@ -196,6 +215,8 @@ class SceneHost(
     override fun close() {
         if (isClosed) return
         isClosed = true
+        job.cancel()
+        raised.forEach(signals::lower)
         renderSubscription.close()
         sceneSubscriptions.forEach { it.close() }
         offscreen?.close()

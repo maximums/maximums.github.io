@@ -280,30 +280,36 @@ private fun Pane(
             // A pane only answers inside its triangle: the quadrants' other halves belong to the rhombus. While it
             // dissolves (no words on it), it doesn't answer at all.
             .then(if (labels == null) Modifier else Modifier.pointerInput(item) {
-                awaitPointerEventScope {
-                    var hover: HoverInteraction.Enter? = null
-                    var pressedInside = false
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val change = event.changes.firstOrNull() ?: continue
-                        val inside = inTriangle(change.position, size.width.toFloat(), item.corner)
-                        if (event.type == PointerEventType.Exit || !inside) {
-                            hover?.let { interaction.tryEmit(HoverInteraction.Exit(it)) }
-                            hover = null
-                        } else if (hover == null) {
-                            hover = HoverInteraction.Enter().also { interaction.tryEmit(it) }
-                        }
-                        when (event.type) {
-                            PointerEventType.Press -> pressedInside = inside
-                            PointerEventType.Release -> {
-                                if (pressedInside && inside) {
-                                    change.consume()
-                                    currentOnOpen()
+                var hover: HoverInteraction.Enter? = null
+                try {
+                    awaitPointerEventScope {
+                        var pressedInside = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull() ?: continue
+                            val inside = inTriangle(change.position, size.width.toFloat(), item.corner)
+                            if (event.type == PointerEventType.Exit || !inside) {
+                                hover?.let { interaction.tryEmit(HoverInteraction.Exit(it)) }
+                                hover = null
+                            } else if (hover == null) {
+                                hover = HoverInteraction.Enter().also { interaction.tryEmit(it) }
+                            }
+                            when (event.type) {
+                                PointerEventType.Press -> pressedInside = inside
+                                PointerEventType.Release -> {
+                                    if (pressedInside && inside) {
+                                        change.consume()
+                                        currentOnOpen()
+                                    }
+                                    pressedInside = false
                                 }
-                                pressedInside = false
                             }
                         }
                     }
+                } finally {
+                    // Cancelled with the pointer still over the pane (a transition takes the words away): the pane
+                    // isn't hovered any more, or it would still be lit on the way back.
+                    hover?.let { interaction.tryEmit(HoverInteraction.Exit(it)) }
                 }
             }),
     ) {

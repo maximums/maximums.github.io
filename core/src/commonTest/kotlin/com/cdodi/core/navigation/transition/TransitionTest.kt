@@ -6,6 +6,7 @@ import com.cdodi.core.navigation.signal.MutableSignals
 import com.cdodi.core.navigation.signal.Signal
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -22,6 +23,16 @@ class TransitionTest {
     private fun TransitionRunner.progressOf(id: String): Float? = effects().single { it.effect.id == id }.progress
 
     private fun TransitionRunner.shown() = effects().map { it.effect.id to it.progress }
+
+    @Test
+    fun aCompositeOfNothingIsRejectedWhenItsBuilt() {
+        // Played, an empty race would never end, an empty parallel or All would fail, and an empty AnyOf would hang.
+        assertFailsWith<IllegalArgumentException> { Transition.Sequence(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { Transition.Parallel(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { Transition.Race(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { Completion.All(emptyList()) }
+        assertFailsWith<IllegalArgumentException> { Completion.AnyOf(emptyList()) }
+    }
 
     @Test
     fun timeBasedProgressFollowsTheEasing() {

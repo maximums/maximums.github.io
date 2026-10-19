@@ -1,0 +1,7 @@
+// Typedefs that refer to each other in a circle can't be resolved.
+// Target: an error naming the circle.
+typedef GPUSecond GPUFirst;
+typedef GPUFirst GPUSecond;
+dictionary GPUThing {
+    required GPUFirst value;
+};

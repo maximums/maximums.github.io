@@ -1,0 +1,18 @@
+// A union inside a union (written out, or through a typedef), and a sequence of sequences.
+// Target: the inner union is flattened into the outer one's marker; the sequence is an array of arrays.
+// These once stopped the compiler with "Circular typedef detected: union -> union".
+interface GPUSampler {
+};
+interface GPUTextureView {
+};
+interface GPUBuffer {
+};
+typedef (GPUTextureView or GPUBuffer) GPUViewOrBuffer;
+dictionary GPUBinding {
+    required (GPUSampler or (GPUTextureView or GPUBuffer)) resource;
+    required (GPUSampler or GPUViewOrBuffer) viaTypedef;
+    required sequence<sequence<unsigned long>> grid;
+};
+interface GPUBinder {
+    undefined bind((GPUSampler or GPUViewOrBuffer) resource);
+};
