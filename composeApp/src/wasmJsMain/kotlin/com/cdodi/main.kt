@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.LookaheadScope
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ComposeViewport
 import com.cdodi.adapters.compose.HeartbeatDriver
 import com.cdodi.adapters.compose.LocalGpuWidgets
@@ -60,7 +59,6 @@ import com.cdodi.shell.AppRoot
 import com.cdodi.shell.AppRuntime
 import com.cdodi.shell.Caption
 import com.cdodi.shell.Colophon
-import com.cdodi.shell.CornerHint
 import com.cdodi.shell.GpuStatus
 import com.cdodi.shell.HomeWindow
 import com.cdodi.shell.LocalMenuLayout
@@ -69,6 +67,7 @@ import com.cdodi.shell.MenuItem
 import com.cdodi.shell.MenuLayout
 import com.cdodi.shell.PaneEffects
 import com.cdodi.shell.TopBar
+import com.cdodi.ui.components.CornerHint
 import com.cdodi.shell.WelcomeWords
 import com.cdodi.shell.bootstrap
 import com.cdodi.shell.rememberMenuLabel
@@ -155,7 +154,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                     labels = if (atHome) { item, modifier -> labels.getValue(item)(modifier, true, false) } else null,
                     onOpen = { open(it.destination()) },
                     alpha = homeness,
-                    modifier = Modifier.align(Alignment.Center),
+                    modifier = Modifier.align(Alignment.Center).offset(y = layout.windowOffset),
                 ) {
                     if (atHome) {
                         bodyCard(Modifier.size(layout.rhombus).align(Alignment.Center), MorphingShape.Rhombus, false) {
@@ -166,11 +165,12 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
             }
 
             if (atHome) {
-                SoundToggle(runtime.sound, Modifier.align(Alignment.TopEnd).padding(top = if (layout.compact) 8.dp else 24.dp, end = layout.margin))
+                SoundToggle(runtime.sound, Modifier.align(Alignment.TopEnd).padding(top = layout.toggleTop, end = layout.margin))
                 if (gpu !is GpuStatus.Unavailable) {
-                    CornerHint("Choose a pane", Modifier.align(Alignment.Center).offset(y = layout.window / 2 + 60.dp))
+                    layout.hintDrop?.let { CornerHint("Choose a pane", Modifier.align(Alignment.Center).offset(y = it)) }
+                    // A phone, or a phone on its side, has no room for it.
+                    if (!layout.compact && !layout.short) Colophon(Modifier.align(Alignment.BottomStart).padding(start = layout.margin, bottom = layout.toggleBottom))
                 }
-                if (!layout.compact && gpu !is GpuStatus.Unavailable) Colophon(Modifier.align(Alignment.BottomStart).padding(start = layout.margin, bottom = 36.dp))
             } else {
                 bodyCard(Modifier.fillMaxSize().padding(top = layout.pageTop), MorphingShape.Rectangle, true) {
                     NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
@@ -205,7 +205,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
             }
 
             if (gpu is GpuStatus.Running && atHome) {
-                QualityToggle(runtime.background, runtime.gpuTimings, Modifier.align(Alignment.BottomEnd).padding(end = layout.margin, bottom = if (layout.compact) 12.dp else 36.dp))
+                QualityToggle(runtime.background, runtime.gpuTimings, Modifier.align(Alignment.BottomEnd).padding(end = layout.margin, bottom = layout.toggleBottom))
             }
         }
     }

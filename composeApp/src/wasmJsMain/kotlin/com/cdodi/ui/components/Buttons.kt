@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.cdodi.ui.theme.Autumn
 import com.cdodi.ui.theme.AutumnColors.Hairline
@@ -126,4 +127,10 @@ fun RoundButton(icon: ImageVector, description: String, onClick: () -> Unit, mod
 @Composable
 fun Label(text: String, modifier: Modifier = Modifier, color: Color = com.cdodi.ui.theme.AutumnColors.Fog) {
     Text(text.uppercase(), style = Autumn.type.label, color = color, maxLines = 1, modifier = modifier)
+}
+
+/** A hint in a corner: spaced-out mono capitals (DESIGN.md §8). Where it wraps, its lines keep to [textAlign]. */
+@Composable
+fun CornerHint(text: String, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
+    Text(text.uppercase(), style = Autumn.type.hint, color = com.cdodi.ui.theme.AutumnColors.Fog, textAlign = textAlign, modifier = modifier)
 }

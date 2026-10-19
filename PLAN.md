@@ -602,6 +602,19 @@ DESIGN.md and its canvas made real: the site's own type and colour, glass panes,
 > - The flight to About at 1366×650: no jump at the start.
 > - The Boids and Life panels at 1280×600, scrolled with the wheel, and the phone panel scrolled with a swipe.
 
+Then, after a code review of the first pass (four reviewers, without its context):
+
+- [x] **One scaling for all of Home's window.** The frame, the drops, the panes' gaps and the words are all laid out at the design size inside one `AtDesignScale`. Before, some were scaled by density, some by hand and some not at all. `AtPageScale` steps back out for what flies to the pages, so `PaneWords` is one function again, with no density passed down.
+- [x] **The scale has a floor and a ceiling.** Home's window is designed twice (`HomeDesign.Large`, the mockup's 558 dp, and `Small`, a phone's 358 dp). The large design is drawn from 0.75 to 1.5 of its size; a smaller window gets the small one. Type never goes under 0.75 of its size (`textScale`, through `fontScale`), so a tiny window or browser zoom can't shrink it to 5 dp. On a landscape phone the window takes the height above the quality toggle, at 0.8 to 0.95 of the small design instead of 0.43 of the large one.
+- [x] **The viewport is one value, provided at the root** (`Viewport`, `LocalViewport`). It has Material's size classes on both axes, `vw`/`vh`, and fluid sizes: the gutters and the top bar's gaps are the mockups' at 1,440 dp, narrowing to 24 dp. The layout is computed from it once, not re-derived from whatever density is current. The old unused `vw`/`vh` helpers are gone.
+- [x] **Between 600 and 1,000 dp wide, nothing collides.**
+  - The top bar keeps its words centred but a gap away from the brand and the toggle, and shows the name only from 840 dp.
+  - The scene pages share a `SceneOverlay`: the GPU readout joins the panel where the two don't fit side by side, and the hint wraps rather than run into the readout.
+  - Home's corner marks stay on screen on a phone.
+- [x] `MenuLayoutTest`: the layout over 21 screens, from a 4-inch phone on its side to 4K. It checks the scale range, which design is used, that the window and its marks fit, that the window grows without jumps across every width, and the gutters.
+
+> **Notes.** Checked in headless Chrome against the review's estimates, before and after: Home, Boids and Life at 1024×640, 900×700, 768×1024 and 844×390; Home hovered at 844×390, 667×375 and 1024×640; Home on a 390×844 phone; the three pages at 1440×900, unchanged; and the flight to About and back at 1024×640.
+
 ## Phase 9 — Stretch goals (pick any)
 
 - **WGSL struct → Kotlin layout generator**: parse the `struct` blocks of the `.wgsl` files (a second ANTLR grammar), compute offsets with WGSL alignment rules, and generate Kotlin writers for uniform and storage buffers. This rules out alignment bugs, the most common WebGPU bug, and reuses your compiler toolkit.

@@ -32,9 +32,9 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.features.about.AboutContent
-import com.cdodi.shell.LocalMenuLayout
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.theme.Autumn
+import com.cdodi.ui.theme.LocalViewport
 
 // DESIGN.md tokens.
 private val Night = Color(0xFF0D1013)
@@ -49,7 +49,7 @@ private val Lamp = Color(0xFFD8A15A)
  */
 @Composable
 fun AboutPage() {
-    if (LocalMenuLayout.current.compact) {
+    if (LocalViewport.current.compact) {
         Column(Modifier.fillMaxSize()) {
             Sphere(Modifier.fillMaxWidth().weight(0.38f))
             Words(Modifier.fillMaxWidth().weight(0.62f), compact = true)

@@ -49,7 +49,7 @@ import com.cdodi.notes.formatDate
 import com.cdodi.notes.plainText
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.theme.Autumn
-import com.cdodi.shell.LocalMenuLayout
+import com.cdodi.ui.theme.LocalViewport
 import kotlinx.browser.window
 
 // DESIGN.md tokens.
@@ -91,7 +91,7 @@ fun NotesPage(slug: String?, open: (NotesDestination) -> Unit) {
 /** A column of reading width, centred, scrolling, on its reading ground. */
 @Composable
 private fun Reading(scrollKey: Any?, content: @Composable () -> Unit) {
-    val compact = LocalMenuLayout.current.compact
+    val compact = LocalViewport.current.compact
     val scroll = rememberScrollState()
     LaunchedEffect(scrollKey) { scroll.scrollTo(0) }
     Box(Modifier.fillMaxSize().verticalScroll(scroll), contentAlignment = Alignment.TopCenter) {
@@ -109,7 +109,7 @@ private fun Reading(scrollKey: Any?, content: @Composable () -> Unit) {
 
 @Composable
 private fun NoteList(notes: List<Note>, open: (NotesDestination) -> Unit) {
-    val compact = LocalMenuLayout.current.compact
+    val compact = LocalViewport.current.compact
     Reading(scrollKey = null) {
         Text("Notes", style = Autumn.type.display.copy(fontSize = if (compact) 48.sp else 72.sp, lineHeight = if (compact) 48.sp else 72.sp), color = Parchment)
         Text("How the site behind this glass is built.", style = Body.copy(color = Fog), modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
@@ -130,7 +130,7 @@ private fun NoteList(notes: List<Note>, open: (NotesDestination) -> Unit) {
 
 @Composable
 private fun NoteView(note: Note, open: (NotesDestination) -> Unit) {
-    val compact = LocalMenuLayout.current.compact
+    val compact = LocalViewport.current.compact
     Reading(scrollKey = note.slug) {
         Text(
             "ALL NOTES",
