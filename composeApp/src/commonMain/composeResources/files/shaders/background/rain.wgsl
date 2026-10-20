@@ -13,9 +13,6 @@ struct Frame {
 @group(0) @binding(1) var smoothSampler: sampler;
 @group(0) @binding(2) var<uniform> frame: Frame;
 
-const NEAR = vec3f(222.0, 228.0, 230.0) / 255.0;
-const FAR = vec3f(200.0, 210.0, 214.0) / 255.0;
-const NIGHT = vec3f(8.0, 10.0, 12.0) / 255.0;
 const DEGREES = 0.017453292;
 
 struct Out {
@@ -70,12 +67,12 @@ fn fs(in: Out) -> @location(0) vec4f {
         + rain(p, vec2f(29.0, 120.0), 16.0, 1.0, 171.0, 8.0 * DEGREES, t, 7.0) * 0.24;
     let far = rain(p, vec2f(23.0, 110.0), 12.0, 1.0, 100.0, 5.0 * DEGREES, t, 11.0) * 0.22
         + rain(p, vec2f(37.0, 120.0), 9.0, 1.0, 109.0, 5.0 * DEGREES, t, 13.0) * 0.16;
-    colour = mix(colour, FAR, clamp(far * 0.85 * glint, 0.0, 1.0));
-    colour = mix(colour, NEAR, clamp(near * 0.85 * glint, 0.0, 1.0));
+    colour = mix(colour, theme.fallingFar.rgb, clamp(far * 0.85 * glint, 0.0, 1.0));
+    colour = mix(colour, theme.fallingNear.rgb, clamp(near * 0.85 * glint, 0.0, 1.0));
 
     // The vignette: clear in the middle, Night at 75 % at the far corners.
     let edge = length((in.uv - vec2f(0.5, 0.45)) / vec2f(0.75, 0.7));
-    colour = mix(colour, NIGHT, 0.75 * clamp((edge - 0.55) / 0.45, 0.0, 1.0));
+    colour = mix(colour, theme.shade.rgb, 0.75 * clamp((edge - 0.55) / 0.45, 0.0, 1.0));
 
     // Dither: half a step of noise, so slow dark gradients don't show bands.
     colour += (hash2(in.position.xy) - 0.5) / 255.0;

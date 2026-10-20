@@ -5,6 +5,8 @@
 // It's drawn at the viewer's quality (a quarter, half or all of the pixels): it's all soft. The rain, the vignette
 // and the dither come at full resolution, in rain.wgsl.
 //
+// The colours are the theme's (common/theme.wgsl): its sky, its street lights by kind, its fog.
+//
 // Positions are in the study's 1440 × 900 space: the viewport shows it at the same height, centred, so a wider window
 // sees more street at the sides. A tall window would see only the middle, with the lamps cut off at its sides, so
 // there the street is drawn narrower: positions move in towards the middle, the lights keep their size and shape.
@@ -17,7 +19,7 @@ struct Uniforms {
 
 struct Light {
     place: vec4f,    // x, y, size (study px), blur (study px)
-    colour: vec4f,   // rgb, alpha at the rim
+    look: vec4f,     // x: its kind, which of theme.lights it is; w: alpha at the rim
     extra: vec4f,    // x: breath delay (s), y: 1 if the wet road reflects it
 }
 
@@ -25,8 +27,6 @@ struct Light {
 @group(0) @binding(1) var<storage, read> lights: array<Light>;
 
 const STUDY = vec2f(1440.0, 900.0);
-const AMBER = vec3f(216.0, 161.0, 90.0) / 255.0;
-const FOG = vec3f(170.0, 178.0, 180.0) / 255.0;
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
@@ -38,12 +38,12 @@ fn over(base: vec3f, colour: vec3f, alpha: f32) -> vec3f {
     return mix(base, colour, clamp(alpha, 0.0, 1.0));
 }
 
-// The sky: #0A0D10 at the top, #10151A by the middle, #171613 and #1E1812 towards the ground.
+// The sky: the theme's four stops, from the top down to the ground.
 fn sky(y: f32) -> vec3f {
-    let c0 = vec3f(10.0, 13.0, 16.0) / 255.0;
-    let c1 = vec3f(16.0, 21.0, 26.0) / 255.0;
-    let c2 = vec3f(23.0, 22.0, 19.0) / 255.0;
-    let c3 = vec3f(30.0, 24.0, 18.0) / 255.0;
+    let c0 = theme.sky[0].rgb;
+    let c1 = theme.sky[1].rgb;
+    let c2 = theme.sky[2].rgb;
+    let c3 = theme.sky[3].rgb;
     if (y < 0.48) {
         return mix(c0, c1, y / 0.48);
     }
@@ -119,10 +119,11 @@ fn fs(@builtin(position) frag: vec4f) -> @location(0) vec4f {
 
     // Lamplight on the wet ground, low in the middle.
     let glow = length((p - vec2f(720.0, 900.0)) / vec2f(864.0 / narrow, 266.0));
-    colour = over(colour, AMBER, 0.16 * (1.0 - clamp(glow / 0.7, 0.0, 1.0)));
+    colour = over(colour, theme.lights[0].rgb, 0.16 * (1.0 - clamp(glow / 0.7, 0.0, 1.0)));
 
     for (var i = 0u; i < arrayLength(&lights); i++) {
         let light = lights[i];
+        let tint = theme.lights[u32(light.look.x)].rgb;
         let breath = pingPong(t + light.extra.x, 14.0);
         let radius = light.place.z * 0.5 * (0.97 + 0.06 * breath);
         let shown = 0.6 + 0.4 * breath;
@@ -130,7 +131,7 @@ fn fs(@builtin(position) frag: vec4f) -> @location(0) vec4f {
         let centre = vec2f(narrowed(light.place.x, narrow), light.place.y);
         let r = length(p - centre) / radius;
         if (r < 1.0 + softness) {
-            colour = over(colour, light.colour.rgb, disc(r, softness, light.colour.a) * shown);
+            colour = over(colour, tint, disc(r, softness, light.look.w) * shown);
         }
         // Car lights are low over the road: the wet asphalt stretches each into a faint, rippling column below it.
         if (light.extra.y > 0.5) {
@@ -138,7 +139,7 @@ fn fs(@builtin(position) frag: vec4f) -> @location(0) vec4f {
             let column = 1.0 - smoothstep(0.0, 1.0, length(q));
             if (column > 0.0) {
                 let ripple = 0.75 + 0.25 * sin(p.y * 0.3 + t * 1.1 + light.extra.x * 3.0);
-                colour = over(colour, light.colour.rgb, light.colour.a * 0.22 * column * ripple * shown);
+                colour = over(colour, tint, light.look.w * 0.22 * column * ripple * shown);
             }
         }
     }
@@ -149,7 +150,7 @@ fn fs(@builtin(position) frag: vec4f) -> @location(0) vec4f {
     fog += fogBank(p, vec4f(200.0, 620.0, 1300.0, 320.0), 30.0, t, narrow);
     fog += fogBank(p, vec4f(900.0, 60.0, 900.0, 300.0), 9.0, t, narrow) * 0.6;
     let texture = 0.55 + 0.9 * fbm(p * 0.0035 + vec2f(t * 0.008, t * 0.0025));
-    colour = over(colour, FOG, fog * 0.8 * texture);
+    colour = over(colour, theme.streetFog.rgb, fog * 0.8 * texture);
 
     return vec4f(colour, 1.0);
 }

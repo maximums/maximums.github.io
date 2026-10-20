@@ -10,6 +10,7 @@ import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.Clock
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Frame
+import com.cdodi.design.theme.AutumnTheme
 import com.cdodi.webgpu.bindings.GPUCommandEncoder
 import com.cdodi.webgpu.bindings.GPUTextureFormat
 import com.cdodi.webgpu.bindings.GPUTextureView
@@ -64,7 +65,7 @@ class SceneHostTest {
     private var failure: Throwable? = null
     private var now = 0L
 
-    private fun host(gpu: GpuContext, scope: CoroutineScope) = SceneHost(
+    private suspend fun host(gpu: GpuContext, scope: CoroutineScope) = SceneHost(
         gpu = gpu,
         canvas = GpuCanvas(document.createElement("canvas") as HTMLCanvasElement, gpu),
         heartbeat = heartbeat,
@@ -76,6 +77,7 @@ class SceneHostTest {
         scope = scope,
         profiler = null,
         glass = GlassCompositor(GpuWidgets()),
+        theme = GpuTheme.create(gpu) { AutumnTheme },
         onFailure = { failure = it },
     )
 

@@ -77,16 +77,40 @@ data class GlassTokens(
     val barBottom: Color,
 )
 
-/** The scene's colours where Compose draws it: the still street, for a browser without WebGPU. */
+/**
+ * The scenes' colours, as the GPU draws them (the street, the rain, the fog, Life, the flock; through the theme's
+ * uniform buffer) and as Compose draws the still street for a browser without WebGPU. What differs in kind between
+ * themes (rain or snow, how it falls) is a scene of its own, not a token.
+ */
 @Immutable
 data class SceneTokens(
-    /** The sky's four stops, from the top down, as the street's shader has them. */
+    /** The sky's four stops, from the top down. */
     val sky: List<Color>,
-    /** The street's light, pooled low in the middle. */
-    val light: Color,
+    /** The street's lamps; their light also pools on the ground in the middle. */
+    val lamps: Color,
+    /** The cars' tail lights, low on one side. */
+    val tailLights: Color,
+    /** The cars' head lights, low on the other. */
+    val headLights: Color,
+    /** A few distant windows. */
+    val windows: Color,
+    /** The fog banks drifting over the street. */
+    val streetFog: Color,
+    /** The fog that rolls over a scene between pages, and the flock's fog bank. */
+    val fog: Color,
+    /** What falls past the glass, near and far (rain streaks, in autumn). */
+    val fallingNear: Color,
+    val fallingFar: Color,
     /** The dark the corners fall into (the vignette). */
     val shade: Color,
+    /** Life's oldest cells, cooling from heat to nothing. */
+    val ash: Color,
+    /** The flock's birds against the fog. */
+    val figure: Color,
 ) {
+    /** The street's lights by kind, in this order: lamps, tail lights, head lights, windows. */
+    val lights: List<Color> get() = listOf(lamps, tailLights, headLights, windows)
+
     init {
         require(sky.size == 4) { "The sky has four stops, from the top down" }
     }

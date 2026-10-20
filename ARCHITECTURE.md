@@ -240,6 +240,7 @@ com.cdodi
 │   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
 │   │                        GpuWidgets (elements the scene draws behind, and the glass panes) · draws in a microtask,
 │   │                        after Compose's layout · GlassCompositor (frame texture → dual Kawase blur → panes)
+│   │                        GpuTheme (the theme's colours in one uniform buffer, group 1, written when it changes)
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   ├── audio/               AmbientSound (the rain: endless by crossfaded passes, low-passed through the glass,
@@ -251,7 +252,8 @@ com.cdodi
     ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
     ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
     ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top)
-    │                        StreetLights (the design study's lights, by its own seeded generator) · BackgroundSettings
+    │                        StreetLights (the design study's lights, by its own seeded generator; their colours are
+    │                        the theme's, by kind) · BackgroundSettings
     │                        QualityToggle · SoundToggle · StillScene (the same street, still and dimmed, without WebGPU)
     ├── life/                LifeDestination(rule) · LifeSimulation (compute: ping-pong, rule masks, population readback)
     │                        LifeScene (embers render pass, zoom/pan/draw) · LifeController · LifeControls
@@ -264,7 +266,7 @@ com.cdodi
         └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
 
 composeResources/files/
-├── shaders/common/          scan.wgsl
+├── shaders/common/          scan.wgsl · theme.wgsl (struct Theme: the colours every scene draws in)
 ├── shaders/background/      street.wgsl (sky, lights, wet-road reflections, fog) · rain.wgsl (upscale + rain, vignette,
 │                            dither) · widgets.wgsl (effects behind UI elements: the sphere)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
@@ -314,7 +316,7 @@ flowchart TB
 - `design` (`:design-system`) → Compose only. No `core`, no GPU, no app state: the build enforces it.
 - `core` → nothing in the project.
 
-Colours have a rule of their own: they come from the theme. `checkThemeTokens` (a root task, over both modules) fails on a colour written anywhere outside the design system's `theme` package (`Color(0x…)`, `Color(r, g, b)`).
+Colours have a rule of their own: they come from the theme. `checkThemeTokens` (a root task, over both modules and the shaders) fails on a colour written anywhere outside the design system's `theme` package: `Color(0x…)` or `Color(r, g, b)` in Kotlin, `vec3f(r, g, b) / 255` in a shader. The shaders read the theme's colours from one uniform buffer, `struct Theme` in `common/theme.wgsl`, which `GpuTheme` writes whenever the theme changes.
 
 The design system is a module of its own, so the build keeps it from depending on the app: what it needs from the app comes through its ports, `GlassSink` (the GPU layer blurs the street behind the panes; `GpuWidgets` implements it) and `MotionClock` (UI motion on the heartbeat's `ui` clock, `Clock.asMotionClock()`), both provided by `main.kt`. Inside `:composeApp` the compiler can't enforce the other rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than `shell`, `features` and `adapters` appears. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
 

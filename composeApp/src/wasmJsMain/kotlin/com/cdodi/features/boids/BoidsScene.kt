@@ -3,6 +3,7 @@ package com.cdodi.features.boids
 import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
 import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.adapters.gpu.Scene
 import com.cdodi.adapters.input.InputState
 import com.cdodi.core.time.Clock
@@ -38,9 +39,9 @@ import com.cdodi.webgpu.bindings.auto
 import com.cdodi.webgpu.bindings.clear
 import com.cdodi.webgpu.bindings.discard
 import com.cdodi.webgpu.context.GpuContext
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.shader.compileShader
 import kotlin.math.exp
 import kotlin.math.max
@@ -57,6 +58,7 @@ import kotlin.math.sqrt
 class BoidsScene(
     override val clock: Clock,
     private val controller: BoidsController,
+    private val theme: GpuTheme,
     private val profiler: GpuProfiler? = null,
 ) : Scene {
 
@@ -67,6 +69,8 @@ class BoidsScene(
     private lateinit var birdPipeline: GPURenderPipeline
     private lateinit var viewBuffer: GPUBuffer
     private lateinit var fogGroup: GPUBindGroup
+    private lateinit var fogTheme: GPUBindGroup
+    private lateinit var birdTheme: GPUBindGroup
     private lateinit var format: GPUTextureFormat
     private val birdGroups = mutableMapOf<GPUBuffer, GPUBindGroup>()
 
@@ -93,9 +97,11 @@ class BoidsScene(
             Res.readBytes("files/shaders/common/scan.wgsl").decodeToString(),
             capacity = INITIAL_CAPACITY,
         )
-        val module = gpu.compileShader(Res.readBytes("files/shaders/boids/render.wgsl").decodeToString(), label = "boids render")
+        val module = gpu.compileShader(theme.shader(Res.readBytes("files/shaders/boids/render.wgsl").decodeToString()), label = "boids render")
         fogPipeline = pipeline(module, "fogVertex", "fogFragment", "fog bank")
         birdPipeline = pipeline(module, "birdVertex", "birdFragment", "birds")
+        fogTheme = theme.bindGroup(fogPipeline.getBindGroupLayout(GpuTheme.GROUP))
+        birdTheme = theme.bindGroup(birdPipeline.getBindGroupLayout(GpuTheme.GROUP))
         viewBuffer = resources.buffer(
             GPUBufferDescriptor(size = (view.size * Float.SIZE_BYTES).toDouble(), usage = GPUBufferUsage.UNIFORM or GPUBufferUsage.COPY_DST, label = "boids view")
         )
@@ -171,9 +177,11 @@ class BoidsScene(
         ).apply {
             setPipeline(fogPipeline)
             setBindGroup(0, fogGroup)
+            setBindGroup(GpuTheme.GROUP, fogTheme)
             draw(3)
             setPipeline(birdPipeline)
             setBindGroup(0, birdGroupFor(simulation.current))
+            setBindGroup(GpuTheme.GROUP, birdTheme)
             draw(3, simulation.count)
             end()
         }

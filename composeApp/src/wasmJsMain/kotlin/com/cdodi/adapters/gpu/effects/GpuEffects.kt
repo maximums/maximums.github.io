@@ -1,5 +1,6 @@
 package com.cdodi.adapters.gpu.effects
 
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.core.navigation.effect.Effect
 import com.cdodi.core.navigation.effect.EffectRegistry
 import com.cdodi.core.navigation.effect.EffectState
@@ -36,7 +37,7 @@ interface GpuEffectRenderer : AutoCloseable {
  */
 object GpuEffects : EffectRegistry {
 
-    fun renderers(): List<GpuEffectRenderer> = listOf(FogEffect())
+    fun renderers(theme: GpuTheme): List<GpuEffectRenderer> = listOf(FogEffect(theme))
 
     private val ids = FogEffect.IDS
 

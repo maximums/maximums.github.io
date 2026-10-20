@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
  * [GpuWidgets]) where they were a frame ago, visibly trailing a card that's moving. The microtask runs once Compose has
  * laid out and drawn the same frame, and both canvases still show in the same browser frame.
  *
+ * Every frame starts by writing the [theme]'s colours, if the theme has changed, for the shaders that draw in them.
+ *
  * Glass panes that Compose reports need the scene behind them blurred: while any is showing, the frame goes through the
  * [glass] compositor on its way to the canvas.
  *
@@ -66,6 +68,7 @@ class SceneHost(
     scope: CoroutineScope,
     private val profiler: GpuProfiler?,
     private val glass: GlassCompositor,
+    private val theme: GpuTheme,
     private val onFailure: (Throwable) -> Unit,
 ) : AutoCloseable {
 
@@ -109,6 +112,7 @@ class SceneHost(
     }
 
     private fun render(frame: Frame) {
+        theme.update()
         val nav = navigation.value
         prepareScenesFor(nav)
         if (canvas.applyPendingSize()) onResize()
@@ -155,7 +159,7 @@ class SceneHost(
             scene.encode(encoder, target)
             encodedThisFrame += scene
         } else {
-            FullscreenPass.clear(encoder, target)
+            FullscreenPass.clear(encoder, target, theme.ground)
         }
     }
 
@@ -221,6 +225,7 @@ class SceneHost(
         sceneSubscriptions.forEach { it.close() }
         offscreen?.close()
         glass.close()
+        theme.close()
         scenes.all.forEach { it.close() }
         effects.forEach { it.close() }
         profiler?.close()

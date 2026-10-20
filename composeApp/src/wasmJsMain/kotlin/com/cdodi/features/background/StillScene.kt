@@ -33,13 +33,13 @@ fun StillScene(modifier: Modifier = Modifier) {
         val glowCentre = place(720f, 900f)
         scale(scaleX = 864f / narrow / 266f, scaleY = 1f, pivot = glowCentre) {
             val radius = 266f * toWindow
-            drawCircle(Brush.radialGradient(0f to scene.light.copy(alpha = 0.14f), 0.7f to scene.light.copy(alpha = 0f), center = glowCentre, radius = radius), radius, glowCentre)
+            drawCircle(Brush.radialGradient(0f to scene.lamps.copy(alpha = 0.14f), 0.7f to scene.lamps.copy(alpha = 0f), center = glowCentre, radius = radius), radius, glowCentre)
         }
 
         for (light in StreetLights.all) {
             val centre = place(light.x, light.y)
             val radius = light.size / 2 * toWindow
-            val colour = Color(0xFF000000.toInt() or light.rgb)
+            val colour = light.kind.colourIn(scene)
             // Dimmed: the lights at the low point of their breath.
             val rim = light.alpha * 0.6f
             drawDisc(centre, radius, colour, rim)

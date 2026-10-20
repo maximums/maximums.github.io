@@ -4,6 +4,7 @@ import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
 import com.cdodi.adapters.gpu.FullscreenPass
 import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.adapters.gpu.Scene
 import com.cdodi.adapters.input.InputState
@@ -51,14 +52,13 @@ import com.cdodi.webgpu.bindings.oneMinusSrcAlpha
 import com.cdodi.webgpu.bindings.srcAlpha
 import com.cdodi.webgpu.bindings.store
 import com.cdodi.webgpu.context.GpuContext
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.shader.compileShader
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.ceil
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * The rainy street behind the pages (the design canvas's background study), on the ambient clock: it freezes on a
@@ -74,6 +74,7 @@ class BackgroundScene(
     override val clock: Clock,
     private val quality: StateFlow<BackgroundQuality>,
     private val widgets: GpuWidgets,
+    private val theme: GpuTheme,
     private val profiler: GpuProfiler? = null,
 ) : Scene {
 
@@ -84,6 +85,7 @@ class BackgroundScene(
     private lateinit var streetUniforms: GPUBuffer
     private lateinit var streetGroup: GPUBindGroup
     private lateinit var rain: GPURenderPipeline
+    private lateinit var rainTheme: GPUBindGroup
     private lateinit var widgetPipeline: GPURenderPipeline
     private lateinit var widgetFrame: GPUBuffer
     private lateinit var widgetBuffer: GPUBuffer
@@ -112,7 +114,7 @@ class BackgroundScene(
         this.gpu = gpu
         this.format = format
         resources = gpu.resourceScope()
-        street = FullscreenPass.create(gpu, Res.readBytes("files/shaders/background/street.wgsl").decodeToString(), format, label = "street")
+        street = FullscreenPass.create(gpu, Res.readBytes("files/shaders/background/street.wgsl").decodeToString(), format, label = "street", theme = theme)
         streetUniforms = uniform("street uniforms")
         val lights = resources.buffer(
             GPUBufferDescriptor(size = StreetLights.values.size * 4.0, usage = GPUBufferUsage.STORAGE or GPUBufferUsage.COPY_DST, label = "street lights")
@@ -125,8 +127,9 @@ class BackgroundScene(
             )
         )
 
-        val rainModule = gpu.compileShader(Res.readBytes("files/shaders/background/rain.wgsl").decodeToString(), label = "rain")
+        val rainModule = gpu.compileShader(theme.shader(Res.readBytes("files/shaders/background/rain.wgsl").decodeToString()), label = "rain")
         rain = pipeline(rainModule, "rain", blended = false)
+        rainTheme = theme.bindGroup(rain.getBindGroupLayout(GpuTheme.GROUP))
         val widgetModule = gpu.compileShader(Res.readBytes("files/shaders/background/widgets.wgsl").decodeToString(), label = "widgets")
         widgetPipeline = pipeline(widgetModule, "widgets", blended = true)
 
@@ -187,6 +190,7 @@ class BackgroundScene(
         ).apply {
             setPipeline(rain)
             setBindGroup(0, rainGroup)
+            setBindGroup(GpuTheme.GROUP, rainTheme)
             draw(3)
             if (count > 0) {
                 setPipeline(widgetPipeline)

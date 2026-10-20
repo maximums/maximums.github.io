@@ -18,11 +18,6 @@ const AGE = 0xFFFFu;
 const GHOST_GENERATIONS = 12.0;
 
 // DESIGN.md colour tokens.
-const NIGHT = vec3f(13.0, 16.0, 19.0) / 255.0;
-const LAMP = vec3f(216.0, 161.0, 90.0) / 255.0;
-const EMBER = vec3f(180.0, 83.0, 46.0) / 255.0;
-const RUST = vec3f(64.0, 28.0, 20.0) / 255.0;
-const RAIN = vec3f(126.0, 151.0, 163.0) / 255.0;
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
@@ -49,7 +44,7 @@ fn cooling(age: u32) -> f32 {
 // Lamp amber when fresh, through ember, to rust.
 fn emberColor(age: u32) -> vec3f {
     let t = cooling(age);
-    return mix(mix(LAMP, EMBER, smoothstep(0.0, 0.45, t)), RUST, smoothstep(0.45, 1.0, t));
+    return mix(mix(theme.accent.rgb, theme.heat.rgb, smoothstep(0.0, 0.45, t)), theme.ash.rgb, smoothstep(0.45, 1.0, t));
 }
 
 // How much light a cell gives off: hot when fresh, a little when old, a breath when it's a ghost.
@@ -67,11 +62,11 @@ fn fs(@builtin(position) position: vec4f) -> @location(0) vec4f {
     let grid = view.origin + position.xy / view.cellSize;
     let c = vec2i(floor(grid));
     if (c.x < 0 || c.y < 0 || c.x >= i32(view.width) || c.y >= i32(view.height)) {
-        return vec4f(NIGHT * 0.6, 1.0); // a darker ground outside, so the edge of the world reads
+        return vec4f(theme.ground.rgb * 0.6, 1.0); // a darker ground outside, so the edge of the world reads
     }
 
     // Light spilling from the 3×3 neighbourhood: embers glow onto their surroundings.
-    var color = NIGHT;
+    var color = theme.ground.rgb;
     for (var dy = -1; dy <= 1; dy++) {
         for (var dx = -1; dx <= 1; dx++) {
             let n = c + vec2i(dx, dy);
@@ -80,7 +75,7 @@ fn fs(@builtin(position) position: vec4f) -> @location(0) vec4f {
                 continue;
             }
             let distance = length(grid - (vec2f(n) + 0.5));
-            let tint = select(EMBER, emberColor(cell & AGE), (cell & AGE) != 0u);
+            let tint = select(theme.heat.rgb, emberColor(cell & AGE), (cell & AGE) != 0u);
             color += tint * heat(cell, n) * exp(-distance * distance * 1.6) * 0.32;
         }
     }
@@ -99,7 +94,7 @@ fn fs(@builtin(position) position: vec4f) -> @location(0) vec4f {
     let inCell = fract(grid);
     let edge = min(min(inCell.x, 1.0 - inCell.x), min(inCell.y, 1.0 - inCell.y)) * view.cellSize;
     let line = (1.0 - smoothstep(0.0, 1.0, edge)) * smoothstep(5.0, 10.0, view.cellSize) * 0.12;
-    color = mix(color, RAIN, line);
+    color = mix(color, theme.cold.rgb, line);
 
     return vec4f(color, 1.0);
 }
