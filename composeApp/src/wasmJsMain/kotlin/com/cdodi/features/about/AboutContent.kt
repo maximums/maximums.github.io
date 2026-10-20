@@ -39,7 +39,7 @@ object AboutContent {
         ContactLink("cdodi907@gmail.com", "mailto:cdodi907@gmail.com"),
     )
 
-    /** The maple on Home (`files/models/maple-bonsai.glb`, prepared by `tools/models/prepare-maple.sh`). */
+    /** The maple on this page (`files/models/maple-bonsai.glb`, prepared by `tools/models/prepare-maple.sh`). */
     val mapleCredit = Credit(
         "Maple Bonsai Tree",
         "NPHoa_Kagoby",

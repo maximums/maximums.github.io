@@ -1,4 +1,4 @@
-package com.cdodi.features.home
+package com.cdodi.features.about
 
 import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.gpu.GpuProfiler
@@ -59,19 +59,17 @@ import com.cdodi.webgpu.shader.compileShader
 import kotlin.math.roundToInt
 
 /**
- * The maple on Home (`files/models/maple-bonsai.glb`, read by `:gltf`), a GPU-backed widget. Each frame it's drawn in
- * 3D into a target the size of its widget (`home/bonsai.wgsl`'s model pass: the theme's lamp on its edges, the mist
+ * The maple on the About page (`files/models/maple-bonsai.glb`, read by `:gltf`), a GPU-backed widget. Each frame it's drawn in
+ * 3D into a target the size of its widget (`about/bonsai.wgsl`'s model pass: the theme's lamp on its edges, the mist
  * towards its back), and that target is laid over the street in the background's final pass, faded with its page.
- * The trunk and the pot are one draw each; the 958 leaves are one instanced draw.
+ * The trunk and the pot are one draw each; the 958 leaves are one instanced draw. It's seen from where [orbit] has
+ * turned it.
  *
  * It loads after the street is up. Until then, or if it can't load, there's simply no tree.
  */
-class BonsaiRenderer(private val theme: GpuTheme, private val profiler: GpuProfiler? = null) : GpuWidgetRenderer {
+class BonsaiRenderer(private val theme: GpuTheme, private val orbit: Orbit, private val profiler: GpuProfiler? = null) : GpuWidgetRenderer {
 
     override val kind = GpuWidgets.Kind.Bonsai
-
-    /** Which way round the tree is seen, radians from its front: the orbit's (step 4); for now, the front. */
-    var yaw = 0f
 
     private lateinit var gpu: GpuContext
     private lateinit var resources: ResourceScope
@@ -141,7 +139,7 @@ class BonsaiRenderer(private val theme: GpuTheme, private val profiler: GpuProfi
         val height = widget.height.roundToInt().coerceIn(1, MAX_SIZE)
         if (target.fit(width, height)) compositeGroup = null
 
-        val view = BonsaiView.of(bounds, width.toFloat() / height, yaw)
+        val view = BonsaiView.of(bounds, width.toFloat() / height, orbit.yaw)
         view.viewProjection.values.copyInto(cameraValues, 0)
         view.view.values.copyInto(cameraValues, 16)
         cameraValues[32] = view.eye.x
@@ -257,7 +255,7 @@ class BonsaiRenderer(private val theme: GpuTheme, private val profiler: GpuProfi
 
     private companion object {
         const val MODEL = "files/models/maple-bonsai.glb"
-        const val SHADER = "files/shaders/home/bonsai.wgsl"
+        const val SHADER = "files/shaders/about/bonsai.wgsl"
         const val MATERIAL_GROUP = 2
 
         /** The largest target the tree is drawn into, a side: a widget bigger than that is drawn at most this sharp. */

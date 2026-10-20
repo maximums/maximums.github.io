@@ -69,8 +69,8 @@ import kotlin.math.max
  * - One full-resolution pass scales it up and adds what must stay sharp: the rain, the vignette, the dither
  *   (`rain.wgsl`).
  * - Then the GPU-backed widgets UI elements report ([widgets]), at full resolution, each kind by its renderer from
- *   [renderers] (the shell's): the sphere on About, the maple on Home. A renderer may first draw into a target of its
- *   own, before the final pass (the maple's 3D pass). Renderers prepare alongside the street, which doesn't wait for
+ *   [renderers] (the shell's): the maple on About. A renderer may first draw into a target of its own, before the
+ *   final pass (the maple's 3D pass). Renderers prepare alongside the street, which doesn't wait for
  *   them: each draws once it's ready.
  */
 class BackgroundScene(

@@ -13,10 +13,7 @@ import com.cdodi.design.components.GlassSink
 class GpuWidgets : GlassSink {
 
     enum class Kind {
-        /** A lit sphere, its light circling (the About page's). */
-        Sphere,
-
-        /** The maple on Home, a textured 3D model. */
+        /** The maple on the About page, a textured 3D model. */
         Bonsai,
     }
 

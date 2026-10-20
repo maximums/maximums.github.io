@@ -1,4 +1,4 @@
-// The maple on Home (BonsaiRenderer.kt), in two steps:
+// The maple on the About page (BonsaiRenderer.kt), in two steps:
 // - vsModel/fsModel draw the model into a target of its own, the size of its widget, multisampled and cleared to
 //   transparent (ModelTarget.kt);
 // - vsComposite/fsComposite lay that target over the street, in the background's final pass, premultiplied.

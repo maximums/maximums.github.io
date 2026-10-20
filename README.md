@@ -1,8 +1,8 @@
 # maximums.github.io
 
 A rainy street behind fogged glass, drawn with **WebGPU** from **Kotlin/Wasm**, with a **Compose Multiplatform** UI on
-top. Behind the panes: the Game of Life and a murmuration of up to a million boids, both on compute shaders, and notes
-on how it's built.
+top. Behind the panes: the Game of Life and a murmuration of up to a million boids, both on compute shaders, a maple
+bonsai you can turn (a glTF model, read and drawn by our own code), and notes on how it's built.
 
 **Live:** [maximums.github.io](https://maximums.github.io) · **Notes:** [maximums.github.io/notes/](https://maximums.github.io/notes/)
 
@@ -55,8 +55,8 @@ flowchart TB
 ```
 
 - **Two canvases.** WebGPU draws the scene on `#gpu`; Compose draws the UI on a transparent `#compose` on top.
-  Compose reports where its elements are, so the scene can draw effects behind them (the sphere behind the Welcome
-  card), and passes the pointer input its widgets don't use down to the scene.
+  Compose reports where its elements are, so the scene can draw effects behind them (the maple on About), and passes
+  the pointer input its widgets don't use down to the scene.
 - **One clock.** Every animation, simulation and transition takes its time from the heartbeat.
 - **Navigation is a graph.** Destinations are nodes, and edges carry transitions as values (`(melt with fogRoll) +
   holdFog + (fade with clearing)`). The model knows nothing about Compose or WebGPU; each layer renders the effects it

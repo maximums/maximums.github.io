@@ -35,10 +35,8 @@ import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.core.time.FramePhase
 import com.cdodi.design.components.CornerHint
-import com.cdodi.design.components.LocalPageVisibility
 import com.cdodi.design.components.Thread
 import com.cdodi.design.components.glass
-import com.cdodi.design.theme.LocalViewport
 import com.cdodi.design.theme.SiteTheme
 import com.cdodi.design.theme.lerp
 import com.cdodi.features.about.AboutContent
@@ -51,7 +49,6 @@ import com.cdodi.features.background.StillScene
 import com.cdodi.features.boids.BoidsControls
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.boids.BoidsPage
-import com.cdodi.features.home.Bonsai
 import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.GameOfLifePage
 import com.cdodi.features.life.LifeControls
@@ -135,22 +132,11 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                     // A phone, or a phone on its side, has no room for it.
                     if (!layout.compact && !layout.short) Colophon(Modifier.align(Alignment.BottomStart).padding(start = layout.margin, bottom = layout.toggleBottom))
                 }
-                // The maple, for now beside the window where there's room for it (PLAN Phase 10: its place behind the
-                // Welcome glass comes with the orbit).
-                if (gpu is GpuStatus.Running) {
-                    val side = (LocalViewport.current.width - layout.window) / 2 - layout.margin * 2
-                    if (side >= 240.dp) {
-                        val width = minOf(side, 380.dp)
-                        CompositionLocalProvider(LocalPageVisibility provides homeness) {
-                            Bonsai(Modifier.align(Alignment.CenterEnd).padding(end = layout.margin).size(width, width * 1.15f))
-                        }
-                    }
-                }
             } else {
                 bodyCard(Modifier.fillMaxSize().padding(top = layout.pageTop), MorphingShape.Rectangle, true) {
                     NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
                         when (destination) {
-                            AboutDestination -> AboutPage()
+                            AboutDestination -> AboutPage(runtime.bonsai)
                             is NotesDestination -> NotesPage(destination.slug) { open(it) }
                             BoidsDestination -> ScenePage(gpu, fallback = { BoidsPage() }) { BoidsControls(runtime.boids, runtime.gpuTimings) }
                             // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.

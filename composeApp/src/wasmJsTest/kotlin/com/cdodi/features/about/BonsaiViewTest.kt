@@ -1,4 +1,4 @@
-package com.cdodi.features.home
+package com.cdodi.features.about
 
 import com.cdodi.math.Bounds
 import com.cdodi.math.Vec3

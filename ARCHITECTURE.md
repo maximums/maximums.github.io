@@ -301,13 +301,16 @@ com.cdodi
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 └── features/                one package per page; features never import each other or shell
-    ├── home/                HomeDestination · Bonsai (where the maple stands: a GPU-backed box) · BonsaiRenderer (its
-    │                        3D pass into a ModelTarget, then the composite over the street; leaves in one instanced
-    │                        draw) · BonsaiView (the camera: on a circle round the tree, fitted so turning never zooms)
-    ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
+    ├── home/                HomeFeature · HomeDestination · Menu UI
+    ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the maple + text)
+    │                        Bonsai (where the maple stands: a GPU-backed box) · turnsBonsai (the drag across it, mouse or
+    │                        finger) · Orbit (which way round it's turned: eased on the UI clock, within ~57° of its
+    │                        front) · BonsaiRenderer (its 3D pass into a ModelTarget, then the composite over the street;
+    │                        leaves in one instanced draw) · BonsaiView (the camera: on a circle round the tree, fitted so
+    │                        turning never zooms)
     ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
     ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top, by
-    │                        their renderers) · SphereRenderer (About's sphere)
+    │                        their renderers)
     │                        StreetLights (the design study's lights, by its own seeded generator; their colours are
     │                        the theme's, by kind) · BackgroundSettings
     │                        QualityToggle · SoundToggle · StillScene (the same street, still and dimmed, without WebGPU)
@@ -324,8 +327,8 @@ com.cdodi
 composeResources/files/
 ├── shaders/common/          scan.wgsl · theme.wgsl (struct Theme: the colours every scene draws in) · mipmap.wgsl
 ├── shaders/background/      street.wgsl (sky, lights, wet-road reflections, fog) · rain.wgsl (upscale + rain, vignette,
-│                            dither) · sphere.wgsl (the sphere behind About)
-├── shaders/home/            bonsai.wgsl (the maple: the theme's lamp falling off down the tree, a rim, the mist; and
+│                            dither)
+├── shaders/about/           bonsai.wgsl (the maple: the theme's lamp falling off down the tree, a rim, the mist; and
 │                            its composite)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/glass/           blur.wgsl (dual Kawase down/up) · panes.wgsl (copy + panes from the blurred frame)
