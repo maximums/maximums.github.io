@@ -7,6 +7,7 @@ import com.cdodi.core.navigation.NavState
 import com.cdodi.core.navigation.effect.AnimatedEffect
 import com.cdodi.core.navigation.effect.EffectState
 import com.cdodi.core.navigation.graph.Destination
+import com.cdodi.design.theme.AutumnTheme
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
@@ -57,11 +58,12 @@ class NavProjectionsTest {
 
     @Test
     fun onlyTheScenesHaveACaptionAndItFadesAsThePageArrives() {
-        assertEquals("the flock is gathering", captionFor(going(HomeDestination, BoidsDestination)))
-        assertEquals("the embers are catching", captionFor(going(LifeDestination(LifeRule.HighLife), HomeDestination)))
-        assertNull(captionFor(going(HomeDestination, AboutDestination)))
-        assertNull(captionFor(going(AboutDestination, BoidsDestination)), "not from one page to another")
-        assertNull(captionFor(idle(BoidsDestination)))
+        val copy = AutumnTheme.copy
+        assertEquals(copy.flockCaption, captionFor(going(HomeDestination, BoidsDestination), copy))
+        assertEquals(copy.lifeCaption, captionFor(going(LifeDestination(LifeRule.HighLife), HomeDestination), copy))
+        assertNull(captionFor(going(HomeDestination, AboutDestination), copy))
+        assertNull(captionFor(going(AboutDestination, BoidsDestination), copy), "not from one page to another")
+        assertNull(captionFor(idle(BoidsDestination), copy))
 
         val holding = going(HomeDestination, BoidsDestination, UiEffectIds.CAPTION to 1f, UiEffectIds.FADE to 0.5f)
         assertEquals(0.5f, holding.captionAlpha())

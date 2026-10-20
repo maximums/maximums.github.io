@@ -119,13 +119,15 @@ private fun ColumnScope.Content(compact: Boolean) {
         }
     }
     Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = colors.muted, modifier = Modifier.padding(top = 10.dp))
+    // The sound outside, credited: the theme's recording.
+    val credit = SiteTheme.ambience.credit
     Text(
         buildAnnotatedString {
-            append("The rain you can turn on is ")
-            withLink(LinkAnnotation.Url(AboutContent.rainCredit.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
-                append(AboutContent.rainCredit.label)
+            append("The ${SiteTheme.copy.sound} you can turn on is ")
+            withLink(LinkAnnotation.Url(credit.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
+                append("“${credit.title}” by ${credit.author}")
             }
-            append(", from Freesound (CC0).")
+            append(", from ${credit.source} (${credit.licence}).")
         },
         style = type.small,
         color = colors.muted,

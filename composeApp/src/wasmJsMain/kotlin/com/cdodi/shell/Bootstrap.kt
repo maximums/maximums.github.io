@@ -55,6 +55,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.w3c.dom.HTMLCanvasElement
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 
 /** Whether the WebGPU layer runs. */
 sealed interface GpuStatus {
@@ -118,7 +121,7 @@ fun bootstrap(): AppRuntime {
     val theme = MutableStateFlow<Theme>(AutumnTheme)
     scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, theme, scope, gpu) }
 
-    val sound = AmbientSound(lifecycle, scope)
+    val sound = AmbientSound(lifecycle, scope, theme.map { it.ambience }.stateIn(scope, SharingStarted.Eagerly, theme.value.ambience))
 
     return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound, theme.asStateFlow())
 }

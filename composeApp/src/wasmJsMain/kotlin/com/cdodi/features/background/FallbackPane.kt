@@ -28,7 +28,7 @@ fun FallbackPane(onPlayLife: () -> Unit, onAbout: () -> Unit, modifier: Modifier
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         Label("WebGPU is not available")
-        Text("The rain can't reach this browser.", style = SiteTheme.type.title, color = SiteTheme.colors.bright)
+        Text(SiteTheme.copy.unavailable, style = SiteTheme.type.title, color = SiteTheme.colors.bright)
         Text(
             "This site paints its scenes with WebGPU, which this browser doesn't provide. Chrome and Edge, Safari 26, " +
                 "and Firefox on Windows and macOS do.",

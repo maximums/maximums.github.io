@@ -243,8 +243,8 @@ com.cdodi
 │   │                        GpuTheme (the theme's colours in one uniform buffer, group 1, written when it changes)
 │   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
-│   ├── audio/               AmbientSound (the rain: endless by crossfaded passes, low-passed through the glass,
-│   │                        only while the page is active)
+│   ├── audio/               AmbientSound (the theme's sound: endless by crossfaded passes, low-passed through the
+│   │                        glass, only while the page is active; a new theme's recording swaps in through a fade)
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 └── features/                one package per page; features never import each other or shell
@@ -277,7 +277,8 @@ composeResources/files/
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
 design-system/                the :design-system module (com.cdodi.design)
-├── theme/                   Theme (ColorRoles · GlassTokens of GlassStyle (fill, fog) · SceneTokens) · LocalTheme ·
+├── theme/                   Theme (ColorRoles · GlassTokens of GlassStyle (fill, fog) · SceneTokens · ThemeCopy (the
+│                            weather's words) · AmbienceTokens (its sound, level, glass and credit)) · LocalTheme ·
 │                            SiteTheme (the provider, and SiteTheme.colors/.glass/.scene/.type) · AutumnTheme
 │                            (DESIGN.md's swatches, as roles) · TypeRoles + the fonts · Motion (Settle, settling() on
 │                            the MotionClock port) · Viewport (the window in dp: size classes, vw/vh, fluid sizes)

@@ -15,19 +15,21 @@ import com.cdodi.design.components.HintOption
 import com.cdodi.design.theme.SiteTheme
 
 /**
- * The rain's sound as a corner hint (DESIGN.md §8): "RAIN", then on and off. [compact] (a phone's top bar) is the word
- * alone, lit when the rain is on. Turning it on is the click that lets the browser start the sound.
+ * The sound outside as a corner hint (DESIGN.md §8): its name ("RAIN", the theme's), then on and off. [compact] (a
+ * phone's top bar) is the word alone, lit when the sound is on. Turning it on is the click that lets the browser start
+ * the sound.
  */
 @Composable
 fun SoundToggle(sound: AmbientSound, modifier: Modifier = Modifier, compact: Boolean = false) {
     val on by sound.enabled.collectAsState()
+    val name = SiteTheme.copy.sound
     if (compact) {
-        HintOption("Rain", chosen = on, description = if (on) "Turn the rain off" else "Turn the rain on", onClick = { sound.setEnabled(!on) }, modifier = modifier)
+        HintOption(name, chosen = on, description = if (on) "Turn the $name off" else "Turn the $name on", onClick = { sound.setEnabled(!on) }, modifier = modifier)
         return
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("RAIN", style = SiteTheme.type.hint, color = SiteTheme.colors.muted, modifier = Modifier.padding(end = 6.dp))
-        HintOption("On", chosen = on, description = "Rain sound on", onClick = { sound.setEnabled(true) })
-        HintOption("Off", chosen = !on, description = "Rain sound off", onClick = { sound.setEnabled(false) })
+        Text(name.uppercase(), style = SiteTheme.type.hint, color = SiteTheme.colors.muted, modifier = Modifier.padding(end = 6.dp))
+        HintOption("On", chosen = on, description = "The $name's sound on", onClick = { sound.setEnabled(true) })
+        HintOption("Off", chosen = !on, description = "The $name's sound off", onClick = { sound.setEnabled(false) })
     }
 }

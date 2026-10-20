@@ -31,14 +31,17 @@ import kotlin.math.pow
 import kotlin.math.roundToLong
 import kotlin.math.sin
 import kotlin.random.Random
+import com.cdodi.design.theme.AmbienceTokens
+import com.cdodi.webaudio.bindings.AudioBufferSourceNode
 
 /**
- * The rain outside the window: "Light rain on street" by BonnyOrbit (CC0, <https://freesound.org/s/380651/>), light
+ * The sound outside the window, the theme's ([ambience]): autumn's is "Light rain on street" by BonnyOrbit (CC0), light
  * rain recorded from an open window onto a city street at night. It plays while the viewer has it on and the page is
  * active (visible and focused), through the Web Audio bindings the WebIDL compiler generates from the spec.
  *
- * - **Mastered once, not corrected here.** `tools/sounds/master-rain.sh` brings the recording to −30 LUFS as Opus
- *   (`rain.webm`, about 1 MB) and AAC (`rain.m4a`, for browsers without Opus). [sources] are tried in order.
+ * - **Mastered once, not corrected here.** `tools/sounds/master-rain.sh` brings autumn's recording to −30 LUFS as Opus
+ *   (`rain.webm`, about 1 MB) and AAC (`rain.m4a`, for browsers without Opus); a theme's sources are tried in order.
+ * - **A theme's own.** A change of theme brings its recording, its level and its glass ([swap]).
  * - **Off until asked**, and remembered in this browser. Browsers only let a page start sound from a click, a tap or a
  *   key, so a remembered "on" waits for the viewer's first one ([awaitUserActivation]).
  * - **No seam.** The recording plays over and over, each pass starting [CROSSFADE] seconds before the last one ends,
@@ -52,7 +55,7 @@ import kotlin.random.Random
 class AmbientSound(
     private val lifecycle: LifecycleBus,
     private val scope: CoroutineScope,
-    private val sources: List<String> = listOf("sounds/rain.webm", "sounds/rain.m4a"),
+    private val ambience: StateFlow<AmbienceTokens>,
 ) {
     private val enabledState = MutableStateFlow(load())
 
@@ -68,12 +71,24 @@ class AmbientSound(
     private var scheduler: Job? = null
     private var suspender: Job? = null
     private var activationWait: AutoCloseable? = null
+    private var swapping: Job? = null
+    private var current = ambience.value
+
+    /** The passes started and not yet over, each with when it ends, so a change of sound can stop them. */
+    private val playing = ArrayDeque<Pair<AudioBufferSourceNode, Double>>()
 
     private val fadeIn = equalPowerCurve(rising = true)
     private val fadeOut = equalPowerCurve(rising = false)
 
     init {
         scope.launch { lifecycle.state.map { it.isActive }.distinctUntilChanged().collect { update() } }
+        scope.launch {
+            ambience.collect { next ->
+                val previous = current
+                current = next
+                if (next != previous) swap(next, previous)
+            }
+        }
     }
 
     /** Turns the rain on or off. Called from a click or a key, which is what lets the browser start it. */
@@ -92,6 +107,37 @@ class AmbientSound(
         filter?.frequency?.setTargetAtTime(cutoff(openness), context.currentTime, GLASS_SECONDS)
     }
 
+    /**
+     * Another theme's sound. A new recording fades the old one out, stops it, and fades in once it has loaded: themes
+     * change behind the fog, so a breath of quiet between the two is the glass between seasons. The same recording
+     * only takes the new level and glass.
+     */
+    private fun swap(next: AmbienceTokens, previous: AmbienceTokens) {
+        val context = context ?: return // not built yet: it will be, with the new sound
+        filter?.frequency?.setTargetAtTime(cutoff(openness), context.currentTime, GLASS_SECONDS)
+        if (next.sources == previous.sources) return update()
+        swapping?.cancel()
+        swapping = scope.launch {
+            master?.gain?.let {
+                it.cancelScheduledValues(context.currentTime)
+                it.setTargetAtTime(0f, context.currentTime, FADE_OUT_SECONDS)
+            }
+            scheduler?.cancel()
+            delay(SILENT_AFTER_MS)
+            playing.forEach { (source, _) -> source.stop() }
+            playing.clear()
+            buffer = null
+            nextPass = -1.0
+            try {
+                buffer = decodeFirst(context)
+            } catch (e: Throwable) {
+                println("The ${next.sources.first()} sound couldn't load: ${e.message}")
+                return@launch
+            }
+            update()
+        }
+    }
+
     private fun update() {
         if (enabledState.value && lifecycle.state.value.isActive) play() else quieten()
     }
@@ -102,7 +148,7 @@ class AmbientSound(
         context.resume()
         val master = master ?: return
         master.gain.cancelScheduledValues(context.currentTime)
-        master.gain.setTargetAtTime(LEVEL, context.currentTime, FADE_IN_SECONDS)
+        master.gain.setTargetAtTime(current.level, context.currentTime, FADE_IN_SECONDS)
         if (scheduler?.isActive != true) {
             scheduler = scope.launch {
                 while (isActive) {
@@ -155,10 +201,13 @@ class AmbientSound(
         return context
     }
 
-    /** The first of [sources] this browser decodes. A format it can't decode (or a missing file) rejects, so the next is tried. */
+    /**
+     * The first of the theme's recordings this browser decodes. A format it can't decode (or a missing file) rejects,
+     * so the next is tried.
+     */
     private suspend fun decodeFirst(context: AudioContext): AudioBuffer {
         var failure: JsPromiseRejection? = null
-        for (source in sources) {
+        for (source in current.sources) {
             try {
                 val bytes = window.fetch(source).await<Response>().arrayBuffer().await<ArrayBuffer>()
                 return context.decodeAudioDataSuspend(bytes)
@@ -174,6 +223,7 @@ class AmbientSound(
         val context = context ?: return
         val buffer = buffer ?: return
         val now = context.currentTime
+        while (playing.isNotEmpty() && playing.first().second < now) playing.removeFirst()
         if (nextPass < 0) {
             // The first pass starts somewhere random in the recording and fades in like any other.
             val offset = Random.nextDouble(0.0, buffer.duration - CROSSFADE * 3)
@@ -189,14 +239,18 @@ class AmbientSound(
         gain.gain.setValueCurveAtTime(fadeIn, at, CROSSFADE)
         gain.gain.setValueCurveAtTime(fadeOut, at + length - CROSSFADE, CROSSFADE)
         gain.connect(filter!!)
-        context.createBufferSource().apply {
+        val source = context.createBufferSource().apply {
             this.buffer = buffer
             connect(gain)
             start(at, offset)
             stop(at + length)
         }
+        playing.addLast(source to at + length)
         nextPass = at + length - CROSSFADE
     }
+
+    /** The low-pass cut-off: the theme's fogged-glass one at 0, its cleared one at 1, evenly in pitch between. */
+    private fun cutoff(openness: Float): Float = current.muffled * (current.clear / current.muffled).pow(openness)
 
     /** Waits for the viewer's first click, tap or key, then tries again: the only moment a browser lets sound start. */
     private fun waitForActivation() {
@@ -247,17 +301,12 @@ class AmbientSound(
         /** When the fade out has reached silence (five time constants), in milliseconds. */
         val SILENT_AFTER_MS = (FADE_OUT_SECONDS * 5_000).roundToLong()
 
-        /** The master level. The files are mastered to −30 LUFS, a background under anything else playing; turn it down here. */
-        const val LEVEL = 1f
-
         /**
          * A flat roll-off, no bump at the cut-off: Web Audio reads a low-pass filter's Q in decibels, and −3.01 dB is
          * 1/√2, the Butterworth response. (A plain 0.7 would be +0.7 dB, a small resonance right where hearing is keenest.)
          */
         const val BUTTERWORTH_Q = -3.01f
 
-        /** The low-pass cut-off: 2.4 kHz through fogged glass, 9 kHz through cleared, evenly in pitch between. */
-        fun cutoff(openness: Float): Float = 2_400f * (9_000f / 2_400f).pow(openness)
 
         /** sin/cos quarter waves: the gains of two uncorrelated sounds crossfaded at equal power. */
         fun equalPowerCurve(rising: Boolean): JsArray<JsNumber> = List(64) { i ->

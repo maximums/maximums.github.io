@@ -86,5 +86,21 @@ val AutumnTheme = with(Swatches) {
             ash = Color(64, 28, 20),
             figure = Color(16, 19, 23),
         ),
+        copy = ThemeCopy(
+            welcome = "stay a while — it's raining",
+            sound = "rain",
+            unavailable = "The rain can't reach this browser.",
+            flockLine = "a murmuration under the rain",
+            flockCaption = "the flock is gathering",
+            lifeCaption = "the embers are catching",
+        ),
+        // Light rain recorded from an open window onto a city street at night (tools/sounds/master-rain.sh masters it).
+        ambience = AmbienceTokens(
+            sources = listOf("sounds/rain.webm", "sounds/rain.m4a"),
+            level = 1f,
+            muffled = 2_400f,
+            clear = 9_000f,
+            credit = Credit("Light rain on street", "BonnyOrbit", "https://freesound.org/s/380651/", source = "Freesound", licence = "CC0"),
+        ),
     )
 }
