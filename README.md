@@ -25,6 +25,8 @@ flowchart TB
         runtime[":webidl-runtime<br/>what generated code calls"]
         core[":core<br/>heartbeat · buses · navigation graph<br/>(pure Kotlin, JVM-tested)"]
         notes[":notes<br/>Markdown → blocks → HTML"]
+        math[":math<br/>vectors · matrices · boxes"]
+        gltf[":gltf<br/>.glb → model<br/>(pure Kotlin, JVM-tested)"]
         app[":composeApp<br/>the site"]
     end
 
@@ -37,6 +39,7 @@ flowchart TB
     core --> app
     notes --> app
     notes --> site
+    math --> gltf
 
     subgraph runtime["In the browser, every frame"]
         heartbeat["Heartbeat<br/>Input → Simulation → Navigation → Render → Ui"]
@@ -78,7 +81,8 @@ page with links to the notes.
 
 ```
 ./gradlew -p build-logic :webidl-compiler:test   # WebIDL compiler: golden files and a compile test
-./gradlew :core:jvmTest :notes:jvmTest           # heartbeat, buses, navigation, Markdown: on the JVM, in seconds
+./gradlew :core:jvmTest :notes:jvmTest :math:jvmTest :gltf:jvmTest
+                                                 # heartbeat, buses, navigation, Markdown, matrices, glTF: on the JVM, in seconds
 ./gradlew wasmJsBrowserTest                      # everything in headless Chrome, including real GPU work
 ```
 
