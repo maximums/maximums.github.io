@@ -32,10 +32,13 @@ import com.cdodi.core.navigation.graph.sceneReady
 import com.cdodi.core.navigation.signal.MutableSignals
 import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
+import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
 import com.cdodi.design.theme.AutumnTheme
 import com.cdodi.design.theme.Theme
 import com.cdodi.design.theme.Viewport
+import com.cdodi.features.about.BonsaiRenderer
+import com.cdodi.features.about.Orbit
 import com.cdodi.features.background.BackgroundScene
 import com.cdodi.features.background.BackgroundSettings
 import com.cdodi.features.boids.BoidsController
@@ -89,6 +92,8 @@ class AppRuntime(
     val sound: AmbientSound,
     /** The look in use: the UI and the GPU's scenes both draw in it. Autumn, until there's a choice of themes. */
     val theme: StateFlow<Theme>,
+    /** Which way round the maple on About is turned: dragged by the UI, drawn by the GPU, eased on the UI clock. */
+    val bonsai: Orbit,
 )
 
 fun bootstrap(): AppRuntime {
@@ -119,11 +124,13 @@ fun bootstrap(): AppRuntime {
     val background = BackgroundSettings()
     val scope = MainScope()
     val theme = MutableStateFlow<Theme>(AutumnTheme)
-    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, theme, scope, gpu) }
+    val bonsai = Orbit()
+    heartbeat.child("ui").subscribe(FramePhase.Simulation) { bonsai.step(it.dt) }
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, theme, bonsai, scope, gpu) }
 
     val sound = AmbientSound(lifecycle, scope, theme.map { it.ambience }.stateIn(scope, SharingStarted.Eagerly, theme.value.ambience))
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound, theme.asStateFlow())
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound, theme.asStateFlow(), bonsai)
 }
 
 /**
@@ -143,6 +150,7 @@ private suspend fun runGpuLayer(
     widgets: GpuWidgets,
     backgroundSettings: BackgroundSettings,
     theme: StateFlow<Theme>,
+    bonsai: Orbit,
     scope: CoroutineScope,
     status: MutableStateFlow<GpuStatus>,
 ) {
@@ -162,7 +170,8 @@ private suspend fun runGpuLayer(
         val stopped = CompletableDeferred<String>()
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
         val gpuTheme = GpuTheme.create(gpu) { theme.value }
-        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, gpuTheme, profiler)
+        val widgetRenderers = listOf(BonsaiRenderer(gpuTheme, bonsai, profiler))
+        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, gpuTheme, profiler, widgetRenderers)
         val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, gpuTheme, profiler)
         val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, gpuTheme, profiler)
         val scenes = SceneRegistry(

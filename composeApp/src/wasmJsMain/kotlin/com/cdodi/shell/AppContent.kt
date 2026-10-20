@@ -136,7 +136,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                 bodyCard(Modifier.fillMaxSize().padding(top = layout.pageTop), MorphingShape.Rectangle, true) {
                     NavPages(navState, pageEffects, Modifier.fillMaxSize()) { destination ->
                         when (destination) {
-                            AboutDestination -> AboutPage()
+                            AboutDestination -> AboutPage(runtime.bonsai)
                             is NotesDestination -> NotesPage(destination.slug) { open(it) }
                             BoidsDestination -> ScenePage(gpu, fallback = { BoidsPage() }) { BoidsControls(runtime.boids, runtime.gpuTimings) }
                             // The grid is the GPU scene underneath; without WebGPU, the CPU page draws it.

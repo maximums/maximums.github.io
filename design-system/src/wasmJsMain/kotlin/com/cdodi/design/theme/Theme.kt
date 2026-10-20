@@ -132,9 +132,12 @@ data class ThemeCopy(
     val lifeCaption: String,
 )
 
-/** A recording's credit: its [title] by its [author], from [source] under [licence], at [url]. */
+/**
+ * A work's credit (a recording, a model): its [title] by its [author], from [source] under [licence], at [url]. A
+ * licence that asks for a link to its text (CC BY) gives it as [licenceUrl].
+ */
 @Immutable
-data class Credit(val title: String, val author: String, val url: String, val source: String, val licence: String)
+data class Credit(val title: String, val author: String, val url: String, val source: String, val licence: String, val licenceUrl: String? = null)
 
 /** The sound outside the window: the recording, how loud, how muffled by the glass, and whose it is. */
 @Immutable

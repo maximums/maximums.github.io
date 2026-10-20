@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -17,8 +16,13 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -28,35 +32,40 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cdodi.adapters.compose.gpuBacked
-import com.cdodi.adapters.gpu.GpuWidgets
+import com.cdodi.design.components.CornerHint
 import com.cdodi.design.components.glass
+import com.cdodi.design.theme.Credit
 import com.cdodi.design.theme.LocalViewport
 import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.settling
 
 /**
- * The About page: the sphere (drawn by the scene behind the page, a GPU-backed widget) beside a column of text and
- * contact links. On a phone the sphere sits above the text.
+ * The About page: the maple (drawn by the scene behind the page, a GPU-backed widget), turned by dragging it as
+ * [orbit] says, beside a column of text and contact links. On a phone the maple stands above the text.
  */
 @Composable
-fun AboutPage() {
+fun AboutPage(orbit: Orbit) {
     if (LocalViewport.current.compact) {
         Column(Modifier.fillMaxSize()) {
-            Sphere(Modifier.fillMaxWidth().weight(0.38f))
+            Maple(orbit, Modifier.fillMaxWidth().weight(0.38f))
             Words(Modifier.fillMaxWidth().weight(0.62f), compact = true)
         }
     } else {
         Row(Modifier.fillMaxSize()) {
-            Sphere(Modifier.fillMaxHeight().weight(1f))
+            Maple(orbit, Modifier.fillMaxHeight().weight(1f))
             Words(Modifier.fillMaxHeight().weight(1f), compact = false)
         }
     }
 }
 
+/** The maple, and under it how to turn it: faint until the pointer is on the tree (or a finger holds it). */
 @Composable
-private fun Sphere(modifier: Modifier) {
-    Box(modifier.padding(24.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true).gpuBacked(GpuWidgets.Kind.Sphere))
+private fun Maple(orbit: Orbit, modifier: Modifier) {
+    var held by remember { mutableStateOf(false) }
+    val near by settling(held)
+    Box(modifier.padding(24.dp)) {
+        Bonsai(Modifier.fillMaxSize().turnsBonsai(orbit) { held = it })
+        CornerHint("Drag to turn", Modifier.align(Alignment.BottomCenter).graphicsLayer { alpha = 0.45f + 0.55f * near })
     }
 }
 
@@ -119,17 +128,31 @@ private fun ColumnScope.Content(compact: Boolean) {
         }
     }
     Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = colors.muted, modifier = Modifier.padding(top = 10.dp))
-    // The sound outside, credited: the theme's recording.
-    val credit = SiteTheme.ambience.credit
+    // The sound outside (the theme's recording) and the maple on this page, credited.
+    CreditLine("The ${SiteTheme.copy.sound} you can turn on is", SiteTheme.ambience.credit)
+    CreditLine("The maple here is", AboutContent.mapleCredit, changed = "restructured for the web")
+}
+
+/**
+ * "[lead] “title” by author, from source (licence)", then what was [changed] in it, if anything: CC BY asks for that,
+ * and for the licence to be linked. The title links to the work.
+ */
+@Composable
+private fun CreditLine(lead: String, credit: Credit, changed: String? = null) {
+    val colors = SiteTheme.colors
+    val links = TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline))
     Text(
         buildAnnotatedString {
-            append("The ${SiteTheme.copy.sound} you can turn on is ")
-            withLink(LinkAnnotation.Url(credit.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
-                append("“${credit.title}” by ${credit.author}")
-            }
-            append(", from ${credit.source} (${credit.licence}).")
+            append("$lead ")
+            withLink(LinkAnnotation.Url(credit.url, links)) { append("“${credit.title}” by ${credit.author}") }
+            append(", from ${credit.source} (")
+            val licenceUrl = credit.licenceUrl
+            if (licenceUrl != null) withLink(LinkAnnotation.Url(licenceUrl, links)) { append(credit.licence) } else append(credit.licence)
+            append(")")
+            if (changed != null) append(", $changed")
+            append(".")
         },
-        style = type.small,
+        style = SiteTheme.type.small,
         color = colors.muted,
     )
 }

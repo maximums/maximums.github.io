@@ -662,30 +662,80 @@ The aim: the look is a theme, a value that can be switched (a winter theme, a sp
   - [x] Web Audio, for the rain (`:webaudio`). The runtime generated code calls moved out of `:webgpu` into `:webidl-runtime`, so the two bindings modules share it without depending on each other. Mapping its foreign types exposed a plugin bug (a module's own `externalTypes` dropped the defaults). It also exposed four compiler gaps, each now a fixture: float sequences in dictionaries, inherited overloads, union parameters in suspend wrappers, and constructible classes (`open`, with their parents made classes too).
   - [ ] Publish it to the Gradle Plugin Portal.
 - **Recorded replays**: save and load Life patterns (RLE format) and Boids parameter presets. The heartbeat's deterministic fixed steps make replays reproducible.
-- **A 3D model on Home: a bonsai behind the Welcome glass** (idea from 2026-10-18, not researched yet). Load a textured model, such as a bonsai tree, and maybe let the visitor turn around it by dragging.
-  - **The question.** Can our own WebGPU setup do this, or is an engine better (Google's Filament, for example)?
-  - **First opinion: our own renderer, kept small.**
-    - Use glTF (`.glb`), the web's model format: mesh, materials and textures in one file, laid out to go straight into GPU buffers.
-    - What's needed:
-      - a small glTF reader: accessors become vertex and index buffers;
-      - textures: the browser decodes the images, `copyExternalImageToTexture` uploads them, and a pass generates mipmaps;
-      - a little matrix maths, and a depth buffer;
-      - a lighting shader;
-      - an orbit camera driven by the existing pointer input, eased on the heartbeat so it feels heavy, not fast.
-    - It would be a scene or a GPU-backed widget like the About sphere. The glass, the fog transitions and the heartbeat would all apply as they do now.
-    - Size: a contained "L" phase, not an engine. Leave out skinning, animation, shadows and multiple-model scenes.
-  - **Why not an engine?**
-    - Filament (and three.js or Babylon) would bring its own canvas or device, its own render loop and clock, and several MB of wasm or JS.
-    - It couldn't share our WebGPU device, so the glass blur and the fog couldn't draw over it in the same frame.
-    - It would also go against the project's aim of building the pieces ourselves.
-  - **Things to settle when we come back:**
-    - **Style.** A photoreal tree could clash with the fog and lamp mood. Probably stylised: a dark silhouette, an amber rim light, fog around it.
-    - **The asset.**
-      - Licence: CC0 or CC-BY.
-      - Size: aim for a couple of MB. Draco or meshopt compression would need a decoder.
-      - Leaves: alpha-tested cards.
-    - **Fit.** How it sits with the Welcome rhombus, and how it behaves on phones.
-    - **A cheaper start.** Render the model offline into a turntable sprite sheet first?
+- **A 3D model on Home: a bonsai behind the Welcome glass** (idea from 2026-10-18): researched and built, on the About page instead; see Phase 10.
+
+## Phase 10 — A 3D model: the maple bonsai on About  _(L)_
+
+A textured 3D model on the About page, in the sphere's place, turned by dragging, drawn by our own WebGPU code, so the glass, the fog and the heartbeat apply to it as to everything else. One PR in four commits, each checked on localhost.
+
+**Decided (2026-10-20, after the research):**
+- **Our own renderer, not an engine.** Filament, three.js or Babylon would bring their own canvas or device, render loop and clock, and several MB. The glass and the fog couldn't draw over the model in the same frame, and building it is the point (ARCHITECTURE.md §10).
+- **The model: ["Maple Bonsai Tree"](https://sketchfab.com/3d-models/maple-bonsai-tree-1710f5553283441ea2b041e4738314ec) by NPHoa_Kagoby (primagenevieve), CC BY 4.0.** A red Japanese maple: autumn, outright.
+  - Sketchfab has 102 downloadable bonsai, none of them CC0; Poly Haven has none.
+  - The shortlist was this maple, Vermos's juniper (the fallback), a classic pine and a leafless brass sculpture.
+- **What's inside it.** 960 meshes, but only 3 shapes:
+  - a trunk (716 triangles), a pot (200), and one maple leaf (236) placed 958 times;
+  - one opaque, double-sided material, with three 1024 px textures.
+
+  So no see-through leaf cards. Stored once, the file is about 0.5 MB instead of 17, and the leaves are one instanced draw. (The juniper's crown is alpha-tested cards, with 26 MB of textures.)
+- **Real time, not a turntable.** A pre-rendered turntable would:
+  - turn about one axis only;
+  - bake its light, so it couldn't take the theme's lamps;
+  - need MBs of frames;
+  - skip the 3D pipeline.
+- **The look:** close to a silhouette. Dark against the street, the theme's lamp colour on its edge, fog with depth. Colours come only from `struct Theme`.
+- **It turns only around its front.** The canopy is shallow from the side, as a bonsai's is: they're shaped to be seen from one side.
+- **On About, not Home (2026-10-21).** It was built behind the Welcome glass first: fogged at rest, clearing while the pointer was on it. The author preferred Home as it was, and the tree in About's sphere's place, which it replaced.
+
+Steps:
+- [x] **The reader: `:math` and `:gltf`** (ARCHITECTURE.md §4.5–4.6), both pure Kotlin, on the JVM and in the browser.
+  - `:math`: vectors, quaternions, column-major 4×4 matrices (WebGPU's 0–1 perspective, `lookAt`, the inverse) and boxes.
+  - `:gltf` reads `.glb` files into a `Model`: flat vertex arrays, one instance matrix per node and per `EXT_mesh_gpu_instancing` instance, metallic-roughness materials, and images still encoded for the browser.
+  - Its JSON goes through kotlinx.serialization 1.11.0.
+  - A file that requires an extension outside its subset is refused, with the extensions named.
+- [x] **The maple, prepared.**
+  - `tools/models/prepare-maple.sh` runs glTF Transform 4.5.1 by hand, like the rain's mastering, with its output committed. It merges the duplicates (`dedup`: 960 meshes become 3), turns the 958 nodes sharing the leaf into one `EXT_mesh_gpu_instancing` node (`instance`), and prunes the rest.
+  - `files/models/maple-bonsai.glb`: 17.26 MB down to 507 kB. The textures stay as they came (three 1024 px PNGs, 0.4 MB), to be looked at again once the tree is drawn.
+  - Credited on About ("restructured for the web", with the licence linked, as CC BY asks; `Credit` can carry a licence link now) and in the README.
+  - `FixtureTest` reads the file the site ships: 3 meshes, 958 leaves, 227,004 triangles drawn, and the download's bounds.
+- [x] **Rendering it.**
+  - `adapters/gpu/model`, knowing nothing of bonsai:
+    - `GpuModel`: vertex and index buffers, each mesh's instance matrices in a storage buffer read by `instance_index`, textures decoded by the browser (`uploadImage`: `createImageBitmap` without colour management or premultiplying, then `copyExternalImageToTexture`), sRGB for colour, plain for data.
+    - `Mipmaps`: each level a render pass averaging the one above (`common/mipmap.wgsl`); an sRGB texture is averaged as light.
+    - `ModelTarget`: colour ×4 MSAA and depth at the widget's size, resolved and cleared to transparent, so the composite is premultiplied with antialiased edges.
+  - Widget renderers are a registry. `GpuWidgetRenderer` draws one kind of widget: a pass of its own, then into the background's final pass. The shell hands the background its renderers, so it never learns about Home. Renderers prepare alongside the street, which doesn't wait for them. The sphere moved to `SphereRenderer` (`background/sphere.wgsl`, formerly `widgets.wgsl`).
+  - `features/home`: `BonsaiRenderer` (the trunk and pot one draw each, the 958 leaves one instanced draw), `BonsaiView` (the camera) and `Bonsai` (the GPU-backed box). For now the tree stands beside the window where there's room; its place comes in step 4.
+  - The look, `home/bonsai.wgsl`, works in linear light and writes encoded, as the rest of the site draws. The theme's lamp is wrapped a little for thin leaves and falls off down the tree, so the crown catches it and the pot sinks into the night. A rim catches the lamp on the edges, the night gives a faint fill from above, and the far side sinks into the mist. Colours come only from `struct Theme` and the model's texture.
+- [x] **Turning it, and its place.**
+  - `Orbit`: which way round the tree is turned. A drag moves its target, and the tree eases there on the UI clock (a time constant of 0.3 s, so it has weight), within 1 radian (about 57°) of its front. Where it's left, it stays. The shell owns it (`AppRuntime.bonsai`), so it survives a new GPU device.
+  - `turnsBonsai`: the drag across the tree, with a mouse or a finger. The tree's front follows the pointer.
+  - The tree takes the sphere's place on About: the page's left half on a computer, above the text on a phone. "Drag to turn" sits under it, faint until the pointer is on the tree or a finger holds it.
+  - The bonsai's code moved from `features/home` to `features/about` (features don't import each other). The sphere went with what it was: `SphereRenderer`, `sphere.wgsl` and its widget kind. Home is as it was before the tree.
+
+> **Notes (step 4).**
+> - `OrbitTest`: the easing (one time constant: 63 % of the way), the arc's ends (no stored overshoot), a paused clock holding it, and the same result at 30 or 120 frames a second.
+> - Checked in headless Chrome: About on a computer at rest, hovered and after a drag, and on a phone after a swipe; Home unchanged.
+>
+> Left for later:
+> - **The texture budget.** The 0.4 MB of textures stays as it came until someone looks closely.
+> - **The pot.** It's a plain shape, mostly in shadow; Poly Haven's CC0 clay pot could replace it.
+> - **A write-up for Notes:** the reader, the instancing, the camera fit.
+> - **Each leaf is an instance.** They could sway, or one could fall now and then.
+>
+> **Notes (step 3).**
+> - `BonsaiView` fits a cylinder round the vertical axis rather than the bounding sphere, so the tree is a third bigger in its box and still never zooms or clips as it turns. The pitch is part of the fit: seen from above, the near rim's bottom edge reaches lowest. `BonsaiViewTest` sweeps 24 angles at 4 aspect ratios; it caught the first fit leaving a corner 0.07 % outside at 45°.
+> - `ModelGpuTest`, on a real device:
+>   - the mip levels average 2×2 blocks;
+>   - an sRGB level averages light (black and white make 188, not 128);
+>   - a PNG arrives as its bytes, as colour and as data, half-transparent pixel included;
+>   - a model becomes the buffers and textures it should.
+> - Checked in headless Chrome: Home with the tree beside the window, and About's sphere unchanged.
+>
+> **Notes (step 2).** Nothing is approximated. Read before and after, all 958 leaf matrices match within 4×10⁻⁹ (the model is 0.04 across), and the bounds and triangles drawn are the same. The script's output is deterministic: two runs, the same bytes. The Khronos validator finds no errors or warnings; its infos say it doesn't know `EXT_mesh_gpu_instancing`.
+>
+> **Notes (step 1).**
+> - Tests: `Mat4Test`, `QuatTest`, `BoundsTest`; `GlbTest`, `AccessorsTest`, `GltfTest` (on `.glb` files built in memory, broken ones included); and `FixtureTest`, on Khronos's `TextureCoordinateTest.glb`, credited in `resources/fixtures`.
+> - Read as Sketchfab serves it, the maple (960 meshes, 227,004 triangles) takes about 230 ms on the JVM, with the same bounds as an independent Python preview. The juniper reads too, its crown's material as `Mask` and its clearcoat ignored.
 
 ---
 
@@ -723,4 +773,4 @@ The aim: the look is a theme, a value that can be switched (a winter theme, a sp
 
 ## Suggested order
 
-Phase 0 → **Phase 1 and Phase 2 in parallel** (they're independent: one is build tooling, the other pure Kotlin) → Phase 3 → Phase 5 (simpler compute first) → Phase 6 → Phase 4 → Phase 7 → Phase 8. Life comes before Boids because it teaches ping-pong buffers, atomics and readback, all of which Boids needs. The background shader port can happen whenever it's needed as a break from compute work.
+Phase 0 → **Phase 1 and Phase 2 in parallel** (they're independent: one is build tooling, the other pure Kotlin) → Phase 3 → Phase 5 (simpler compute first) → Phase 6 → Phase 4 → Phase 7 → Phase 8 → Phase 10 (the model on Home). Life comes before Boids because it teaches ping-pong buffers, atomics and readback, all of which Boids needs. The background shader port can happen whenever it's needed as a break from compute work.

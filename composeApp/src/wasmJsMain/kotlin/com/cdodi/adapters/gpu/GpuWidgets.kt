@@ -6,15 +6,15 @@ import com.cdodi.design.components.GlassSink
 /**
  * UI elements that want the scene to draw something behind them ("GPU-backed widgets"). Compose can't blur or light
  * the WebGPU canvas underneath it, so an element reports where it is, and the scene draws its effect there, under
- * the element. The scene reads the registry every frame, after Compose has laid out (see [SceneHost]), so the effect
- * stays exactly under the element even while it moves. It's also where the glass reports its panes ([GlassSink]), for
- * the scene host to blur the street behind them.
+ * the element, with the [GpuWidgetRenderer] for its [Kind]. The scene reads the registry every frame, after Compose
+ * has laid out (see [SceneHost]), so the effect stays exactly under the element even while it moves. It's also where
+ * the glass reports its panes ([GlassSink]), for the scene host to blur the street behind them.
  */
 class GpuWidgets : GlassSink {
 
     enum class Kind {
-        /** A lit sphere, its light circling (the About page's). */
-        Sphere,
+        /** The maple on the About page, a textured 3D model. */
+        Bonsai,
     }
 
     /**

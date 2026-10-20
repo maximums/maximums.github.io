@@ -43,6 +43,7 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(projects.core)
+            implementation(projects.gltf)
             implementation(projects.notes)
             implementation(projects.designSystem)
         }
@@ -104,13 +105,13 @@ kotlin.sourceSets.named("wasmJsMain") {
 }
 
 /**
- * ARCHITECTURE.md §4.7 as a check, since inside one module the compiler can't enforce it: the app's code lives in
+ * ARCHITECTURE.md §4.9 as a check, since inside one module the compiler can't enforce it: the app's code lives in
  * `shell`, `features` and `adapters` only, and each imports only what its rule allows. The design system is a module
  * of its own (`:design-system`), so the build enforces its rule: it depends on nothing of the app's.
  */
 val checkPackageRules = tasks.register("checkPackageRules") {
     group = "verification"
-    description = "Fails when the app's packages import across the rules in ARCHITECTURE.md §4.7."
+    description = "Fails when the app's packages import across the rules in ARCHITECTURE.md §4.9."
     val sources = layout.projectDirectory.dir("src/wasmJsMain/kotlin/com/cdodi")
     inputs.dir(sources).withPathSensitivity(PathSensitivity.RELATIVE).withPropertyName("sources")
     val root = sources.asFile
@@ -132,7 +133,7 @@ val checkPackageRules = tasks.register("checkPackageRules") {
             }
         }.toList()
         val broken = strays + crossings
-        if (broken.isNotEmpty()) throw GradleException("The package rules (ARCHITECTURE.md §4.7) are broken:\n" + broken.joinToString("\n"))
+        if (broken.isNotEmpty()) throw GradleException("The package rules (ARCHITECTURE.md §4.9) are broken:\n" + broken.joinToString("\n"))
     }
 }
 

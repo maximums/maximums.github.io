@@ -1,8 +1,8 @@
 # maximums.github.io
 
 A rainy street behind fogged glass, drawn with **WebGPU** from **Kotlin/Wasm**, with a **Compose Multiplatform** UI on
-top. Behind the panes: the Game of Life and a murmuration of up to a million boids, both on compute shaders, and notes
-on how it's built.
+top. Behind the panes: the Game of Life and a murmuration of up to a million boids, both on compute shaders, a maple
+bonsai you can turn (a glTF model, read and drawn by our own code), and notes on how it's built.
 
 **Live:** [maximums.github.io](https://maximums.github.io) · **Notes:** [maximums.github.io/notes/](https://maximums.github.io/notes/)
 
@@ -25,6 +25,8 @@ flowchart TB
         runtime[":webidl-runtime<br/>what generated code calls"]
         core[":core<br/>heartbeat · buses · navigation graph<br/>(pure Kotlin, JVM-tested)"]
         notes[":notes<br/>Markdown → blocks → HTML"]
+        math[":math<br/>vectors · matrices · boxes"]
+        gltf[":gltf<br/>.glb → model<br/>(pure Kotlin, JVM-tested)"]
         app[":composeApp<br/>the site"]
     end
 
@@ -37,6 +39,8 @@ flowchart TB
     core --> app
     notes --> app
     notes --> site
+    math --> gltf
+    gltf --> app
 
     subgraph runtime["In the browser, every frame"]
         heartbeat["Heartbeat<br/>Input → Simulation → Navigation → Render → Ui"]
@@ -51,8 +55,8 @@ flowchart TB
 ```
 
 - **Two canvases.** WebGPU draws the scene on `#gpu`; Compose draws the UI on a transparent `#compose` on top.
-  Compose reports where its elements are, so the scene can draw effects behind them (the sphere behind the Welcome
-  card), and passes the pointer input its widgets don't use down to the scene.
+  Compose reports where its elements are, so the scene can draw effects behind them (the maple on About), and passes
+  the pointer input its widgets don't use down to the scene.
 - **One clock.** Every animation, simulation and transition takes its time from the heartbeat.
 - **Navigation is a graph.** Destinations are nodes, and edges carry transitions as values (`(melt with fogRoll) +
   holdFog + (fade with clearing)`). The model knows nothing about Compose or WebGPU; each layer renders the effects it
@@ -78,7 +82,8 @@ page with links to the notes.
 
 ```
 ./gradlew -p build-logic :webidl-compiler:test   # WebIDL compiler: golden files and a compile test
-./gradlew :core:jvmTest :notes:jvmTest           # heartbeat, buses, navigation, Markdown: on the JVM, in seconds
+./gradlew :core:jvmTest :notes:jvmTest :math:jvmTest :gltf:jvmTest
+                                                 # heartbeat, buses, navigation, Markdown, matrices, glTF: on the JVM, in seconds
 ./gradlew wasmJsBrowserTest                      # everything in headless Chrome, including real GPU work
 ```
 
@@ -119,6 +124,7 @@ When a compiler change is meant to change the generated code, rewrite the golden
 
 - **Fonts:** Cormorant Garamond, Manrope and JetBrains Mono, under the SIL Open Font License (bundled with their licences in `composeResources/files/licenses`).
 - **The rain:** ["Light rain on street"](https://freesound.org/s/380651/) by BonnyOrbit, on Freesound, CC0. Light rain recorded from an open window onto a city street at night. It plays only when turned on, from the "RAIN" hint. `tools/sounds/master-rain.sh` masters the site's files from it (ffmpeg): a 30 Hz high-pass, a plain gain to −30 LUFS, then Opus and an AAC fallback.
+- **The maple:** ["Maple Bonsai Tree"](https://sketchfab.com/3d-models/maple-bonsai-tree-1710f5553283441ea2b041e4738314ec) by NPHoa_Kagoby, on Sketchfab, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `tools/models/prepare-maple.sh` restructures the download (glTF Transform): its 958 copies of one leaf become one leaf drawn 958 times, from 17 MB to 0.5 MB, nothing redrawn.
 
 ## Writing a note
 
