@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -28,8 +28,8 @@ import androidx.compose.ui.input.InputMode
 import androidx.compose.ui.platform.LocalInputModeManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.settling
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.settling
 import org.jetbrains.skia.FilterBlurMode
 import org.jetbrains.skia.MaskFilter
 import org.jetbrains.skia.Paint

@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.theme.SiteTheme
 import kotlin.math.max
 
 /**

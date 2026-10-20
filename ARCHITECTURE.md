@@ -123,6 +123,7 @@ flowchart LR
 - **`:webgpu`**: generated bindings and the hand-written idiomatic layer (`GpuContext`, resource scopes and staging typed arrays, shader diagnostics).
 - **`:webidl-runtime`**: the small runtime every generated bindings module calls into: `createJsObject` for dictionaries, `await` that keeps the JS error. It knows no spec, so `:webgpu` and `:webaudio` share it without depending on each other.
 - **`:webaudio`**: Web Audio bindings from the same compiler, for the rain.
+- **`:design-system`** (`com.cdodi.design`): the look, DESIGN.md's "Autumn Rain". The theme as a value (colours by role, glass, scene, type and its bundled fonts), the viewport, and the components. Compose only, and nothing of the app's: what it needs from the app comes through its ports, `GlassSink` and `MotionClock`.
 - **`:composeApp`**: the site. Adapters, app shell and features live here, organised by package (`adapters/compose`, `adapters/gpu`, `shell`, `features/life`, `features/boids`, …), so a feature could later move into its own module without changing its dependencies.
 
 ### 4.3 `build-logic/webidl-compiler` — `com.cdodi.webidl`
@@ -245,14 +246,6 @@ com.cdodi
 │   │                        only while the page is active)
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
-├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
-│   theme/       Theme (ColorRoles · GlassTokens of GlassStyle (fill, fog) · SceneTokens) · LocalTheme · SiteTheme
-│                (the provider, and SiteTheme.colors/.glass/.scene/.type) · AutumnTheme (DESIGN.md's swatches, as
-│                roles) · TypeRoles + bundled fonts · Motion (Settle, settling() on the MotionClock port)
-│                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport
-│   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label · CornerHint
-│                glass (the fog pane: Compose's fog, its outline reported through the GlassSink port) · glow ·
-│                focusRing · drawThread · SceneOverlay (a scene page's panel, readout and hint, for the width)
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
     ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
@@ -281,7 +274,15 @@ composeResources/files/
 ├── notes/                   index.txt (the order) · <slug>.md (front matter + Markdown)
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 
-composeResources/font/       Cormorant Garamond · Manrope · JetBrains Mono (OFL; licences in files/licenses)
+design-system/                the :design-system module (com.cdodi.design)
+├── theme/                   Theme (ColorRoles · GlassTokens of GlassStyle (fill, fog) · SceneTokens) · LocalTheme ·
+│                            SiteTheme (the provider, and SiteTheme.colors/.glass/.scene/.type) · AutumnTheme
+│                            (DESIGN.md's swatches, as roles) · TypeRoles + the fonts · Motion (Settle, settling() on
+│                            the MotionClock port) · Viewport (the window in dp: size classes, vw/vh, fluid sizes)
+├── components/              Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow ·
+│                            Label · CornerHint · glass (the fog pane: Compose's fog, its outline reported through the
+│                            GlassSink port) · glow · focusRing · drawThread · Thread · SceneOverlay
+└── composeResources/font/   Cormorant Garamond · Manrope · JetBrains Mono (OFL; licences in files/licenses)
 wasmJsMain/resources/sounds/ rain.webm (Opus) · rain.m4a (AAC fallback): BonnyOrbit, CC0, mastered by tools/sounds
 wasmJsMain/resources/        index.html (two layers + loading state; a plain-HTML summary for screen readers, search
                              engines and browsers without WasmGC; Open Graph tags) · styles.css · og.png · favicon.svg
@@ -298,8 +299,8 @@ flowchart TB
     shell --> features
     shell --> adapters
     features --> adapters
-    features --> ui
-    adapters --> ui
+    features --> ds[":design-system"]
+    adapters --> ds
     adapters --> coreM["com.cdodi.core"]
     features --> coreM
     adapters --> gpuM["com.cdodi.webgpu"]
@@ -308,14 +309,14 @@ flowchart TB
 ```
 
 - `shell` → everything; nothing depends on `shell` except `main.kt`.
-- `features.*` → `adapters`, `ui`, `core`, `webgpu`. **Never** another feature, never `shell`.
-- `adapters` → `ui`, `core`, `webgpu`. Never `features` or `shell`.
-- `ui` → Compose only. No `core`, no GPU, no app state.
+- `features.*` → `adapters`, `design`, `core`, `webgpu`. **Never** another feature, never `shell`.
+- `adapters` → `design`, `core`, `webgpu`. Never `features` or `shell`.
+- `design` (`:design-system`) → Compose only. No `core`, no GPU, no app state: the build enforces it.
 - `core` → nothing in the project.
 
-Colours have a rule of their own: they come from the theme. `checkThemeTokens` fails on a colour written anywhere outside `ui/theme` (`Color(0x…)`, `Color(r, g, b)`).
+Colours have a rule of their own: they come from the theme. `checkThemeTokens` (a root task, over both modules) fails on a colour written anywhere outside the design system's `theme` package (`Color(0x…)`, `Color(r, g, b)`).
 
-Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than these four appears. `ui` imports nothing of the app's: what it needs from it comes through its ports, `GlassSink` (the GPU layer blurs the street behind the panes; `GpuWidgets` implements it) and `MotionClock` (UI motion on the heartbeat's `ui` clock, `Clock.asMotionClock()`), both provided by `main.kt`. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
+The design system is a module of its own, so the build keeps it from depending on the app: what it needs from the app comes through its ports, `GlassSink` (the GPU layer blurs the street behind the panes; `GpuWidgets` implements it) and `MotionClock` (UI motion on the heartbeat's `ui` clock, `Clock.asMotionClock()`), both provided by `main.kt`. Inside `:composeApp` the compiler can't enforce the other rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than `shell`, `features` and `adapters` appears. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
 
 ### 4.8 Where today's code goes
 
@@ -331,7 +332,7 @@ Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRul
 | `components/MorphingShapeModifier.kt`, `PlacementModifier.kt`, `QuadVertexProgress.kt`, `UiCard.kt` | `adapters.compose.morph` (done: they follow `LocalMorph`, so they're adapters rather than `ui`) |
 | `components/MainMenu.kt` (menu + movable cards) | `shell` (done: `MenuItem`, `HomeWindow`, `TopBar`, `BodyCard`; the menu knows every feature, so it's wiring) |
 | `components/RuntimeShaderModifier.kt`, `uniformData` in `Utils.kt` | removed (the background moves to WebGPU) |
-| `vw` / `vh`, `LocalIsSmallWindow` in `Utils.kt` | `ui.units` |
+| `vw` / `vh`, `LocalIsSmallWindow` in `Utils.kt` | `design.theme.Viewport` (done) |
 | `Shaders.kt` (`PIXEL_MELT_SHADER`), `MY_TRY`, `SANDBOX` | `sksl/pixel_melt.sksl`; the rest removed or ported to WGSL |
 | `bokeh.sksl` and the other `.sksl` files | `shaders/background/bokeh.wgsl` (ported) |
 | `main.kt` routing and transitions | `shell.AppGraph` + `shell.Transitions` + `adapters.compose.NavPages` |

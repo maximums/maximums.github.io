@@ -9,7 +9,7 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import com.cdodi.adapters.gpu.GpuWidgets
-import com.cdodi.ui.components.LocalPageVisibility
+import com.cdodi.design.components.LocalPageVisibility
 
 /** Where elements report themselves for the scene to draw behind them; null where there is no GPU layer. */
 val LocalGpuWidgets = staticCompositionLocalOf<GpuWidgets?> { null }

@@ -2,7 +2,7 @@ package com.cdodi.shell
 
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.Viewport
+import com.cdodi.design.theme.Viewport
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals

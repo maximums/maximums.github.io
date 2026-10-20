@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -29,9 +29,9 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.GlassStyle
-import com.cdodi.ui.theme.LocalTheme
-import com.cdodi.ui.theme.lerp
+import com.cdodi.design.theme.GlassStyle
+import com.cdodi.design.theme.LocalTheme
+import com.cdodi.design.theme.lerp
 import kotlin.random.Random
 
 /** DESIGN.md §5: panes have a 2 px radius. */
@@ -93,7 +93,7 @@ val LocalPageVisibility = staticCompositionLocalOf { { 1f } }
  * sharp.
  *
  * [clear] (0 fogged, 1 cleared) wipes the fog off, as hover and focus do. [style] replaces the theme's fog pane for
- * panes a little thicker or thinner (its [GlassTokens][com.cdodi.ui.theme.GlassTokens]). [wipe] (0 to 1) sweeps a band of clearness across the pane
+ * panes a little thicker or thinner (its [GlassTokens][com.cdodi.design.theme.GlassTokens]). [wipe] (0 to 1) sweeps a band of clearness across the pane
  * from left to right, leaving it clear ("Breath on the window" starts so). The lambdas are read every frame.
  */
 fun Modifier.glass(

@@ -24,17 +24,17 @@ import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.compose.morph.animatePlacement
 import com.cdodi.adapters.compose.morph.morphScale
 import com.cdodi.core.navigation.graph.Destination
+import com.cdodi.design.components.GlassShape
+import com.cdodi.design.components.drawThread
+import com.cdodi.design.components.focusRing
+import com.cdodi.design.components.warmth
+import com.cdodi.design.theme.Motion
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.settling
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.notes.NotesDestination
-import com.cdodi.ui.components.GlassShape
-import com.cdodi.ui.components.drawThread
-import com.cdodi.ui.components.focusRing
-import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.Motion
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.settling
 
 /** A corner of Home's window, where a pane sits, and where its label grows from. */
 enum class Corner(val alignment: Alignment, val origin: TransformOrigin, val top: Boolean, val start: Boolean) {

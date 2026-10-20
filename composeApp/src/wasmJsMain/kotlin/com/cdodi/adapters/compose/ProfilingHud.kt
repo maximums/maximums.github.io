@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
-import com.cdodi.ui.components.GlassShape
-import com.cdodi.ui.components.ReadoutRow
-import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.GlassShape
+import com.cdodi.design.components.ReadoutRow
+import com.cdodi.design.components.formatDecimal
+import com.cdodi.design.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.roundToInt
 

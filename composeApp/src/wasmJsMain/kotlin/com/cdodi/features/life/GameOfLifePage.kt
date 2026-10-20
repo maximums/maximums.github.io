@@ -33,17 +33,17 @@ import blog.composeapp.generated.resources.game_of_life_population
 import blog.composeapp.generated.resources.game_of_life_reset_button
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.collectEachFrame
+import com.cdodi.design.components.DripSlider
+import com.cdodi.design.components.QuietButton
+import com.cdodi.design.components.RoundButton
+import com.cdodi.design.components.StrokeIcons
+import com.cdodi.design.components.formatDecimal
+import com.cdodi.design.theme.SiteTheme
 import com.cdodi.features.life.engine.CELL_SIZE_PX
 import com.cdodi.features.life.engine.Cell
 import com.cdodi.features.life.engine.GameOfLifeManager
 import com.cdodi.features.life.engine.Grid
 import com.cdodi.features.life.engine.LifeRule
-import com.cdodi.ui.components.DripSlider
-import com.cdodi.ui.components.QuietButton
-import com.cdodi.ui.components.RoundButton
-import com.cdodi.ui.components.StrokeIcons
-import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.SiteTheme
 import org.jetbrains.compose.resources.stringResource
 
 

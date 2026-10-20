@@ -6,7 +6,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.theme.SiteTheme
 
 /** The Boids page without WebGPU: the murmuration needs compute shaders, so this only says so. */
 @Composable

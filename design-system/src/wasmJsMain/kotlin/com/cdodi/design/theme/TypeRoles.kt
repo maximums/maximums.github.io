@@ -1,4 +1,4 @@
-package com.cdodi.ui.theme
+package com.cdodi.design.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -9,14 +9,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import blog.composeapp.generated.resources.Res
-import blog.composeapp.generated.resources.cormorant_garamond_italic
-import blog.composeapp.generated.resources.cormorant_garamond_light_italic
-import blog.composeapp.generated.resources.jetbrains_mono_light
-import blog.composeapp.generated.resources.jetbrains_mono_regular
-import blog.composeapp.generated.resources.manrope_medium
-import blog.composeapp.generated.resources.manrope_regular
-import blog.composeapp.generated.resources.manrope_semibold
+import com.cdodi.design.resources.Res
+import com.cdodi.design.resources.cormorant_garamond_italic
+import com.cdodi.design.resources.cormorant_garamond_light_italic
+import com.cdodi.design.resources.jetbrains_mono_light
+import com.cdodi.design.resources.jetbrains_mono_regular
+import com.cdodi.design.resources.manrope_medium
+import com.cdodi.design.resources.manrope_regular
+import com.cdodi.design.resources.manrope_semibold
 import org.jetbrains.compose.resources.FontResource
 import org.jetbrains.compose.resources.preloadFont
 
