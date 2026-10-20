@@ -123,6 +123,7 @@ When a compiler change is meant to change the generated code, rewrite the golden
 
 - **Fonts:** Cormorant Garamond, Manrope and JetBrains Mono, under the SIL Open Font License (bundled with their licences in `composeResources/files/licenses`).
 - **The rain:** ["Light rain on street"](https://freesound.org/s/380651/) by BonnyOrbit, on Freesound, CC0. Light rain recorded from an open window onto a city street at night. It plays only when turned on, from the "RAIN" hint. `tools/sounds/master-rain.sh` masters the site's files from it (ffmpeg): a 30 Hz high-pass, a plain gain to −30 LUFS, then Opus and an AAC fallback.
+- **The maple:** ["Maple Bonsai Tree"](https://sketchfab.com/3d-models/maple-bonsai-tree-1710f5553283441ea2b041e4738314ec) by NPHoa_Kagoby, on Sketchfab, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). `tools/models/prepare-maple.sh` restructures the download (glTF Transform): its 958 copies of one leaf become one leaf drawn 958 times, from 17 MB to 0.5 MB, nothing redrawn.
 
 ## Writing a note
 

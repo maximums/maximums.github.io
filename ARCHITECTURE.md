@@ -95,6 +95,7 @@ maximums.github.io/
 │   └── idl/webgpu.idl              committed, pinned @webref/idl version
 ├── composeApp/                     :composeApp — the site
 ├── tools/sounds/master-rain.sh     masters the rain's files from the recording (ffmpeg; run by hand, output committed)
+├── tools/models/prepare-maple.sh   the maple's .glb from Sketchfab's download (glTF Transform; by hand, output committed)
 ├── gradle/libs.versions.toml       single source of versions
 ├── .github/workflows/              CI + Pages deploy
 └── README.md · ARCHITECTURE.md · DESIGN.md · PLAN.md · REVIEW.md
@@ -318,6 +319,7 @@ composeResources/files/
 ├── shaders/glass/           blur.wgsl (dual Kawase down/up) · panes.wgsl (copy + panes from the blurred frame)
 ├── shaders/life/            step.wgsl · render.wgsl
 ├── shaders/boids/           step.wgsl (naive and grid kernels) · render.wgsl
+├── models/                  maple-bonsai.glb (a trunk, a pot, one leaf drawn 958 times: 0.5 MB; NPHoa_Kagoby, CC BY 4.0)
 ├── notes/                   index.txt (the order) · <slug>.md (front matter + Markdown)
 └── sksl/                    pixel_melt.sksl (the effects applied to Compose content)
 

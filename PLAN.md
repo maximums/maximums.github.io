@@ -692,12 +692,11 @@ Steps:
   - `:gltf` reads `.glb` files into a `Model`: flat vertex arrays, one instance matrix per node and per `EXT_mesh_gpu_instancing` instance, metallic-roughness materials, and images still encoded for the browser.
   - Its JSON goes through kotlinx.serialization 1.11.0.
   - A file that requires an extension outside its subset is refused, with the extensions named.
-- [ ] **The maple, prepared.**
-  - `tools/models/prepare-maple.sh`, which runs gltf-transform by hand, like the rain's mastering, with its output committed:
-    - the copies merged into instances;
-    - the textures compressed.
-  - `files/models/maple-bonsai.glb`, credited on About.
-  - A fixture test: 3 meshes, 958 leaves.
+- [x] **The maple, prepared.**
+  - `tools/models/prepare-maple.sh` runs glTF Transform 4.5.1 by hand, like the rain's mastering, with its output committed. It merges the duplicates (`dedup`: 960 meshes become 3), turns the 958 nodes sharing the leaf into one `EXT_mesh_gpu_instancing` node (`instance`), and prunes the rest.
+  - `files/models/maple-bonsai.glb`: 17.26 MB down to 507 kB. The textures stay as they came (three 1024 px PNGs, 0.4 MB), to be looked at again once the tree is drawn.
+  - Credited on About ("restructured for the web", with the licence linked, as CC BY asks; `Credit` can carry a licence link now) and in the README.
+  - `FixtureTest` reads the file the site ships: 3 meshes, 958 leaves, 227,004 triangles drawn, and the download's bounds.
 - [ ] **Rendering it.**
   - `adapters/gpu/model`:
     - `GpuModel`: buffers; instance matrices in a storage buffer; textures through `createImageBitmap` and `copyExternalImageToTexture`, sRGB for colour.
@@ -709,6 +708,8 @@ Steps:
   - The drag.
   - The tree behind the Welcome glass, and on phones.
 
+> **Notes (step 2).** Nothing is approximated. Read before and after, all 958 leaf matrices match within 4×10⁻⁹ (the model is 0.04 across), and the bounds and triangles drawn are the same. The script's output is deterministic: two runs, the same bytes. The Khronos validator finds no errors or warnings; its infos say it doesn't know `EXT_mesh_gpu_instancing`.
+>
 > **Notes (step 1).**
 > - Tests: `Mat4Test`, `QuatTest`, `BoundsTest`; `GlbTest`, `AccessorsTest`, `GltfTest` (on `.glb` files built in memory, broken ones included); and `FixtureTest`, on Khronos's `TextureCoordinateTest.glb`, credited in `resources/fixtures`.
 > - Read as Sketchfab serves it, the maple (960 meshes, 227,004 triangles) takes about 230 ms on the JVM, with the same bounds as an independent Python preview. The juniper reads too, its crown's material as `Mask` and its clearcoat ignored.

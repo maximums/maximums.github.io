@@ -26,6 +26,10 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        jvmTest {
+            // The models the site ships, so the fixture tests read exactly what's served.
+            resources.srcDir(rootProject.layout.projectDirectory.dir("composeApp/src/commonMain/composeResources/files/models"))
+        }
     }
 }
 

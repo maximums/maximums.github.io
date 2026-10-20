@@ -1,5 +1,7 @@
 package com.cdodi.features.about
 
+import com.cdodi.design.theme.Credit
+
 /**
  * What the About page says. The page's layout lives in `pages/AboutPage.kt`; the words live here, so changing them
  * never means touching layout code. `index.html` has the same bio in plain HTML, for screen readers and search
@@ -35,6 +37,16 @@ object AboutContent {
         ContactLink("GitHub", "https://github.com/maximums"),
         ContactLink("LinkedIn", "https://www.linkedin.com/in/cristian-dodi-4249831b5/"),
         ContactLink("cdodi907@gmail.com", "mailto:cdodi907@gmail.com"),
+    )
+
+    /** The maple on Home (`files/models/maple-bonsai.glb`, prepared by `tools/models/prepare-maple.sh`). */
+    val mapleCredit = Credit(
+        "Maple Bonsai Tree",
+        "NPHoa_Kagoby",
+        "https://sketchfab.com/3d-models/maple-bonsai-tree-1710f5553283441ea2b041e4738314ec",
+        source = "Sketchfab",
+        licence = "CC BY 4.0",
+        licenceUrl = "https://creativecommons.org/licenses/by/4.0/",
     )
 }
 

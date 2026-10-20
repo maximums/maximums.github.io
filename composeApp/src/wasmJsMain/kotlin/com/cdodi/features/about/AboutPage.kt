@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.design.components.glass
+import com.cdodi.design.theme.Credit
 import com.cdodi.design.theme.LocalViewport
 import com.cdodi.design.theme.SiteTheme
 
@@ -119,17 +120,31 @@ private fun ColumnScope.Content(compact: Boolean) {
         }
     }
     Text("Write-ups on how this site is built are under Notes.", style = type.verse.copy(fontSize = 17.sp), color = colors.muted, modifier = Modifier.padding(top = 10.dp))
-    // The sound outside, credited: the theme's recording.
-    val credit = SiteTheme.ambience.credit
+    // The sound outside (the theme's recording) and the maple on Home, credited.
+    CreditLine("The ${SiteTheme.copy.sound} you can turn on is", SiteTheme.ambience.credit)
+    CreditLine("The maple on Home is", AboutContent.mapleCredit, changed = "restructured for the web")
+}
+
+/**
+ * "[lead] “title” by author, from source (licence)", then what was [changed] in it, if anything: CC BY asks for that,
+ * and for the licence to be linked. The title links to the work.
+ */
+@Composable
+private fun CreditLine(lead: String, credit: Credit, changed: String? = null) {
+    val colors = SiteTheme.colors
+    val links = TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline))
     Text(
         buildAnnotatedString {
-            append("The ${SiteTheme.copy.sound} you can turn on is ")
-            withLink(LinkAnnotation.Url(credit.url, TextLinkStyles(SpanStyle(color = colors.accent, textDecoration = TextDecoration.Underline)))) {
-                append("“${credit.title}” by ${credit.author}")
-            }
-            append(", from ${credit.source} (${credit.licence}).")
+            append("$lead ")
+            withLink(LinkAnnotation.Url(credit.url, links)) { append("“${credit.title}” by ${credit.author}") }
+            append(", from ${credit.source} (")
+            val licenceUrl = credit.licenceUrl
+            if (licenceUrl != null) withLink(LinkAnnotation.Url(licenceUrl, links)) { append(credit.licence) } else append(credit.licence)
+            append(")")
+            if (changed != null) append(", $changed")
+            append(".")
         },
-        style = type.small,
+        style = SiteTheme.type.small,
         color = colors.muted,
     )
 }
