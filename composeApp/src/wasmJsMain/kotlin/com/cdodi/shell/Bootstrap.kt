@@ -1,16 +1,16 @@
 package com.cdodi.shell
 
 import androidx.compose.ui.unit.dp
+import com.cdodi.adapters.audio.AmbientSound
 import com.cdodi.adapters.browser.HashUrls
 import com.cdodi.adapters.browser.followBrowserHistory
-import com.cdodi.adapters.audio.AmbientSound
 import com.cdodi.adapters.browser.followFocus
 import com.cdodi.adapters.browser.followReducedMotion
 import com.cdodi.adapters.browser.followVisibility
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.transitions
-import com.cdodi.adapters.gpu.GpuCanvas
 import com.cdodi.adapters.gpu.GlassCompositor
+import com.cdodi.adapters.gpu.GpuCanvas
 import com.cdodi.adapters.gpu.GpuProfiler
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.adapters.gpu.PassTiming
@@ -32,6 +32,7 @@ import com.cdodi.core.navigation.signal.MutableSignals
 import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Heartbeat
+import com.cdodi.design.theme.Viewport
 import com.cdodi.features.background.BackgroundScene
 import com.cdodi.features.background.BackgroundSettings
 import com.cdodi.features.boids.BoidsController
@@ -40,7 +41,6 @@ import com.cdodi.features.boids.BoidsScene
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
-import com.cdodi.ui.theme.Viewport
 import com.cdodi.webgpu.context.requestGpuContext
 import kotlinx.browser.document
 import kotlinx.browser.window

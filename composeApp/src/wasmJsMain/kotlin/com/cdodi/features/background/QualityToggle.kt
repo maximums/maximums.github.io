@@ -11,9 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.compose.collectEachFrame
 import com.cdodi.adapters.gpu.PassTiming
-import com.cdodi.ui.components.HintOption
-import com.cdodi.ui.components.formatDecimal
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.HintOption
+import com.cdodi.design.components.formatDecimal
+import com.cdodi.design.theme.SiteTheme
 import kotlinx.coroutines.flow.StateFlow
 
 /**

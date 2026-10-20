@@ -32,11 +32,11 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.components.GlassShape
-import com.cdodi.ui.components.focusRing
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.GlassShape
+import com.cdodi.design.components.focusRing
+import com.cdodi.design.components.glass
+import com.cdodi.design.components.warmth
+import com.cdodi.design.theme.SiteTheme
 
 /**
  * The slim top bar (DESIGN.md §8, shared): the brand mark and name on the left, which go Home, the menu's words in the

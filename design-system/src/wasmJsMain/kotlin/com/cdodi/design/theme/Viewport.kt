@@ -1,4 +1,4 @@
-package com.cdodi.ui.theme
+package com.cdodi.design.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable

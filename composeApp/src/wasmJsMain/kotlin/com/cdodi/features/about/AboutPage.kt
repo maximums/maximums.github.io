@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.gpuBacked
 import com.cdodi.adapters.gpu.GpuWidgets
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.LocalViewport
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.glass
+import com.cdodi.design.theme.LocalViewport
+import com.cdodi.design.theme.SiteTheme
 
 /**
  * The About page: the sphere (drawn by the scene behind the page, a GPU-backed widget) beside a column of text and
@@ -135,5 +135,5 @@ private fun ColumnScope.Content(compact: Boolean) {
 /** A label over a group (DESIGN.md's Label), bright, to head a section. */
 @Composable
 private fun Label(text: String) {
-    com.cdodi.ui.components.Label(text, Modifier.padding(top = 14.dp), color = SiteTheme.colors.bright)
+    com.cdodi.design.components.Label(text, Modifier.padding(top = 14.dp), color = SiteTheme.colors.bright)
 }

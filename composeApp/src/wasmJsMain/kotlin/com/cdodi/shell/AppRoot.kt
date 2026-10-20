@@ -12,11 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import com.cdodi.ui.theme.AutumnTheme
-import com.cdodi.ui.theme.LocalViewport
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.rememberAutumnFonts
-import com.cdodi.ui.theme.windowViewport
+import com.cdodi.design.theme.AutumnTheme
+import com.cdodi.design.theme.LocalViewport
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.rememberAutumnFonts
+import com.cdodi.design.theme.windowViewport
 import kotlinx.browser.document
 import kotlinx.coroutines.delay
 

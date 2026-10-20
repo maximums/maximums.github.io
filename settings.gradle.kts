@@ -31,6 +31,7 @@ dependencyResolutionManagement {
 }
 
 include(":composeApp")
+include(":design-system")
 include(":webgpu")
 include(":core")
 include(":notes")

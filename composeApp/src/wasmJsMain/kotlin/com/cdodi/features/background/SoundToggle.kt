@@ -11,8 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.cdodi.adapters.audio.AmbientSound
-import com.cdodi.ui.components.HintOption
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.HintOption
+import com.cdodi.design.theme.SiteTheme
 
 /**
  * The rain's sound as a corner hint (DESIGN.md §8): "RAIN", then on and off. [compact] (a phone's top bar) is the word

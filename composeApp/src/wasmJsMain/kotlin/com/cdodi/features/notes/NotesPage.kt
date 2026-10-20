@@ -41,15 +41,15 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.cdodi.design.components.glass
+import com.cdodi.design.theme.ColorRoles
+import com.cdodi.design.theme.LocalViewport
+import com.cdodi.design.theme.SiteTheme
 import com.cdodi.notes.Block
 import com.cdodi.notes.Inline
 import com.cdodi.notes.Note
 import com.cdodi.notes.formatDate
 import com.cdodi.notes.plainText
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.ColorRoles
-import com.cdodi.ui.theme.LocalViewport
-import com.cdodi.ui.theme.SiteTheme
 import kotlinx.browser.window
 
 private val Body: TextStyle @Composable get() = SiteTheme.type.body.copy(color = SiteTheme.colors.text)

@@ -1,7 +1,7 @@
 package com.cdodi.adapters.gpu
 
-import com.cdodi.ui.components.GlassPane
-import com.cdodi.ui.components.GlassSink
+import com.cdodi.design.components.GlassPane
+import com.cdodi.design.components.GlassSink
 
 /**
  * UI elements that want the scene to draw something behind them ("GPU-backed widgets"). Compose can't blur or light

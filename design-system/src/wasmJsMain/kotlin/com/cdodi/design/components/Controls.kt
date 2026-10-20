@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -47,10 +47,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.cdodi.ui.theme.ColorRoles
-import com.cdodi.ui.theme.Motion
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.settling
+import com.cdodi.design.theme.ColorRoles
+import com.cdodi.design.theme.Motion
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.settling
 import kotlin.math.roundToInt
 
 /**

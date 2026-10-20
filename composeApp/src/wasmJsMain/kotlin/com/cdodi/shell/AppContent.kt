@@ -34,6 +34,11 @@ import com.cdodi.adapters.compose.morph.MorphingShape
 import com.cdodi.core.bus.NavIntent
 import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.core.time.FramePhase
+import com.cdodi.design.components.CornerHint
+import com.cdodi.design.components.Thread
+import com.cdodi.design.components.glass
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.lerp
 import com.cdodi.features.about.AboutContent
 import com.cdodi.features.about.AboutDestination
 import com.cdodi.features.about.AboutPage
@@ -50,11 +55,6 @@ import com.cdodi.features.life.LifeControls
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.notes.NotesDestination
 import com.cdodi.features.notes.NotesPage
-import com.cdodi.ui.components.CornerHint
-import com.cdodi.ui.components.Thread
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.lerp
 
 @Composable
 fun App(runtime: AppRuntime) {

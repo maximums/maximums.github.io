@@ -9,11 +9,11 @@ import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.LocalNavigationBus
 import com.cdodi.adapters.compose.asMotionClock
 import com.cdodi.adapters.input.InputLayer
+import com.cdodi.design.components.LocalGlassSink
+import com.cdodi.design.theme.LocalMotionClock
 import com.cdodi.shell.App
 import com.cdodi.shell.AppRoot
 import com.cdodi.shell.bootstrap
-import com.cdodi.ui.components.LocalGlassSink
-import com.cdodi.ui.theme.LocalMotionClock
 
 fun main() {
     val runtime = bootstrap()

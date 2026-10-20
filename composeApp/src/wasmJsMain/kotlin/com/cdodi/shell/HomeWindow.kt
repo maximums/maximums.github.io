@@ -40,13 +40,13 @@ import androidx.compose.ui.unit.sp
 import com.cdodi.adapters.compose.LocalHeartbeat
 import com.cdodi.adapters.compose.ambient
 import com.cdodi.adapters.compose.shaderTime
-import com.cdodi.ui.components.GlassOutline
-import com.cdodi.ui.components.Thread
-import com.cdodi.ui.components.drawThread
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.components.warmth
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.lerp
+import com.cdodi.design.components.GlassOutline
+import com.cdodi.design.components.Thread
+import com.cdodi.design.components.drawThread
+import com.cdodi.design.components.glass
+import com.cdodi.design.components.warmth
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.lerp
 
 /**
  * What a transition is doing to Home's panes right now (DESIGN.md §9, `wipe`): the chosen pane is wiped clear, the

@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor

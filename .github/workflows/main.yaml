@@ -45,7 +45,7 @@ jobs:
         run: ./gradlew :core:jvmTest :notes:jvmTest
 
       - name: Test and build wasm application
-        run: ./gradlew :composeApp:checkPackageRules :composeApp:checkThemeTokens wasmJsBrowserTest wasmJsBrowserDistribution
+        run: ./gradlew :composeApp:checkPackageRules :checkThemeTokens wasmJsBrowserTest :composeApp:wasmJsBrowserDistribution
 
       - name: Setup pages
         if: github.event_name != 'pull_request'

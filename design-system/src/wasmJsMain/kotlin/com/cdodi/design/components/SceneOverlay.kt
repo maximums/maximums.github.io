@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -31,8 +31,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.LocalViewport
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.theme.LocalViewport
+import com.cdodi.design.theme.SiteTheme
 
 /** Where a scene page's panel of controls sits; its GPU readout takes the opposite corner. */
 enum class PanelCorner { TopEnd, BottomStart }

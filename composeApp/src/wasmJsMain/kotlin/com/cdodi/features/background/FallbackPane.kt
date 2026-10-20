@@ -10,12 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.components.Label
-import com.cdodi.ui.components.LampButton
-import com.cdodi.ui.components.QuietButton
-import com.cdodi.ui.components.StrokeIcons
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.design.components.Label
+import com.cdodi.design.components.LampButton
+import com.cdodi.design.components.QuietButton
+import com.cdodi.design.components.StrokeIcons
+import com.cdodi.design.components.glass
+import com.cdodi.design.theme.SiteTheme
 
 /**
  * DESIGN.md §8, No WebGPU: one pane over the still scene. It says what's missing, which browsers have it, and offers a

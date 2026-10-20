@@ -1,4 +1,4 @@
-package com.cdodi.ui.components
+package com.cdodi.design.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -19,9 +19,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.cdodi.ui.theme.Motion
-import com.cdodi.ui.theme.SiteTheme
-import com.cdodi.ui.theme.settling
+import com.cdodi.design.theme.Motion
+import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.settling
 
 /**
  * One choice in a corner hint (DESIGN.md §8): a spaced-out mono word, bright over a thread of the accent when

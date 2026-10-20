@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.cdodi.adapters.compose.effects.LocalMorph
-import com.cdodi.ui.components.GlassOutline
+import com.cdodi.design.components.GlassOutline
 
 /**
  * Where a morphing quad is this frame, for whoever else needs its outline: the GPU, which blurs the street behind the

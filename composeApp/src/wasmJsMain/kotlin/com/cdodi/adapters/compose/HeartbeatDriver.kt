@@ -13,7 +13,7 @@ import com.cdodi.core.bus.NavigationBus
 import com.cdodi.core.time.Clock
 import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
-import com.cdodi.ui.theme.MotionClock
+import com.cdodi.design.theme.MotionClock
 import kotlinx.coroutines.flow.StateFlow
 
 val LocalHeartbeat = staticCompositionLocalOf<Heartbeat> { error("No Heartbeat provided") }

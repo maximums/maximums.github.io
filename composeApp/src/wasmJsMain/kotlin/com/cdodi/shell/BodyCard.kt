@@ -17,8 +17,8 @@ import com.cdodi.adapters.compose.morph.MorphingQuad
 import com.cdodi.adapters.compose.morph.MorphingShape
 import com.cdodi.adapters.compose.morph.animatePlacement
 import com.cdodi.adapters.compose.morph.morphingShape
-import com.cdodi.ui.components.glass
-import com.cdodi.ui.theme.GlassStyle
+import com.cdodi.design.components.glass
+import com.cdodi.design.theme.GlassStyle
 
 /**
  * The page's glass, read while drawing so it can follow a transition frame by frame: Home's fog, then the page's.

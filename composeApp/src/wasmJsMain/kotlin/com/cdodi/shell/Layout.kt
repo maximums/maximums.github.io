@@ -8,8 +8,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
-import com.cdodi.ui.theme.SizeClass
-import com.cdodi.ui.theme.Viewport
+import com.cdodi.design.theme.SizeClass
+import com.cdodi.design.theme.Viewport
 
 /** The least a design is scaled to: below three quarters of its size, its type gets too small to read. */
 const val MIN_SCALE = 0.75f
