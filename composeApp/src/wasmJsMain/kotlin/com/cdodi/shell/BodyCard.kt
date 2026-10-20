@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
@@ -19,29 +18,30 @@ import com.cdodi.adapters.compose.morph.MorphingShape
 import com.cdodi.adapters.compose.morph.animatePlacement
 import com.cdodi.adapters.compose.morph.morphingShape
 import com.cdodi.ui.components.glass
+import com.cdodi.ui.theme.GlassStyle
 
 /**
  * The page's glass, read while drawing so it can follow a transition frame by frame: Home's fog, then the page's.
  * Without one, the theme's fog pane.
  */
-val LocalPaneFill = staticCompositionLocalOf<(() -> Color)?> { null }
+val LocalPaneGlass = staticCompositionLocalOf<(() -> GlassStyle)?> { null }
 
 /**
  * The Welcome rhombus on Home, and the page's glass everywhere else: one pane that morphs between the two shapes
- * ([morphingShape]) while it moves ([animatePlacement]), its fog following [LocalPaneFill].
+ * ([morphingShape]) while it moves ([animatePlacement]), its fog following [LocalPaneGlass].
  */
 @Composable
 fun movableBodyCard(): @Composable LookaheadScope.(Modifier, MorphingShape, Boolean, @Composable () -> Unit) -> Unit {
     return remember {
         movableContentWithReceiverOf { modifier, targetShape, isExpanded, content ->
-            val paneFill = LocalPaneFill.current
+            val paneGlass = LocalPaneGlass.current
             val quad = remember { MorphingQuad() }
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = modifier
                     .animatePlacement(lookaheadScope = this)
                     .morphingShape(targetShape, quad)
-                    .glass(shape = RectangleShape, hairline = false, shadow = false, fill = paneFill, outline = quad.outline)
+                    .glass(shape = RectangleShape, hairline = false, shadow = false, style = paneGlass, outline = quad.outline)
                     .padding(if (isExpanded) 0.dp else 8.dp)
             ) {
                 content()

@@ -31,8 +31,8 @@ class ThemeTest {
                 "ground" to colors.ground,
                 "raised ground" to colors.groundRaised,
                 // A pane over the darkest part of the scene: its fill over the ground.
-                "fog pane" to theme.glass.fogged.compositeOver(colors.ground),
-                "reading pane" to theme.glass.reading.compositeOver(colors.ground),
+                "fog pane" to theme.glass.fogged.fill.compositeOver(colors.ground),
+                "reading pane" to theme.glass.reading.fill.compositeOver(colors.ground),
             )
             for ((name, ground) in grounds) {
                 assertContrast(4.5f, colors.muted, ground, "${theme.name}: muted text on the $name")
@@ -55,14 +55,20 @@ class ThemeTest {
     }
 
     @Test
-    fun aPaneIsFoggierThanAClearedOne() {
-        // The GPU blurs the street behind a pane by where its fill sits between cleared and fogged.
+    fun aFogPaneIsFullyFoggedAndAClearedOneNotAtAll() {
+        // The GPU blurs the street behind a pane by its fog; everything else is measured against these two.
         for (theme in themes) {
-            val glass = theme.glass
-            assertTrue(glass.fogged.alpha > glass.cleared.alpha, theme.name)
-            for (pane in listOf(glass.homePane, glass.thick, glass.welcome)) {
-                assertTrue(pane.alpha > glass.cleared.alpha, "${theme.name}: $pane is clearer than a cleared pane")
-            }
+            assertEquals(1f, theme.glass.fogged.fog, theme.name)
+            assertEquals(0f, theme.glass.cleared.fog, theme.name)
         }
+    }
+
+    @Test
+    fun glassBlendsItsFillAndItsFogTogether() {
+        val glass = AutumnTheme.glass
+        val halfway = lerp(glass.cleared, glass.fogged, 0.5f)
+        assertEquals(0.5f, halfway.fog)
+        assertEquals((glass.cleared.fill.alpha + glass.fogged.fill.alpha) / 2, halfway.fill.alpha, 0.01f)
+        assertEquals(glass.fogged, lerp(glass.cleared, glass.fogged, 1f))
     }
 }

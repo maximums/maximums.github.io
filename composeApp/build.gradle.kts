@@ -104,8 +104,8 @@ kotlin.sourceSets.named("wasmJsMain") {
 
 /**
  * ARCHITECTURE.md §4.7 as a check, since inside one module the compiler can't enforce it: the app's code lives in
- * `shell`, `features`, `adapters` and `ui` only, and each imports only what its rule allows. `ui` still reaches the GPU
- * adapters and the clock in two files ([knownUiExceptions]); the design system's ports take those away.
+ * `shell`, `features`, `adapters` and `ui` only, and each imports only what its rule allows. `ui` imports nothing of
+ * the app's: what it needs from it (the GPU's glass, the clock) comes through its ports.
  */
 val checkPackageRules = tasks.register("checkPackageRules") {
     group = "verification"
@@ -115,7 +115,6 @@ val checkPackageRules = tasks.register("checkPackageRules") {
     val root = sources.asFile
     doLast {
         val layers = setOf("shell", "features", "adapters", "ui")
-        val knownUiExceptions = setOf("ui/components/Glass.kt", "ui/theme/Motion.kt")
         val strays = root.listFiles().orEmpty().filter { it.isDirectory && it.name !in layers }.map { "${it.name}/ isn't one of $layers" }
         val crossings = root.walk().filter { it.extension == "kt" }.flatMap { file ->
             val path = file.relativeTo(root).invariantSeparatorsPath
@@ -126,7 +125,7 @@ val checkPackageRules = tasks.register("checkPackageRules") {
                 val allowed = when (layer) {
                     "features" -> target != "shell" && (target != "features" || sub == feature)
                     "adapters" -> target != "shell" && target != "features"
-                    "ui" -> target == "ui" || path in knownUiExceptions
+                    "ui" -> target == "ui"
                     else -> true
                 }
                 if (allowed) null else "$path imports com.cdodi.$target.$sub"

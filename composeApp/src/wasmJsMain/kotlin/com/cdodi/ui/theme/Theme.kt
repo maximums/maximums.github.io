@@ -9,6 +9,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 
 /**
  * What each colour is for (DESIGN.md §3). A theme fills the roles from its own swatches, so the site asks for an
@@ -39,25 +40,38 @@ data class ColorRoles(
 )
 
 /**
- * How fogged each kind of pane is (DESIGN.md §5): the fill Compose draws over the scene. The GPU blurs the street
- * behind a pane by how far its fill is from [cleared] towards [fogged].
+ * A kind of glass: the [fill] Compose draws over the scene, and how fogged it is, [fog], from 0 (clear) to 1 (a fog
+ * pane). The GPU blurs the street behind by [fog], and condensation gathers with it; the two are apart so a theme's
+ * glass can be pale and heavily frosted, or dark and clear.
  */
+@Immutable
+data class GlassStyle(val fill: Color, val fog: Float) {
+    init {
+        require(fog in 0f..1f) { "fog is 0 (clear) to 1 (a fog pane), got $fog" }
+    }
+}
+
+/** The glass [fraction] of the way from [start] to [stop]: its fill and its fog alike. */
+fun lerp(start: GlassStyle, stop: GlassStyle, fraction: Float) =
+    GlassStyle(lerp(start.fill, stop.fill, fraction), start.fog + (stop.fog - start.fog) * fraction.coerceIn(0f, 1f))
+
+/** Each kind of pane the site is built from (DESIGN.md §5), and the top bar. */
 @Immutable
 data class GlassTokens(
     /** A fog pane: controls over a scene. */
-    val fogged: Color,
+    val fogged: GlassStyle,
     /** A pane wiped clear, by a hover or by the transition's wipe. */
-    val cleared: Color,
+    val cleared: GlassStyle,
     /** Home's four panes, a little thinner than a fog pane. */
-    val homePane: Color,
+    val homePane: GlassStyle,
     /** The other panes, fogging over while the chosen one is wiped. */
-    val thick: Color,
+    val thick: GlassStyle,
     /** The Welcome rhombus, a little thicker than a fog pane. */
-    val welcome: Color,
+    val welcome: GlassStyle,
     /** Under long reading (About, Notes): steadier than fog over moving lights. */
-    val reading: Color,
+    val reading: GlassStyle,
     /** A phone's opened controls, over most of the scene. */
-    val folded: Color,
+    val folded: GlassStyle,
     /** The top bar at its top edge, fading to [barBottom] at its lower one. */
     val barTop: Color,
     val barBottom: Color,

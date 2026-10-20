@@ -19,7 +19,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +54,7 @@ import com.cdodi.ui.components.CornerHint
 import com.cdodi.ui.components.Thread
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.ui.theme.lerp
 
 @Composable
 fun App(runtime: AppRuntime) {
@@ -81,7 +81,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
     // The page's glass is cleared over a GPU scene, fogged over the still one; Home's rhombus is a little thicker.
     val glass = SiteTheme.glass
     val pageFog = if (gpu is GpuStatus.Running) glass.cleared else glass.fogged
-    val paneFill = remember(homeness, pageFog, glass.welcome) { { lerp(pageFog, glass.welcome, homeness()) } }
+    val paneGlass = remember(homeness, pageFog, glass.welcome) { { lerp(pageFog, glass.welcome, homeness()) } }
     val pageEffects = rememberPageEffects()
     val paneEffects = remember(navState) { navState.paneEffects() }
 
@@ -99,7 +99,7 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
         onDispose(subscription::close)
     }
 
-    CompositionLocalProvider(LocalMorph provides morph, LocalPaneFill provides paneFill, LocalPaneEffects provides paneEffects) {
+    CompositionLocalProvider(LocalMorph provides morph, LocalPaneGlass provides paneGlass, LocalPaneEffects provides paneEffects) {
         Box(Modifier.fillMaxSize()) {
             if (atHome && gpu is GpuStatus.Unavailable) {
                 // DESIGN.md §8, No WebGPU: one pane over the still scene instead of the window.

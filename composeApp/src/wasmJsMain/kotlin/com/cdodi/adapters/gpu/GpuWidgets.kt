@@ -1,12 +1,16 @@
 package com.cdodi.adapters.gpu
 
+import com.cdodi.ui.components.GlassPane
+import com.cdodi.ui.components.GlassSink
+
 /**
  * UI elements that want the scene to draw something behind them ("GPU-backed widgets"). Compose can't blur or light
  * the WebGPU canvas underneath it, so an element reports where it is, and the scene draws its effect there, under
  * the element. The scene reads the registry every frame, after Compose has laid out (see [SceneHost]), so the effect
- * stays exactly under the element even while it moves.
+ * stays exactly under the element even while it moves. It's also where the glass reports its panes ([GlassSink]), for
+ * the scene host to blur the street behind them.
  */
-class GpuWidgets {
+class GpuWidgets : GlassSink {
 
     enum class Kind {
         /** A lit sphere, its light circling (the About page's). */
@@ -31,33 +35,16 @@ class GpuWidgets {
         widgets.remove(owner)
     }
 
-    /**
-     * A pane of glass (DESIGN.md §5) at [left], [top] × [width], [height] in device pixels of the window. [corners]
-     * writes its outline into 8 floats as a convex quad in its own pixels (a triangle repeats a corner); it's asked
-     * every frame, so a pane can change shape while it morphs. [blur] (0 cleared, 1 fogged), [wipe] (a band of
-     * clearness sweeping across, 0 to 1) and [visibility] are read every frame too.
-     */
-    class Pane(
-        val left: Float,
-        val top: Float,
-        val width: Float,
-        val height: Float,
-        val corners: (width: Float, height: Float, out: FloatArray) -> Unit,
-        val blur: () -> Float,
-        val wipe: () -> Float,
-        val visibility: () -> Float,
-    )
-
-    private val panes = LinkedHashMap<Any, Pane>()
+    private val panes = LinkedHashMap<Any, GlassPane>()
 
     /** The panes of glass, back to front: the scene host blurs what's behind them. */
-    val glass: Collection<Pane> get() = panes.values
+    val glass: Collection<GlassPane> get() = panes.values
 
-    fun reportPane(owner: Any, pane: Pane) {
+    override fun reportPane(owner: Any, pane: GlassPane) {
         panes[owner] = pane
     }
 
-    fun removePane(owner: Any) {
+    override fun removePane(owner: Any) {
         panes.remove(owner)
     }
 }

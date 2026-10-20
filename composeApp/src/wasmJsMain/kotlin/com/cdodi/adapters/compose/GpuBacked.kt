@@ -9,12 +9,10 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import com.cdodi.adapters.gpu.GpuWidgets
+import com.cdodi.ui.components.LocalPageVisibility
 
 /** Where elements report themselves for the scene to draw behind them; null where there is no GPU layer. */
 val LocalGpuWidgets = staticCompositionLocalOf<GpuWidgets?> { null }
-
-/** How visible the page around an element is, 0..1: set per page by the navigation renderer, 1 elsewhere. */
-val LocalPageVisibility = staticCompositionLocalOf { { 1f } }
 
 /**
  * Asks the scene to draw [kind] behind this element: its bounds are reported every time they change (moving with a

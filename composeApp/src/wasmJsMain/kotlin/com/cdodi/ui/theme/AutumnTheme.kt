@@ -58,14 +58,15 @@ val AutumnTheme = with(Swatches) {
             // DESIGN.md: Parchment at 6–10 %.
             hairline = Parchment.copy(alpha = 0.09f),
         ),
+        // Each pane's fog is where its fill stands between a cleared pane's and a fog pane's: autumn's glass is one tint.
         glass = GlassTokens(
-            fogged = Glass.copy(alpha = 0.58f),
-            cleared = Glass.copy(alpha = 0.16f),
-            homePane = PaneGlass.copy(alpha = 0.52f),
-            thick = PaneGlass.copy(alpha = 0.8f),
-            welcome = Glass.copy(alpha = 0.62f),
-            reading = Night.copy(alpha = 0.72f),
-            folded = Night.copy(alpha = 0.82f),
+            fogged = GlassStyle(Glass.copy(alpha = 0.58f), fog = 1f),
+            cleared = GlassStyle(Glass.copy(alpha = 0.16f), fog = 0f),
+            homePane = GlassStyle(PaneGlass.copy(alpha = 0.52f), fog = 0.86f),
+            thick = GlassStyle(PaneGlass.copy(alpha = 0.8f), fog = 1f),
+            welcome = GlassStyle(Glass.copy(alpha = 0.62f), fog = 1f),
+            reading = GlassStyle(Night.copy(alpha = 0.72f), fog = 1f),
+            folded = GlassStyle(Night.copy(alpha = 0.82f), fog = 1f),
             barTop = Bar.copy(alpha = 0.85f),
             barBottom = Bar.copy(alpha = 0.35f),
         ),

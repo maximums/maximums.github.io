@@ -68,7 +68,7 @@ private fun Words(modifier: Modifier, compact: Boolean) {
             Column(
                 Modifier
                     .widthIn(max = 560.dp)
-                    .glass(fill = { reading })
+                    .glass(style = { reading })
                     .verticalScroll(rememberScrollState())
                     .padding(if (compact) 20.dp else 40.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
