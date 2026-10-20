@@ -43,6 +43,7 @@ kotlin {
             implementation(libs.compose.components.resources)
             implementation(libs.kotlinx.coroutines.core)
             implementation(projects.core)
+            implementation(projects.gltf)
             implementation(projects.notes)
             implementation(projects.designSystem)
         }

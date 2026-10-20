@@ -120,6 +120,7 @@ flowchart LR
     IDL --> Compiler
     Compiler -.->|"applied to, generates sources"| WebGpu
     Math --> Gltf
+    Gltf --> App
     App --> Core
     App --> WebGpu
 ```
@@ -285,19 +286,28 @@ com.cdodi
 │   ├── gpu/                 SceneHost · Scene · SceneRegistry · GpuCanvas (device pixels, DPR) · FullscreenPass
 │   │                        GpuScan (Blelloch exclusive scan) · GpuProfiler (timestamp-query spans)
 │   │                        GpuWidgets (elements the scene draws behind, and the glass panes) · draws in a microtask,
-│   │                        after Compose's layout · GlassCompositor (frame texture → dual Kawase blur → panes)
+│   │                        after Compose's layout · GpuWidgetRenderer (draws one kind of widget: a pass of its own,
+│   │                        then into the scene's final pass; the shell hands the background its renderers)
+│   │                        GlassCompositor (frame texture → dual Kawase blur → panes)
 │   │                        GpuTheme (the theme's colours in one uniform buffer, group 1, written when it changes)
-│   │   └── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
+│   │   ├── effects/         GpuEffects (registry) · GpuEffectRenderer · FogEffect (fog-roll, fog-hold, fog-clear)
+│   │   └── model/           GpuModel (a :gltf Model on the GPU: vertex and index buffers, each mesh's instance matrices
+│   │                        in a storage buffer, its images decoded by the browser, sRGB for colour) · uploadImage ·
+│   │                        Mipmaps (each level a render pass averaging the one above) · ModelTarget (colour ×4 MSAA
+│   │                        and depth at a widget's size, resolved for the composite: premultiplied, edges antialiased)
 │   ├── input/               InputLayer (under the widgets; reads the Final pass) · InputState
 │   ├── audio/               AmbientSound (the theme's sound: endless by crossfaded passes, low-passed through the
 │   │                        glass, only while the page is active; a new theme's recording swaps in through a fade)
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 └── features/                one package per page; features never import each other or shell
-    ├── home/                HomeFeature · HomeDestination · Menu UI
+    ├── home/                HomeDestination · Bonsai (where the maple stands: a GPU-backed box) · BonsaiRenderer (its
+    │                        3D pass into a ModelTarget, then the composite over the street; leaves in one instanced
+    │                        draw) · BonsaiView (the camera: on a circle round the tree, fitted so turning never zooms)
     ├── about/               AboutDestination · AboutContent (the words) · AboutPage (the sphere + text)
     ├── notes/               NotesDestination(slug) · NotesLibrary (reads files/notes once) · NotesPage (list + note)
-    ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top)
+    ├── background/          BackgroundScene (the street at ¼/½/full, then rain at full resolution; widgets on top, by
+    │                        their renderers) · SphereRenderer (About's sphere)
     │                        StreetLights (the design study's lights, by its own seeded generator; their colours are
     │                        the theme's, by kind) · BackgroundSettings
     │                        QualityToggle · SoundToggle · StillScene (the same street, still and dimmed, without WebGPU)
@@ -312,9 +322,11 @@ com.cdodi
         └── reference/       Vec2 · Rule (Separation, Alignment, Cohesion) · BoidsReference (small-N CPU step)
 
 composeResources/files/
-├── shaders/common/          scan.wgsl · theme.wgsl (struct Theme: the colours every scene draws in)
+├── shaders/common/          scan.wgsl · theme.wgsl (struct Theme: the colours every scene draws in) · mipmap.wgsl
 ├── shaders/background/      street.wgsl (sky, lights, wet-road reflections, fog) · rain.wgsl (upscale + rain, vignette,
-│                            dither) · widgets.wgsl (effects behind UI elements: the sphere)
+│                            dither) · sphere.wgsl (the sphere behind About)
+├── shaders/home/            bonsai.wgsl (the maple: the theme's lamp falling off down the tree, a rim, the mist; and
+│                            its composite)
 ├── shaders/effects/         fog.wgsl (the GPU side of "Breath on the window")
 ├── shaders/glass/           blur.wgsl (dual Kawase down/up) · panes.wgsl (copy + panes from the blurred frame)
 ├── shaders/life/            step.wgsl · render.wgsl
@@ -511,6 +523,7 @@ Each pass takes a model and returns a new one, so the pipeline is a chain of pur
 | A page | Destination, scene, overlay UI | Feature registry + nav graph |
 | A transition | A `Transition` value (or a composition of existing ones) | An edge in the nav graph |
 | A transition effect | An effect type + a renderer for its layer | UI or GPU effect registry (checked at startup) |
+| A GPU-backed widget (something the scene draws behind a UI element) | A `GpuWidgets.Kind`, a `GpuWidgetRenderer`, a `gpuBacked` element | The background's renderers, in the shell (`Bootstrap`) |
 | A completion condition | A signal source (e.g. `sceneReady`) | Signals, used by `whenever(…)` |
 | A clock | `heartbeat.clock("name")` | — (derived from the heartbeat) |
 | A bus event | An event type on the relevant bus | The bus interface in `:core` |

@@ -697,17 +697,28 @@ Steps:
   - `files/models/maple-bonsai.glb`: 17.26 MB down to 507 kB. The textures stay as they came (three 1024 px PNGs, 0.4 MB), to be looked at again once the tree is drawn.
   - Credited on About ("restructured for the web", with the licence linked, as CC BY asks; `Credit` can carry a licence link now) and in the README.
   - `FixtureTest` reads the file the site ships: 3 meshes, 958 leaves, 227,004 triangles drawn, and the download's bounds.
-- [ ] **Rendering it.**
-  - `adapters/gpu/model`:
-    - `GpuModel`: buffers; instance matrices in a storage buffer; textures through `createImageBitmap` and `copyExternalImageToTexture`, sRGB for colour.
-    - `Mipmaps`.
-    - `ModelTarget`: colour, depth and 4× MSAA at the widget's size.
-  - Widget renderers become a registry, `GpuWidgetRenderer`: the sphere moves to `SphereRenderer`, and the tree is `BonsaiRenderer` in `features/home`, with `shaders/home/bonsai.wgsl`.
+- [x] **Rendering it.**
+  - `adapters/gpu/model`, knowing nothing of bonsai:
+    - `GpuModel`: vertex and index buffers, each mesh's instance matrices in a storage buffer read by `instance_index`, textures decoded by the browser (`uploadImage`: `createImageBitmap` without colour management or premultiplying, then `copyExternalImageToTexture`), sRGB for colour, plain for data.
+    - `Mipmaps`: each level a render pass averaging the one above (`common/mipmap.wgsl`); an sRGB texture is averaged as light.
+    - `ModelTarget`: colour ×4 MSAA and depth at the widget's size, resolved and cleared to transparent, so the composite is premultiplied with antialiased edges.
+  - Widget renderers are a registry. `GpuWidgetRenderer` draws one kind of widget: a pass of its own, then into the background's final pass. The shell hands the background its renderers, so it never learns about Home. Renderers prepare alongside the street, which doesn't wait for them. The sphere moved to `SphereRenderer` (`background/sphere.wgsl`, formerly `widgets.wgsl`).
+  - `features/home`: `BonsaiRenderer` (the trunk and pot one draw each, the 958 leaves one instanced draw), `BonsaiView` (the camera) and `Bonsai` (the GPU-backed box). For now the tree stands beside the window where there's room; its place behind the Welcome glass comes in step 4.
+  - The look, `home/bonsai.wgsl`, works in linear light and writes encoded, as the rest of the site draws. The theme's lamp is wrapped a little for thin leaves and falls off down the tree, so the crown catches it and the pot sinks into the night. A rim catches the lamp on the edges, the night gives a faint fill from above, and the far side sinks into the mist. Colours come only from `struct Theme` and the model's texture.
 - [ ] **Turning it, and its place.**
   - `Orbit`: eased on the heartbeat, within the front arc.
   - The drag.
   - The tree behind the Welcome glass, and on phones.
 
+> **Notes (step 3).**
+> - `BonsaiView` fits a cylinder round the vertical axis rather than the bounding sphere, so the tree is a third bigger in its box and still never zooms or clips as it turns. The pitch is part of the fit: seen from above, the near rim's bottom edge reaches lowest. `BonsaiViewTest` sweeps 24 angles at 4 aspect ratios; it caught the first fit leaving a corner 0.07 % outside at 45°.
+> - `ModelGpuTest`, on a real device:
+>   - the mip levels average 2×2 blocks;
+>   - an sRGB level averages light (black and white make 188, not 128);
+>   - a PNG arrives as its bytes, as colour and as data, half-transparent pixel included;
+>   - a model becomes the buffers and textures it should.
+> - Checked in headless Chrome: Home with the tree beside the window, and About's sphere unchanged.
+>
 > **Notes (step 2).** Nothing is approximated. Read before and after, all 958 leaf matrices match within 4×10⁻⁹ (the model is 0.04 across), and the bounds and triangles drawn are the same. The script's output is deterministic: two runs, the same bytes. The Khronos validator finds no errors or warnings; its infos say it doesn't know `EXT_mesh_gpu_instancing`.
 >
 > **Notes (step 1).**

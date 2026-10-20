@@ -1,6 +1,6 @@
-// Effects drawn behind UI elements ("GPU-backed widgets"): Compose reports where an element is, and the scene draws
-// there, under it. One quad per element. The effect for now is a raytraced sphere lit by a circling light: the old
-// MY_TRY Skia shader, on the About page.
+// The sphere behind the About page (SphereRenderer.kt), a GPU-backed widget: Compose reports where the element is, and
+// the scene draws there, under it. One quad per element: a raytraced sphere lit by a circling light, the old MY_TRY
+// Skia shader.
 
 struct Widget {
     rect: vec4f,    // x, y, width, height in target pixels

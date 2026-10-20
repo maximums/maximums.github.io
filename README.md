@@ -40,6 +40,7 @@ flowchart TB
     notes --> app
     notes --> site
     math --> gltf
+    gltf --> app
 
     subgraph runtime["In the browser, every frame"]
         heartbeat["Heartbeat<br/>Input → Simulation → Navigation → Render → Ui"]

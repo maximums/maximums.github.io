@@ -38,9 +38,11 @@ import com.cdodi.design.theme.Theme
 import com.cdodi.design.theme.Viewport
 import com.cdodi.features.background.BackgroundScene
 import com.cdodi.features.background.BackgroundSettings
+import com.cdodi.features.background.SphereRenderer
 import com.cdodi.features.boids.BoidsController
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.boids.BoidsScene
+import com.cdodi.features.home.BonsaiRenderer
 import com.cdodi.features.life.LifeController
 import com.cdodi.features.life.LifeDestination
 import com.cdodi.features.life.LifeScene
@@ -162,7 +164,8 @@ private suspend fun runGpuLayer(
         val stopped = CompletableDeferred<String>()
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
         val gpuTheme = GpuTheme.create(gpu) { theme.value }
-        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, gpuTheme, profiler)
+        val widgetRenderers = listOf(SphereRenderer(), BonsaiRenderer(gpuTheme, profiler))
+        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, gpuTheme, profiler, widgetRenderers)
         val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, gpuTheme, profiler)
         val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, gpuTheme, profiler)
         val scenes = SceneRegistry(
