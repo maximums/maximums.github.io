@@ -122,11 +122,11 @@ private fun ScenePanel(width: Dp, spacing: Dp, folded: Boolean, modifier: Modifi
         QuietButton(if (open) "Close" else "Controls", { open = !open }, Modifier.align(Alignment.End))
         if (open) {
             val scroll = rememberScrollState()
-            val fill = SiteTheme.glass.folded
+            val folded = SiteTheme.glass.folded
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .glass(fill = { fill })
+                    .glass(style = { folded })
                     .fadingEdges(scroll)
                     .verticalScroll(scroll)
                     .padding(20.dp),

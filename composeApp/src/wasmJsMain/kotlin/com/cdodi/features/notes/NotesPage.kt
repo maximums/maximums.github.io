@@ -89,7 +89,7 @@ private fun Reading(scrollKey: Any?, content: @Composable () -> Unit) {
             Modifier
                 .widthIn(max = 760.dp)
                 .fillMaxWidth()
-                .glass(fill = { reading })
+                .glass(style = { reading })
                 .padding(horizontal = if (compact) 16.dp else 48.dp, vertical = if (compact) 20.dp else 40.dp)
         ) {
             content()

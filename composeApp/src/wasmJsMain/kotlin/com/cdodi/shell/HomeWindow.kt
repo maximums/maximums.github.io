@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -47,6 +46,7 @@ import com.cdodi.ui.components.drawThread
 import com.cdodi.ui.components.glass
 import com.cdodi.ui.components.warmth
 import com.cdodi.ui.theme.SiteTheme
+import com.cdodi.ui.theme.lerp
 
 /**
  * What a transition is doing to Home's panes right now (DESIGN.md §9, `wipe`): the chosen pane is wiped clear, the
@@ -179,7 +179,7 @@ private fun Pane(
             .size(home.side / 2)
             .glass(
                 shape = shape,
-                fill = { lerp(glass.homePane, glass.thick, effects.thicken(item)) },
+                style = { lerp(glass.homePane, glass.thick, effects.thicken(item)) },
                 hairline = false,
                 shadow = false,
                 // Hover thins the fog most of the way (the storyboard); the wipe takes the rest.

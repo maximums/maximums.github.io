@@ -1,6 +1,7 @@
 package com.cdodi.ui.components
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -28,10 +29,9 @@ import androidx.compose.ui.node.GlobalPositionAwareModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.unit.dp
-import com.cdodi.adapters.compose.LocalGpuWidgets
-import com.cdodi.adapters.compose.LocalPageVisibility
-import com.cdodi.adapters.gpu.GpuWidgets
+import com.cdodi.ui.theme.GlassStyle
 import com.cdodi.ui.theme.LocalTheme
+import com.cdodi.ui.theme.lerp
 import kotlin.random.Random
 
 /** DESIGN.md §5: panes have a 2 px radius. */
@@ -53,30 +53,63 @@ fun interface GlassOutline {
 }
 
 /**
+ * A pane of glass as the scene behind it needs it: where it is, in device pixels of the window; its [outline], in its
+ * own pixels; how fogged it is (0 clear, 1 a fog pane), which the street behind is blurred by; the band of clearness
+ * a [wipe] sweeps across it (0 to 1); and how visible it is. All but the bounds are read every frame.
+ */
+class GlassPane(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+    val outline: GlassOutline,
+    val fog: () -> Float,
+    val wipe: () -> Float,
+    val visibility: () -> Float,
+)
+
+/**
+ * Where panes report themselves so the scene behind them is blurred. A port: the GPU layer implements it, and without
+ * one (no WebGPU) a pane is Compose's fog alone.
+ */
+interface GlassSink {
+    fun reportPane(owner: Any, pane: GlassPane)
+
+    fun removePane(owner: Any)
+}
+
+/** The app's [GlassSink], if it draws a scene behind its panes. */
+val LocalGlassSink = staticCompositionLocalOf<GlassSink?> { null }
+
+/** How visible the page around an element is, 0 to 1: set per page by the app's page transitions, 1 elsewhere. */
+val LocalPageVisibility = staticCompositionLocalOf { { 1f } }
+
+/**
  * DESIGN.md §5, the fog pane: wet glass over the scene.
  *
  * Compose draws the fog fill, fine condensation, a 1 px hairline, an inner top highlight and a long soft shadow. The
  * GPU draws what Compose can't see: the street behind the pane, blurred and desaturated. The pane reports itself (its
- * [outline]) to the scene host, and the blur follows how fogged the glass is, so a cleared pane shows the street sharp.
+ * [outline]) to the app's [GlassSink], and the blur follows how fogged the glass is, so a cleared pane shows the street
+ * sharp.
  *
- * [clear] (0 fogged, 1 cleared) wipes the fog off, as hover and focus do. [fill] replaces the theme's fog pane for
+ * [clear] (0 fogged, 1 cleared) wipes the fog off, as hover and focus do. [style] replaces the theme's fog pane for
  * panes a little thicker or thinner (its [GlassTokens][com.cdodi.ui.theme.GlassTokens]). [wipe] (0 to 1) sweeps a band of clearness across the pane
  * from left to right, leaving it clear ("Breath on the window" starts so). The lambdas are read every frame.
  */
 fun Modifier.glass(
     shape: Shape = GlassShape,
-    fill: (() -> Color)? = null,
+    style: (() -> GlassStyle)? = null,
     hairline: Boolean = true,
     shadow: Boolean = true,
     clear: () -> Float = { 0f },
     alpha: () -> Float = { 1f },
     outline: GlassOutline = GlassOutline.Rectangle,
     wipe: () -> Float = { 0f },
-): Modifier = this then GlassElement(shape, fill, hairline, shadow, clear, alpha, outline, wipe)
+): Modifier = this then GlassElement(shape, style, hairline, shadow, clear, alpha, outline, wipe)
 
 private data class GlassElement(
     val shape: Shape,
-    val fill: (() -> Color)?,
+    val glass: (() -> GlassStyle)?,
     val hairline: Boolean,
     val shadow: Boolean,
     val clear: () -> Float,
@@ -94,7 +127,7 @@ private data class GlassElement(
 private class GlassNode(var style: GlassElement) :
     Modifier.Node(), DrawModifierNode, GlobalPositionAwareModifierNode, CompositionLocalConsumerModifierNode {
 
-    private var registry: GpuWidgets? = null
+    private var sink: GlassSink? = null
 
     // What the last frame drew, for the GPU's part, which runs once Compose has drawn the frame.
     private var fogginess = 0f
@@ -123,16 +156,17 @@ private class GlassNode(var style: GlassElement) :
         }
         val theme = currentValueOf(LocalTheme)
         val glass = theme.glass
-        val fog = lerp(s.fill?.invoke() ?: glass.fogged, glass.cleared, cleared)
+        val pane = lerp(s.glass?.invoke() ?: glass.fogged, glass.cleared, cleared)
+        val fog = pane.fill
         // Condensation and blur gather where the glass is fogged: none on a cleared pane.
-        fogginess = ((fog.alpha - glass.cleared.alpha) / (glass.fogged.alpha - glass.cleared.alpha)).coerceIn(0f, 1f)
+        fogginess = pane.fog
         if (wipe <= 0f) {
             drawPath(path, fog.copy(alpha = fog.alpha * opacity))
         } else {
             // The wiped band, as the GPU computes it (panes.wgsl, wiped()), sampled into a gradient across the pane.
             val stops = Array(WIPE_STOPS + 1) { i ->
                 val d = i / WIPE_STOPS.toFloat()
-                val c = lerp(fog, glass.cleared, wiped(wipe, d))
+                val c = lerp(fog, glass.cleared.fill, wiped(wipe, d))
                 d to c.copy(alpha = c.alpha * opacity)
             }
             drawPath(path, Brush.horizontalGradient(*stops))
@@ -147,18 +181,18 @@ private class GlassNode(var style: GlassElement) :
     }
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
-        val widgets = registry ?: currentValueOf(LocalGpuWidgets)?.also { registry = it } ?: return
+        val glass = sink ?: currentValueOf(LocalGlassSink)?.also { sink = it } ?: return
         val bounds = coordinates.boundsInWindow()
         val page = currentValueOf(LocalPageVisibility)
-        widgets.reportPane(
+        glass.reportPane(
             this,
-            GpuWidgets.Pane(
+            GlassPane(
                 left = bounds.left,
                 top = bounds.top,
                 width = bounds.width,
                 height = bounds.height,
-                corners = { w, h, out -> style.outline.corners(w, h, out) },
-                blur = { fogginess },
+                outline = { w, h, out -> style.outline.corners(w, h, out) },
+                fog = { fogginess },
                 wipe = { style.wipe() },
                 visibility = { opacity * page() },
             ),
@@ -166,8 +200,8 @@ private class GlassNode(var style: GlassElement) :
     }
 
     override fun onDetach() {
-        registry?.removePane(this)
-        registry = null
+        sink?.removePane(this)
+        sink = null
     }
 
     private companion object {

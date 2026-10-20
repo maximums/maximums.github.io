@@ -6,9 +6,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import com.cdodi.adapters.compose.LocalHeartbeat
-import com.cdodi.core.time.Clock
-import com.cdodi.core.time.FramePhase
+import androidx.compose.runtime.staticCompositionLocalOf
 
 /** DESIGN.md §7: heavy, not fast. Motion settles the way water does. */
 object Motion {
@@ -22,22 +20,31 @@ object Motion {
     const val SHORT_SECONDS = 0.9f
 }
 
-/** UI warmth: hovers, focus, toggles. A child of the heartbeat, so it keeps step with everything else. */
-val Clock.ui: Clock get() = child("ui")
+/**
+ * The clock UI motion runs on: hovers, focus, toggles. A port, which the app gives its own clock to (the heartbeat), so
+ * every animation keeps step with everything else it animates (DESIGN.md §7).
+ */
+fun interface MotionClock {
+    /** Calls [listener] every frame with the seconds since the last one, until the returned handle is closed. */
+    fun everyFrame(listener: (seconds: Float) -> Unit): AutoCloseable
+}
+
+/** The app's [MotionClock]. */
+val LocalMotionClock = staticCompositionLocalOf<MotionClock> { error("No MotionClock: the app provides one (LocalMotionClock)") }
 
 /**
- * A value that settles towards [target] over [seconds] with [Motion.Settle], on the heartbeat (DESIGN.md §7: every
- * animation takes its time from it). A new target starts from wherever the value is, so a hover that ends halfway
- * cools from halfway. Read it while drawing to change only the drawing.
+ * A value that settles towards [target] over [seconds] with [Motion.Settle], on the app's [MotionClock]. A new target
+ * starts from wherever the value is, so a hover that ends halfway cools from halfway. Read it while drawing to change
+ * only the drawing.
  */
 @Composable
 fun settling(target: Float, seconds: Float = Motion.WARM_SECONDS): State<Float> {
-    val clock = LocalHeartbeat.current.ui
+    val clock = LocalMotionClock.current
     val animation = remember(clock) { Settling(target) }
     animation.retarget(target)
     DisposableEffect(animation, seconds) {
-        val subscription = clock.subscribe(FramePhase.Ui) { frame -> animation.advance(frame.dt, seconds) }
-        onDispose(subscription::close)
+        val frames = clock.everyFrame { dt -> animation.advance(dt, seconds) }
+        onDispose(frames::close)
     }
     return animation.value
 }

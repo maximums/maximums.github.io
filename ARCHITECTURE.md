@@ -246,12 +246,12 @@ com.cdodi
 │   └── browser/             BrowserHistory (HistorySync, HashUrls) · LifecycleSources (visibility, focus, reduced motion)
 │                            UserActivation (awaitUserActivation: the first click, tap or key that lets sound start)
 ├── ui/                      design system (DESIGN.md "Autumn Rain"), Compose only, no app logic
-│   theme/       Theme (ColorRoles · GlassTokens · SceneTokens) · LocalTheme · SiteTheme (the provider, and
-│                SiteTheme.colors/.glass/.scene/.type) · AutumnTheme (DESIGN.md's swatches, as roles) · TypeRoles +
-│                bundled fonts · Motion (Settle, settling() on the heartbeat)
+│   theme/       Theme (ColorRoles · GlassTokens of GlassStyle (fill, fog) · SceneTokens) · LocalTheme · SiteTheme
+│                (the provider, and SiteTheme.colors/.glass/.scene/.type) · AutumnTheme (DESIGN.md's swatches, as
+│                roles) · TypeRoles + bundled fonts · Motion (Settle, settling() on the MotionClock port)
 │                Viewport (the window in dp: size classes, vw/vh, fluid sizes, the gutter) · LocalViewport
 │   components/  Lamp/Quiet/RoundButton · StrokeIcons · DripSlider · Choice · ToggleRow · ReadoutRow · Label · CornerHint
-│                glass (the fog pane: Compose's fog + the pane's outline reported to the GPU's blur) · glow ·
+│                glass (the fog pane: Compose's fog, its outline reported through the GlassSink port) · glow ·
 │                focusRing · drawThread · SceneOverlay (a scene page's panel, readout and hint, for the width)
 └── features/                one package per page; features never import each other or shell
     ├── home/                HomeFeature · HomeDestination · Menu UI
@@ -315,7 +315,7 @@ flowchart TB
 
 Colours have a rule of their own: they come from the theme. `checkThemeTokens` fails on a colour written anywhere outside `ui/theme` (`Color(0x…)`, `Color(r, g, b)`).
 
-Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than these four appears. `ui` still reaches the GPU adapters and the clock in two files, `Glass` and `Motion`; they're named in the check until the design system's ports remove them. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
+Inside `:composeApp` the compiler can't enforce these rules, so `checkPackageRules` does: it reads every import, and fails the build (and CI) when one crosses a rule, or when a top-level package other than these four appears. `ui` imports nothing of the app's: what it needs from it comes through its ports, `GlassSink` (the GPU layer blurs the street behind the panes; `GpuWidgets` implements it) and `MotionClock` (UI motion on the heartbeat's `ui` clock, `Clock.asMotionClock()`), both provided by `main.kt`. Once a rule needs bending often, that's the signal to move `features/*` (or `adapters`) into their own Gradle modules.
 
 ### 4.8 Where today's code goes
 

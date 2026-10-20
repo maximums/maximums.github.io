@@ -13,6 +13,7 @@ import com.cdodi.core.bus.NavigationBus
 import com.cdodi.core.time.Clock
 import com.cdodi.core.time.FramePhase
 import com.cdodi.core.time.Heartbeat
+import com.cdodi.ui.theme.MotionClock
 import kotlinx.coroutines.flow.StateFlow
 
 val LocalHeartbeat = staticCompositionLocalOf<Heartbeat> { error("No Heartbeat provided") }
@@ -60,3 +61,6 @@ fun Clock.shaderTime(period: Double = SHADER_TIME_PERIOD): State<Float> {
     }
     return state
 }
+
+/** UI motion on this clock, in its Ui phase: hovers, focus and toggles keep step with everything else it times. */
+fun Clock.asMotionClock(): MotionClock = MotionClock { listener -> subscribe(FramePhase.Ui) { frame -> listener(frame.dt) } }

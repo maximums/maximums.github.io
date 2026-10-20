@@ -44,9 +44,9 @@ import com.cdodi.webgpu.bindings.oneMinusSrcAlpha
 import com.cdodi.webgpu.bindings.srcAlpha
 import com.cdodi.webgpu.bindings.store
 import com.cdodi.webgpu.context.GpuContext
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.shader.compileShader
 import kotlin.math.max
 
@@ -133,9 +133,9 @@ class GlassCompositor(private val widgets: GpuWidgets) : AutoCloseable {
         for (pane in widgets.glass) {
             if (count == MAX_PANES) break
             val visibility = pane.visibility()
-            val blur = pane.blur()
+            val blur = pane.fog()
             if (visibility <= 0.001f || blur <= 0.001f || pane.width <= 0f || pane.height <= 0f) continue
-            pane.corners(pane.width, pane.height, corners)
+            pane.outline.corners(pane.width, pane.height, corners)
             val at = count * 12
             for (i in 0 until 4) {
                 paneValues[at + i * 2] = pane.left + corners[i * 2]

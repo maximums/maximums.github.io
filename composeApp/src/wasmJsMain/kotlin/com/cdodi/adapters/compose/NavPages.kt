@@ -17,6 +17,7 @@ import com.cdodi.adapters.compose.effects.PageRole
 import com.cdodi.adapters.compose.effects.visibilityOf
 import com.cdodi.core.navigation.NavState
 import com.cdodi.core.navigation.graph.Destination
+import com.cdodi.ui.components.LocalPageVisibility
 
 /**
  * The navigation renderer of the UI layer: the current destination's page, or both pages during a transition, with
