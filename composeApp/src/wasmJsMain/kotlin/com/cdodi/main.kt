@@ -1,6 +1,7 @@
 package com.cdodi
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.window.ComposeViewport
 import com.cdodi.adapters.compose.HeartbeatDriver
@@ -28,7 +29,7 @@ fun main() {
             LocalMotionClock provides motion,
             LocalNavigationBus provides runtime.navigation,
         ) {
-            AppRoot {
+            AppRoot(runtime.theme.collectAsState().value) {
                 InputLayer(runtime.input, runtime.heartbeat)
                 CompositionLocalProvider(LocalGpuWidgets provides runtime.widgets, LocalGlassSink provides runtime.widgets) {
                     App(runtime)

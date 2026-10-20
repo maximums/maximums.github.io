@@ -12,6 +12,7 @@ import com.cdodi.adapters.compose.transitions
 import com.cdodi.adapters.gpu.GlassCompositor
 import com.cdodi.adapters.gpu.GpuCanvas
 import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.adapters.gpu.GpuWidgets
 import com.cdodi.adapters.gpu.PassTiming
 import com.cdodi.adapters.gpu.SceneHost
@@ -32,6 +33,8 @@ import com.cdodi.core.navigation.signal.MutableSignals
 import com.cdodi.core.navigation.signal.Signal
 import com.cdodi.core.time.DefaultHeartbeat
 import com.cdodi.core.time.Heartbeat
+import com.cdodi.design.theme.AutumnTheme
+import com.cdodi.design.theme.Theme
 import com.cdodi.design.theme.Viewport
 import com.cdodi.features.background.BackgroundScene
 import com.cdodi.features.background.BackgroundSettings
@@ -81,6 +84,8 @@ class AppRuntime(
     val background: BackgroundSettings,
     /** The rain outside, when the viewer turns it on. */
     val sound: AmbientSound,
+    /** The look in use: the UI and the GPU's scenes both draw in it. Autumn, until there's a choice of themes. */
+    val theme: StateFlow<Theme>,
 )
 
 fun bootstrap(): AppRuntime {
@@ -110,11 +115,12 @@ fun bootstrap(): AppRuntime {
     val widgets = GpuWidgets()
     val background = BackgroundSettings()
     val scope = MainScope()
-    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, scope, gpu) }
+    val theme = MutableStateFlow<Theme>(AutumnTheme)
+    scope.launch { runGpuLayer(heartbeat, navigation, signals, graph, input, life, boids, gpuTimings, widgets, background, theme, scope, gpu) }
 
     val sound = AmbientSound(lifecycle, scope)
 
-    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound)
+    return AppRuntime(heartbeat, lifecycle, signals, navigation, input, gpu.asStateFlow(), life, boids, gpuTimings.asStateFlow(), widgets, background, sound, theme.asStateFlow())
 }
 
 /**
@@ -133,6 +139,7 @@ private suspend fun runGpuLayer(
     gpuTimings: MutableStateFlow<List<PassTiming>?>,
     widgets: GpuWidgets,
     backgroundSettings: BackgroundSettings,
+    theme: StateFlow<Theme>,
     scope: CoroutineScope,
     status: MutableStateFlow<GpuStatus>,
 ) {
@@ -151,9 +158,10 @@ private suspend fun runGpuLayer(
         val profiler = if (gpu.hasFeature(GpuProfiler.FEATURE)) GpuProfiler(gpu, scope, gpuTimings) else null.also { gpuTimings.value = null }
         val stopped = CompletableDeferred<String>()
         val canvas = GpuCanvas(document.getElementById("gpu")!!.unsafeCast<HTMLCanvasElement>(), gpu)
-        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, profiler)
-        val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, profiler)
-        val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, profiler)
+        val gpuTheme = GpuTheme.create(gpu) { theme.value }
+        val background = BackgroundScene(heartbeat.ambient, backgroundSettings.quality, widgets, gpuTheme, profiler)
+        val lifeScene = LifeScene(heartbeat.child(LifeController.CLOCK), life, scope, gpuTheme, profiler)
+        val boidsScene = BoidsScene(heartbeat.child(BoidsController.CLOCK), boids, gpuTheme, profiler)
         val scenes = SceneRegistry(
             graph.routes.associateWith {
                 when (it) {
@@ -163,7 +171,7 @@ private suspend fun runGpuLayer(
                 }
             }
         )
-        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(), input, scope, profiler, GlassCompositor(widgets)) { error ->
+        val host = SceneHost(gpu, canvas, heartbeat, navigation.state, signals, scenes, GpuEffects.renderers(gpuTheme), input, scope, profiler, GlassCompositor(widgets), gpuTheme) { error ->
             // The stack goes to the console: a failure mid-frame is otherwise hard to place.
             println(error.stackTraceToString())
             stopped.complete("the GPU layer failed: ${error.message}")

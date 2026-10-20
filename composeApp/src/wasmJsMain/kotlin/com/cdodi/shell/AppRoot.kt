@@ -12,9 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import com.cdodi.design.theme.AutumnTheme
 import com.cdodi.design.theme.LocalViewport
 import com.cdodi.design.theme.SiteTheme
+import com.cdodi.design.theme.Theme
 import com.cdodi.design.theme.rememberAutumnFonts
 import com.cdodi.design.theme.windowViewport
 import kotlinx.browser.document
@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
  * page's density.
  */
 @Composable
-fun AppRoot(content: @Composable BoxScope.() -> Unit) {
+fun AppRoot(theme: Theme, content: @Composable BoxScope.() -> Unit) {
     val fonts = rememberAutumnFonts()
     if (fonts != null) {
         LaunchedEffect(Unit) {
@@ -48,7 +48,7 @@ fun AppRoot(content: @Composable BoxScope.() -> Unit) {
     Box(modifier = Modifier.fillMaxSize().drawBehind { drawRect(Color.Transparent, blendMode = BlendMode.Clear) }) {
         if (fonts != null) {
             CompositionLocalProvider(LocalViewport provides viewport, LocalMenuLayout provides layout) {
-                SiteTheme(AutumnTheme, fonts) { content() }
+                SiteTheme(theme, fonts) { content() }
             }
         }
     }

@@ -70,11 +70,21 @@ val AutumnTheme = with(Swatches) {
             barTop = Bar.copy(alpha = 0.85f),
             barBottom = Bar.copy(alpha = 0.35f),
         ),
-        // street.wgsl's sky stops and rain.wgsl's vignette.
+        // The design canvas's background study: its sky, its lights in DESIGN.md's colours, its fog and rain.
         scene = SceneTokens(
             sky = listOf(Color(0xFF0A0D10), Color(0xFF10151A), Color(0xFF171613), Color(0xFF1E1812)),
-            light = Lamp,
+            lamps = Lamp,
+            tailLights = Ember,
+            headLights = Parchment,
+            windows = Rain,
+            streetFog = Color(170, 178, 180),
+            // DESIGN.md's "scene fog".
+            fog = Color(140, 148, 152),
+            fallingNear = Color(222, 228, 230),
+            fallingFar = Color(200, 210, 214),
             shade = Color(0xFF080A0C),
+            ash = Color(64, 28, 20),
+            figure = Color(16, 19, 23),
         ),
     )
 }

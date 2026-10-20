@@ -15,7 +15,6 @@ struct Uniforms {
 @group(0) @binding(2) var toScene: texture_2d<f32>;
 @group(0) @binding(3) var smoothSampler: sampler;
 
-const FOG = vec3f(140.0, 148.0, 152.0) / 255.0; // DESIGN.md: scene fog
 
 @vertex
 fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
@@ -92,6 +91,6 @@ fn fs(@builtin(position) position: vec4f) -> @location(0) vec4f {
     // DESIGN.md: scene fog at 36–78 %, heavily blurred. Thicker where the noise is denser, breathing slowly.
     let breathing = 0.93 + 0.07 * sin(u.time * 0.8);
     let alpha = cover * mix(0.36, 0.78, smoothstep(0.25, 0.75, density)) * breathing;
-    let color = mix(sceneBehind(position.xy, uv, cover * 14.0), FOG * (0.5 + 0.5 * density), alpha);
+    let color = mix(sceneBehind(position.xy, uv, cover * 14.0), theme.fog.rgb * (0.5 + 0.5 * density), alpha);
     return vec4f(color, 1.0);
 }

@@ -19,10 +19,6 @@ struct View {
 @group(0) @binding(1) var<storage, read> boids: array<Boid>;
 
 // DESIGN.md colour tokens.
-const NIGHT = vec3f(13.0, 16.0, 19.0) / 255.0;
-const FOG = vec3f(140.0, 148.0, 152.0) / 255.0;
-const LAMP = vec3f(216.0, 161.0, 90.0) / 255.0;
-const BIRD = vec3f(16.0, 19.0, 23.0) / 255.0;
 
 fn hash(p: vec2f) -> f32 {
     var q = fract(p * vec2f(123.34, 456.21));
@@ -69,8 +65,8 @@ fn fogFragment(in: FogOut) -> @location(0) vec4f {
     let n = fbm(uv * vec2f(3.0, 2.2) + vec2f(view.time * 0.012, view.time * 0.004));
     let band = exp(-pow((uv.y - 0.58) / 0.38, 2.0));
     let lampGlow = exp(-length((uv - vec2f(0.84, 1.0)) * vec2f(1.5, 2.4)) * 2.2);
-    var color = mix(NIGHT, FOG * 0.9, clamp(band * (0.55 + 0.45 * n), 0.0, 1.0));
-    color += LAMP * lampGlow * 0.38;
+    var color = mix(theme.ground.rgb, theme.fog.rgb * 0.9, clamp(band * (0.55 + 0.45 * n), 0.0, 1.0));
+    color += theme.accent.rgb * lampGlow * 0.38;
     return vec4f(color, 1.0);
 }
 
@@ -95,5 +91,5 @@ fn birdVertex(@builtin(vertex_index) v: u32, @builtin(instance_index) i: u32) ->
 
 @fragment
 fn birdFragment(in: BirdOut) -> @location(0) vec4f {
-    return vec4f(mix(BIRD, LAMP, in.light * 0.75), 1.0);
+    return vec4f(mix(theme.figure.rgb, theme.accent.rgb, in.light * 0.75), 1.0);
 }

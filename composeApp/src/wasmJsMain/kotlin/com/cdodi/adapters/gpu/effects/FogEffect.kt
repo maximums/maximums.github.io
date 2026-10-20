@@ -3,6 +3,7 @@ package com.cdodi.adapters.gpu.effects
 import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
 import com.cdodi.adapters.gpu.FullscreenPass
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.core.navigation.effect.EffectState
 import com.cdodi.core.time.Frame
 import com.cdodi.webgpu.bindings.GPUAddressMode
@@ -22,16 +23,16 @@ import com.cdodi.webgpu.bindings.GPUTextureView
 import com.cdodi.webgpu.bindings.clampToEdge
 import com.cdodi.webgpu.bindings.linear
 import com.cdodi.webgpu.context.GpuContext
+import com.cdodi.webgpu.resource.Float32Staging
 import com.cdodi.webgpu.resource.ResourceScope
 import com.cdodi.webgpu.resource.resourceScope
-import com.cdodi.webgpu.resource.Float32Staging
 
 /**
  * The fog of "Breath on the window": `fog-roll` covers the scene being left, `fog-hold` breathes while the next scene
  * gets ready, `fog-clear` parts over the scene being entered. Played backwards, each one runs the other way over the
  * other scene, so going back undoes the transition.
  */
-class FogEffect : GpuEffectRenderer {
+class FogEffect(private val theme: GpuTheme) : GpuEffectRenderer {
 
     companion object {
         val IDS = setOf(GpuEffectIds.FOG_ROLL, GpuEffectIds.FOG_HOLD, GpuEffectIds.FOG_CLEAR)
@@ -63,7 +64,7 @@ class FogEffect : GpuEffectRenderer {
     override suspend fun prepare(gpu: GpuContext, format: GPUTextureFormat) {
         this.gpu = gpu
         val code = Res.readBytes("files/shaders/effects/fog.wgsl").decodeToString()
-        pass = FullscreenPass.create(gpu, code, format, label = "fog")
+        pass = FullscreenPass.create(gpu, code, format, label = "fog", theme = theme)
         resources = gpu.resourceScope()
         uniforms = resources.buffer(
             GPUBufferDescriptor(size = (values.size * Float.SIZE_BYTES).toDouble(), usage = GPUBufferUsage.UNIFORM or GPUBufferUsage.COPY_DST, label = "fog uniforms")

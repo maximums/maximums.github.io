@@ -5,6 +5,7 @@ import blog.composeapp.generated.resources.Res
 import com.cdodi.adapters.compose.SHADER_TIME_PERIOD
 import com.cdodi.adapters.gpu.FullscreenPass
 import com.cdodi.adapters.gpu.GpuProfiler
+import com.cdodi.adapters.gpu.GpuTheme
 import com.cdodi.adapters.gpu.Scene
 import com.cdodi.adapters.input.InputState
 import com.cdodi.core.time.Clock
@@ -45,6 +46,7 @@ class LifeScene(
     override val clock: Clock,
     private val controller: LifeController,
     private val scope: CoroutineScope,
+    private val theme: GpuTheme,
     private val profiler: GpuProfiler? = null,
     private val gridWidth: Int = 2048,
     private val gridHeight: Int = 2048,
@@ -83,7 +85,7 @@ class LifeScene(
         this.gpu = gpu
         resources = gpu.resourceScope()
         simulation = LifeSimulation.create(gpu, Res.readBytes("files/shaders/life/step.wgsl").decodeToString(), gridWidth, gridHeight, scope)
-        pass = FullscreenPass.create(gpu, Res.readBytes("files/shaders/life/render.wgsl").decodeToString(), format, label = "life")
+        pass = FullscreenPass.create(gpu, Res.readBytes("files/shaders/life/render.wgsl").decodeToString(), format, label = "life", theme = theme)
         viewBuffer = resources.buffer(
             GPUBufferDescriptor(size = (view.size * Float.SIZE_BYTES).toDouble(), usage = GPUBufferUsage.UNIFORM or GPUBufferUsage.COPY_DST, label = "life view")
         )
