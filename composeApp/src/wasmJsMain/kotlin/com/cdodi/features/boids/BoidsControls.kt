@@ -54,7 +54,7 @@ fun BoidsControls(controller: BoidsController, gpuTimings: StateFlow<List<PassTi
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Label("Simulation")
             Text("Boids", style = SiteTheme.type.title, color = SiteTheme.colors.bright)
-            Text("a murmuration under the rain", style = SiteTheme.type.verse.copy(fontSize = SiteTheme.type.verse.fontSize * 0.95f), color = SiteTheme.colors.muted)
+            Text(SiteTheme.copy.flockLine, style = SiteTheme.type.verse.copy(fontSize = SiteTheme.type.verse.fontSize * 0.95f), color = SiteTheme.colors.muted)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundButton(if (status.isPaused) StrokeIcons.Play else StrokeIcons.Pause, if (status.isPaused) "Play" else "Pause", controller::playPause)

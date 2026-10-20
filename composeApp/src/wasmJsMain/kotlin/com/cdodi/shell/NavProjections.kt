@@ -9,6 +9,7 @@ import com.cdodi.core.navigation.graph.Destination
 import com.cdodi.features.boids.BoidsDestination
 import com.cdodi.features.home.HomeDestination
 import com.cdodi.features.life.LifeDestination
+import com.cdodi.design.theme.ThemeCopy
 
 /**
  * What "Breath on the window" does to Home's panes now: the pane for the scene being opened (or returned from) is
@@ -42,13 +43,13 @@ internal fun NavState.captionAlpha(): Float {
     return shown * (1f - arrived)
 }
 
-/** The line of verse while the fog holds on the way to a scene (DESIGN.md §10: placeholder copy). */
-internal fun captionFor(nav: NavState): String? {
+/** The line of verse while the fog holds on the way to a scene, in the theme's words ([copy]). */
+internal fun captionFor(nav: NavState, copy: ThemeCopy): String? {
     if (nav !is NavState.Transitioning) return null
     val scene = if (nav.from == HomeDestination) nav.to else if (nav.to == HomeDestination) nav.from else return null
     return when (scene) {
-        BoidsDestination -> "the flock is gathering"
-        is LifeDestination -> "the embers are catching"
+        BoidsDestination -> copy.flockCaption
+        is LifeDestination -> copy.lifeCaption
         else -> null
     }
 }

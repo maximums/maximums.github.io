@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /** What every theme owes the reader, whatever its season (DESIGN.md §3's contrast notes, WCAG 2's ratios). */
@@ -70,5 +71,30 @@ class ThemeTest {
         assertEquals(0.5f, halfway.fog)
         assertEquals((glass.cleared.fill.alpha + glass.fogged.fill.alpha) / 2, halfway.fill.alpha, 0.01f)
         assertEquals(glass.fogged, lerp(glass.cleared, glass.fogged, 1f))
+    }
+
+    @Test
+    fun everyThemeSaysItsWeatherAndCreditsItsSound() {
+        for (theme in themes) {
+            with(theme.copy) {
+                for ((slot, words) in listOf("welcome" to welcome, "sound" to sound, "unavailable" to unavailable, "flockLine" to flockLine, "flockCaption" to flockCaption, "lifeCaption" to lifeCaption)) {
+                    assertTrue(words.isNotBlank(), "${theme.name}: no $slot")
+                }
+                // The sound's name goes into sentences ("the rain you can turn on") and is upper-cased for the hint.
+                assertEquals(sound.lowercase(), sound, "${theme.name}: the sound is a noun in lower case")
+            }
+            with(theme.ambience) {
+                assertTrue(sources.all { it.startsWith("sounds/") }, "${theme.name}: recordings are served from sounds/")
+                assertTrue(credit.url.startsWith("https://"), "${theme.name}: the credit links somewhere")
+            }
+        }
+    }
+
+    @Test
+    fun theGlassMustMuffleNotBrighten() {
+        val ambience = AutumnTheme.ambience
+        assertFailsWith<IllegalArgumentException> { ambience.copy(muffled = ambience.clear + 1f) }
+        assertFailsWith<IllegalArgumentException> { ambience.copy(level = 1.5f) }
+        assertFailsWith<IllegalArgumentException> { ambience.copy(sources = emptyList()) }
     }
 }

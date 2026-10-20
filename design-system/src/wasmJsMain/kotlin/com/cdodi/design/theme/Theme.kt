@@ -116,9 +116,58 @@ data class SceneTokens(
     }
 }
 
-/** A look for the site: its colours by role, its glass and its scene. Plain data, so another one can be switched in. */
+/** Where the site speaks of its weather: the theme's words, so another season can say its own. */
 @Immutable
-class Theme(val name: String, val colors: ColorRoles, val glass: GlassTokens, val scene: SceneTokens)
+data class ThemeCopy(
+    /** A line of verse under the name, on Home. */
+    val welcome: String,
+    /** What the sound outside is, as a noun ("rain"): the sound toggle's name, and the About page's credit. */
+    val sound: String,
+    /** The heading for a browser that can't paint the scenes. */
+    val unavailable: String,
+    /** Boids' line under its title. */
+    val flockLine: String,
+    /** The line of verse while the fog holds on the way to Boids, and to Life. */
+    val flockCaption: String,
+    val lifeCaption: String,
+)
+
+/** A recording's credit: its [title] by its [author], from [source] under [licence], at [url]. */
+@Immutable
+data class Credit(val title: String, val author: String, val url: String, val source: String, val licence: String)
+
+/** The sound outside the window: the recording, how loud, how muffled by the glass, and whose it is. */
+@Immutable
+data class AmbienceTokens(
+    /** The recording, in the formats to try in order: paths the page serves (an Opus file first, then AAC). */
+    val sources: List<String>,
+    /** Its level, 0 to 1. The recordings are mastered once (to −30 LUFS); turn one down here. */
+    val level: Float,
+    /** The glass's low-pass cut-off in Hz: behind fogged glass, and behind cleared glass. */
+    val muffled: Float,
+    val clear: Float,
+    val credit: Credit,
+) {
+    init {
+        require(sources.isNotEmpty()) { "A sound needs a recording" }
+        require(level in 0f..1f) { "level is 0 to 1, got $level" }
+        require(muffled in 20f..clear) { "the glass muffles from $muffled Hz to $clear Hz: muffled must be the lower" }
+    }
+}
+
+/**
+ * A look for the site: its colours by role, its glass, its scene, its words and its sound. Plain data, so another one
+ * can be switched in.
+ */
+@Immutable
+class Theme(
+    val name: String,
+    val colors: ColorRoles,
+    val glass: GlassTokens,
+    val scene: SceneTokens,
+    val copy: ThemeCopy,
+    val ambience: AmbienceTokens,
+)
 
 /** The theme in use, provided by [SiteTheme]. */
 val LocalTheme = staticCompositionLocalOf<Theme> { error("No SiteTheme around this composable") }
@@ -146,6 +195,12 @@ object SiteTheme {
 
     val scene: SceneTokens
         @Composable @ReadOnlyComposable get() = LocalTheme.current.scene
+
+    val copy: ThemeCopy
+        @Composable @ReadOnlyComposable get() = LocalTheme.current.copy
+
+    val ambience: AmbienceTokens
+        @Composable @ReadOnlyComposable get() = LocalTheme.current.ambience
 
     val type: TypeRoles
         @Composable @ReadOnlyComposable get() = LocalTypeRoles.current

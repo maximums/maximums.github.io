@@ -337,7 +337,7 @@ fun WelcomeWords(layout: MenuLayout, name: String) = AtDesignScale(layout) {
         Text("Welcome", style = SiteTheme.type.display.copy(fontSize = home.welcome, lineHeight = home.welcome), color = colors.bright)
         Thread(44.dp)
         Text(name.uppercase(), style = SiteTheme.type.brand, color = colors.muted)
-        Text("stay a while — it's raining", style = SiteTheme.type.verse.copy(fontSize = home.verse), color = colors.text.copy(alpha = 0.8f))
+        Text(SiteTheme.copy.welcome, style = SiteTheme.type.verse.copy(fontSize = home.verse), color = colors.text.copy(alpha = 0.8f))
     }
 }
 

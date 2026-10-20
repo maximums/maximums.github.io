@@ -157,7 +157,8 @@ private fun LookaheadScope.AppContent(runtime: AppRuntime, gpu: GpuStatus, layou
                 }
             }
 
-            val caption by remember(navState) { derivedStateOf { captionFor(navState.value) } }
+            val copy = SiteTheme.copy
+            val caption by remember(navState, copy) { derivedStateOf { captionFor(navState.value, copy) } }
             // Derived, so the screen recomposes when the caption changes, not on every frame of the transition.
             caption?.let {
                 // It fades in while the fog holds, and out as the page arrives.
